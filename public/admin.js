@@ -14811,6 +14811,290 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             // DEVICE PROFILES MANAGEMENT
             // ========================================
             let editingProfileId = null; // Track which profile is being edited
+            let profileEditMode = false; // Track if we're in profile edit mode (editing in Display Settings)
+            let originalConfigBackup = null; // Backup of original config before profile editing
+
+            /**
+             * Enter profile edit mode - loads profile settings into Display Settings UI
+             * @param {string} profileId - The profile ID to edit
+             */
+            async function enterProfileEditMode(profileId) {
+                const profile = state.profiles.find(p => p.id === profileId);
+                if (!profile) {
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'Profile not found',
+                        message: 'Could not find the profile to edit',
+                    });
+                    return;
+                }
+
+                // Backup current config
+                try {
+                    originalConfigBackup = await fetchJSON('/get-config').catch(() => null);
+                } catch (e) {
+                    console.warn('[Profile] Failed to backup config:', e);
+                }
+
+                // Set profile edit mode
+                profileEditMode = true;
+                editingProfileId = profileId;
+                document.body.classList.add('profile-edit-mode');
+
+                // Update banner
+                const banner = document.getElementById('profile-edit-banner');
+                const nameEl = document.getElementById('profile-edit-name');
+                if (banner) banner.style.display = 'flex';
+                if (nameEl) nameEl.textContent = profile.name || 'Unnamed Profile';
+
+                // Close profile builder modal if open
+                const modal = document.getElementById('modal-profile-builder');
+                if (modal && typeof closeModal === 'function') closeModal('modal-profile-builder');
+
+                // Navigate to Display Settings using showSection
+                if (typeof showSection === 'function') {
+                    showSection('section-display');
+                }
+
+                // Load profile settings into the form
+                setTimeout(() => {
+                    loadProfileIntoDisplayForm(profile);
+                }, 150);
+
+                console.log('[Profile] Entered profile edit mode:', profile.name);
+            }
+
+            /**
+             * Exit profile edit mode - restores original config
+             * @param {boolean} restoreConfig - Whether to restore the original config
+             */
+            async function exitProfileEditMode(restoreConfig = true) {
+                profileEditMode = false;
+                editingProfileId = null;
+                document.body.classList.remove('profile-edit-mode');
+
+                // Hide banner
+                const banner = document.getElementById('profile-edit-banner');
+                if (banner) banner.style.display = 'none';
+
+                // Restore original config if requested
+                if (restoreConfig && originalConfigBackup) {
+                    hydrateDisplayForm(originalConfigBackup);
+                }
+
+                originalConfigBackup = null;
+                console.log('[Profile] Exited profile edit mode');
+            }
+
+            /**
+             * Load profile settings into the Display Settings form
+             * @param {Object} profile - The profile to load
+             */
+            function loadProfileIntoDisplayForm(profile) {
+                const settings = profile.settings || {};
+
+                // Build a config object that hydrateDisplayForm can understand
+                const configFromProfile = {
+                    // Mode
+                    cinemaMode: settings.cinemaMode || false,
+                    wallartMode: settings.wallartMode || { enabled: false },
+
+                    // Screensaver settings
+                    showPoster: settings.showPoster,
+                    showMetadata: settings.showMetadata,
+                    showClearLogo: settings.showClearLogo,
+                    showRottenTomatoes: settings.showRottenTomatoes,
+                    rottenTomatoesMinimumScore: settings.rottenTomatoesMinimumScore,
+                    transitionEffect: settings.transitionEffect,
+                    effectPauseTime: settings.effectPauseTime,
+                    transitionIntervalSeconds: settings.transitionIntervalSeconds,
+                    transitionDuration: settings.transitionDuration,
+                    clockWidget: settings.clockWidget,
+                    clockFormat: settings.clockFormat,
+                    clockTimezone: settings.clockTimezone,
+                    screensaverMode: settings.screensaverMode,
+                    screensaverOrientation: settings.screensaverOrientation,
+
+                    // UI Scaling
+                    uiScaling: settings.uiScaling,
+
+                    // Cinema settings
+                    cinema: settings.cinema,
+                    cinemaOrientation: settings.cinemaOrientation,
+
+                    // Carry over any other settings
+                    ...settings,
+                };
+
+                // Hydrate the form with profile settings
+                hydrateDisplayForm(configFromProfile);
+
+                window.notify?.toast({
+                    type: 'info',
+                    title: 'Profile loaded',
+                    message: `Editing profile: ${profile.name}`,
+                    duration: 2000,
+                });
+            }
+
+            /**
+             * Save current Display Settings to the profile being edited
+             */
+            async function saveProfileFromDisplaySettings() {
+                if (!profileEditMode || !editingProfileId) {
+                    console.error('[Profile] Not in profile edit mode');
+                    return;
+                }
+
+                const profile = state.profiles.find(p => p.id === editingProfileId);
+                if (!profile) {
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'Profile not found',
+                        message: 'Could not find the profile to save',
+                    });
+                    return;
+                }
+
+                const saveBtn = document.getElementById('btn-profile-edit-save');
+                if (saveBtn) saveBtn.classList.add('btn-loading');
+
+                try {
+                    // Collect current form values
+                    const patch = collectDisplayFormPatch();
+
+                    // Update profile with new settings (PATCH, not PUT)
+                    await fetchJSON(`/api/profiles/${encodeURIComponent(editingProfileId)}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: profile.name,
+                            description: profile.description,
+                            settings: patch,
+                        }),
+                    });
+
+                    window.notify?.toast({
+                        type: 'success',
+                        title: 'Profile saved',
+                        message: `"${profile.name}" has been updated`,
+                    });
+
+                    // Reload profiles and exit edit mode
+                    await loadProfiles();
+                    await exitProfileEditMode(true);
+
+                    // Navigate back to Devices section
+                    if (typeof showSection === 'function') {
+                        showSection('section-devices');
+                    }
+                } catch (e) {
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'Save failed',
+                        message: e?.message || 'Could not save profile',
+                    });
+                } finally {
+                    if (saveBtn) saveBtn.classList.remove('btn-loading');
+                }
+            }
+
+            // Wire up profile edit mode buttons
+            document
+                .getElementById('btn-profile-edit-cancel')
+                ?.addEventListener('click', async () => {
+                    await exitProfileEditMode(true);
+                    // Navigate back to Devices section
+                    if (typeof showSection === 'function') {
+                        showSection('section-devices');
+                    }
+                });
+
+            document
+                .getElementById('btn-profile-edit-save')
+                ?.addEventListener('click', async () => {
+                    await saveProfileFromDisplaySettings();
+                });
+
+            // Expose for profile card click
+            window.enterProfileEditMode = enterProfileEditMode;
+
+            /**
+             * Create a new profile via modal, then enter edit mode
+             */
+            async function createNewProfile() {
+                const modal = document.getElementById('modal-profile-create');
+                const nameInput = document.getElementById('profile-create-name');
+                const descInput = document.getElementById('profile-create-description');
+                const confirmBtn = document.getElementById('btn-profile-create-confirm');
+
+                if (!modal || !nameInput || !confirmBtn) return;
+
+                // Reset and show modal
+                nameInput.value = '';
+                descInput.value = '';
+                modal.classList.add('open');
+                setTimeout(() => nameInput.focus(), 50);
+
+                // Remove old listeners and add new one
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+                newConfirmBtn.addEventListener('click', async () => {
+                    const name = nameInput.value.trim();
+                    const description = descInput.value.trim();
+
+                    if (!name) {
+                        window.notify?.toast({ type: 'warning', title: 'Name required' });
+                        nameInput.focus();
+                        return;
+                    }
+
+                    try {
+                        // Fetch current config to use as default settings
+                        const currentConfig = await fetchJSON('/get-config').catch(() => ({}));
+
+                        // Create the profile with current settings as default
+                        const response = await fetchJSON('/api/profiles', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                name,
+                                description,
+                                settings: currentConfig,
+                            }),
+                        });
+
+                        if (response?.id) {
+                            modal.classList.remove('open');
+
+                            // Reload profiles to get the new one
+                            await loadProfiles();
+
+                            window.notify?.toast({
+                                type: 'success',
+                                title: 'Profile created',
+                                message: `"${name}" has been created. Now customize the settings.`,
+                                duration: 3000,
+                            });
+
+                            // Enter edit mode for the new profile
+                            enterProfileEditMode(response.id);
+                        } else {
+                            throw new Error('Failed to create profile');
+                        }
+                    } catch (e) {
+                        window.notify?.toast({
+                            type: 'error',
+                            title: 'Failed to create profile',
+                            message: e?.message || 'Could not create profile',
+                        });
+                    }
+                });
+            }
+
+            // Expose globally
+            window.createNewProfile = createNewProfile;
 
             async function loadProfiles() {
                 try {
@@ -14866,20 +15150,183 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                 </div>
                                 <span class="status-pill" style="flex-shrink: 0;"><i class="fas fa-tv"></i> ${modeLabel}</span>
                             </div>
-                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
                                 <span class="status-pill" title="Devices using this profile"><i class="fas fa-desktop"></i> ${deviceCount} device${deviceCount !== 1 ? 's' : ''}</span>
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="btn btn-sm btn-secondary profile-edit-settings-btn" data-profile-id="${escapeHtml(p.id)}" title="Edit display settings">
+                                        <i class="fas fa-sliders-h"></i> Settings
+                                    </button>
+                                    <button class="btn btn-sm btn-icon profile-rename-btn" data-profile-id="${escapeHtml(p.id)}" title="Rename profile">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-icon profile-delete-btn" data-profile-id="${escapeHtml(p.id)}" title="Delete profile" style="color: var(--color-error);">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     `;
                     })
                     .join('');
 
-                // Add click handlers to open editor
+                // Add click handlers for Edit Settings button
+                grid.querySelectorAll('.profile-edit-settings-btn').forEach(btn => {
+                    btn.addEventListener('click', e => {
+                        e.stopPropagation();
+                        const profileId = btn.getAttribute('data-profile-id');
+                        enterProfileEditMode(profileId);
+                    });
+                });
+
+                // Add click handlers for rename button
+                grid.querySelectorAll('.profile-rename-btn').forEach(btn => {
+                    btn.addEventListener('click', e => {
+                        e.stopPropagation();
+                        const profileId = btn.getAttribute('data-profile-id');
+                        renameProfile(profileId);
+                    });
+                });
+
+                // Add click handlers for delete button
+                grid.querySelectorAll('.profile-delete-btn').forEach(btn => {
+                    btn.addEventListener('click', e => {
+                        e.stopPropagation();
+                        const profileId = btn.getAttribute('data-profile-id');
+                        confirmDeleteProfile(profileId);
+                    });
+                });
+
+                // Card click also opens edit mode
                 grid.querySelectorAll('.profile-card').forEach(card => {
                     card.addEventListener('click', () => {
                         const profileId = card.getAttribute('data-profile-id');
-                        openProfileEditor(profileId);
+                        enterProfileEditMode(profileId);
                     });
+                });
+            }
+
+            /**
+             * Rename a profile via modal (name and description)
+             */
+            async function renameProfile(profileId) {
+                const profile = state.profiles.find(p => p.id === profileId);
+                if (!profile) return;
+
+                const modal = document.getElementById('modal-profile-rename');
+                const nameInput = document.getElementById('profile-rename-name');
+                const descInput = document.getElementById('profile-rename-description');
+                const confirmBtn = document.getElementById('btn-profile-rename-confirm');
+
+                if (!modal || !nameInput || !confirmBtn) return;
+
+                // Populate and show modal
+                nameInput.value = profile.name || '';
+                descInput.value = profile.description || '';
+                modal.classList.add('open');
+                setTimeout(() => nameInput.focus(), 50);
+
+                // Remove old listeners and add new one
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+                newConfirmBtn.addEventListener('click', async () => {
+                    const newName = nameInput.value.trim();
+                    const newDescription = descInput.value.trim();
+
+                    if (!newName) {
+                        window.notify?.toast({ type: 'warning', title: 'Name required' });
+                        nameInput.focus();
+                        return;
+                    }
+
+                    try {
+                        await fetchJSON(`/api/profiles/${encodeURIComponent(profileId)}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                name: newName,
+                                description: newDescription,
+                            }),
+                        });
+
+                        modal.classList.remove('open');
+
+                        window.notify?.toast({
+                            type: 'success',
+                            title: 'Profile renamed',
+                            message: `Profile is now "${newName}"`,
+                        });
+
+                        await loadProfiles();
+                    } catch (e) {
+                        window.notify?.toast({
+                            type: 'error',
+                            title: 'Rename failed',
+                            message: e?.message || 'Could not rename profile',
+                        });
+                    }
+                });
+            }
+
+            /**
+             * Confirm and delete a profile via modal
+             */
+            async function confirmDeleteProfile(profileId) {
+                const profile = state.profiles.find(p => p.id === profileId);
+                if (!profile) return;
+
+                const modal = document.getElementById('modal-profile-delete');
+                const messageEl = document.getElementById('profile-delete-message');
+                const warningEl = document.getElementById('profile-delete-warning');
+                const deviceWarningEl = document.getElementById('profile-delete-device-warning');
+                const confirmBtn = document.getElementById('btn-profile-delete-confirm');
+
+                if (!modal || !confirmBtn) return;
+
+                const deviceCount = state.all.filter(d => d.profileId === profileId).length;
+
+                // Update message
+                if (messageEl) {
+                    messageEl.innerHTML = `Are you sure you want to delete <strong>"${escapeHtml(profile.name)}"</strong>?`;
+                }
+
+                // Show/hide device warning
+                if (deviceCount > 0 && warningEl && deviceWarningEl) {
+                    deviceWarningEl.textContent = `This profile is assigned to ${deviceCount} device${deviceCount > 1 ? 's' : ''}. They will revert to global settings.`;
+                    warningEl.style.display = 'block';
+                } else if (warningEl) {
+                    warningEl.style.display = 'none';
+                }
+
+                // Show modal
+                modal.classList.add('open');
+
+                // Remove old listeners and add new one
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+                newConfirmBtn.addEventListener('click', async () => {
+                    try {
+                        await fetchJSON(`/api/profiles/${encodeURIComponent(profileId)}`, {
+                            method: 'DELETE',
+                        });
+
+                        modal.classList.remove('open');
+
+                        window.notify?.toast({
+                            type: 'success',
+                            title: 'Profile deleted',
+                            message: `"${profile.name}" has been removed`,
+                        });
+
+                        await loadProfiles();
+                    } catch (e) {
+                        window.notify?.toast({
+                            type: 'error',
+                            title: 'Delete failed',
+                            message: e?.message || 'Could not delete profile',
+                        });
+                    }
                 });
             }
 
@@ -14900,43 +15347,18 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 if (!container) return;
 
                 // Check if already cloned
-                if (container.querySelector('.profile-mode-tabs')) {
+                if (container.querySelector('.profile-mode-settings')) {
                     return;
                 }
 
                 // Get the source Display Settings content
                 const modeCardsTop = document.getElementById('mode-cards-top');
-                const activeModeCard = document.getElementById('card-active-mode');
 
-                if (!modeCardsTop || !activeModeCard) {
+                if (!modeCardsTop) {
                     container.innerHTML =
-                        '<div style="padding: 40px; text-align: center; color: var(--color-text-secondary);">Display Settings not available. Please load Display Settings first.</div>';
+                        '<div class="profile-loading"><i class="fas fa-exclamation-triangle"></i><div>Display Settings not available. Please load Display Settings first.</div></div>';
                     return;
                 }
-
-                // Build the profile-specific UI
-                let html = '';
-
-                // Mode selector (reusing same structure as Display Settings)
-                html += `
-                <div class="profile-mode-tabs" style="padding: 16px 20px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-secondary);">
-                    <label style="margin-bottom: 12px; display: block; font-weight: 500;"><i class="fas fa-layer-group"></i> Display Mode</label>
-                    <div class="segmented" role="tablist" aria-label="Profile Display Mode">
-                        <label class="seg" id="seg-profile-screensaver" role="tab">
-                            <input type="radio" name="profile-mode" value="screensaver" checked />
-                            <i class="fas fa-image"></i> Screensaver
-                        </label>
-                        <label class="seg" id="seg-profile-wallart" role="tab">
-                            <input type="radio" name="profile-mode" value="wallart" />
-                            <i class="fas fa-images"></i> Wallart
-                        </label>
-                        <label class="seg" id="seg-profile-cinema" role="tab">
-                            <input type="radio" name="profile-mode" value="cinema" />
-                            <i class="fas fa-tv" style="transform: rotate(90deg);"></i> Cinema
-                        </label>
-                    </div>
-                </div>
-                `;
 
                 // Clone each mode's settings with prefixed IDs
                 const modes = [
@@ -14945,7 +15367,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     { id: 'card-cinema', name: 'Cinema', mode: 'cinema' },
                 ];
 
-                html += '<div class="profile-mode-settings" style="padding: 0;">';
+                let html = '<div class="profile-mode-settings">';
 
                 modes.forEach(({ id, name, mode }) => {
                     const sourceCard = document.getElementById(id);
@@ -14958,11 +15380,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     clonedHtml = prefixElementIds(clonedHtml);
 
                     html += `
-                    <div class="profile-mode-content" data-profile-mode="${mode}" style="display: ${mode === 'screensaver' ? 'block' : 'none'}; padding: 16px 20px;">
-                        <h3 style="margin: 0 0 16px 0; font-size: 1.1rem; color: var(--color-text-primary);">
-                            <i class="fas ${mode === 'screensaver' ? 'fa-image' : mode === 'wallart' ? 'fa-images' : 'fa-tv'}"></i>
-                            ${name} Settings
-                        </h3>
+                    <div class="profile-mode-content" data-profile-mode="${mode}" style="display: ${mode === 'screensaver' ? 'block' : 'none'};">
                         <div class="profile-cloned-settings">
                             ${clonedHtml}
                         </div>
@@ -14974,8 +15392,35 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
                 container.innerHTML = html;
 
-                // Re-initialize event handlers for cloned elements
+                // Debug: Log cloned cinema elements to verify IDs are prefixed
+                const trailerDelayEl = container.querySelector(
+                    `[id="${PROFILE_ID_PREFIX}cinemaTrailerDelay"]`
+                );
+                const qrSizeEl = container.querySelector(`[id="${PROFILE_ID_PREFIX}cinemaQRSize"]`);
+                console.log('[Profile] Clone debug:', {
+                    trailerDelayFound: !!trailerDelayEl,
+                    qrSizeFound: !!qrSizeEl,
+                    // Check if original IDs exist (would mean prefix failed)
+                    originalTrailerDelay: !!container.querySelector('[id="cinemaTrailerDelay"]'),
+                    originalQrSize: !!container.querySelector('[id="cinemaQRSize"]'),
+                    totalInputs: container.querySelectorAll('input').length,
+                    totalRangeInputs: container.querySelectorAll('input[type="range"]').length,
+                });
+
+                // Remove inline grid-template-columns styles that override our CSS
+                container.querySelectorAll('.form-grid.masonry').forEach(grid => {
+                    grid.style.removeProperty('grid-template-columns');
+                });
+
+                // Initialize event handlers for cloned elements
                 initClonedElementHandlers(container);
+
+                // Wire up mode switcher from header (it's now in HTML, not generated)
+                document.querySelectorAll('input[name="profile-mode"]').forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        updateProfileModeDisplay();
+                    });
+                });
             }
 
             /**
@@ -15003,6 +15448,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
              * Initialize event handlers for cloned elements (sliders, selects, etc.)
              */
             function initClonedElementHandlers(container) {
+                // CRITICAL: Stop events from bubbling to cinema-ui.js handlers
+                container.addEventListener('change', e => e.stopPropagation(), true);
+                container.addEventListener('input', e => e.stopPropagation(), true);
+                container.addEventListener('click', e => e.stopPropagation(), true);
+
                 // Slider value displays
                 container.querySelectorAll('input[type="range"]').forEach(slider => {
                     const updateDisplay = () => {
@@ -15019,6 +15469,8 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                       : '';
                             display.textContent = slider.value + suffix;
                         }
+                        // Update summary when interval/pause changes
+                        updateProfileSummary(container);
                     };
                     slider.addEventListener('input', updateDisplay);
                     updateDisplay(); // Initial update
@@ -15026,36 +15478,287 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
                 // Checkbox interactions (some have conditional visibility)
                 container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                    checkbox.addEventListener('change', () => {
+                    checkbox.addEventListener('change', e => {
+                        e.stopPropagation();
                         handleProfileCheckboxChange(checkbox);
+                        // Update summary when clock checkbox changes
+                        updateProfileSummary(container);
                     });
+                    // Trigger initial state
+                    handleProfileCheckboxChange(checkbox);
                 });
 
                 // Select handlers
                 container.querySelectorAll('select').forEach(select => {
-                    select.addEventListener('change', () => {
+                    select.addEventListener('change', e => {
+                        e.stopPropagation();
                         handleProfileSelectChange(select);
+                        // Update summary when effect changes
+                        updateProfileSummary(container);
                     });
+                    // Trigger initial state
+                    handleProfileSelectChange(select);
                 });
 
-                // Mode switch handlers
-                container.querySelectorAll('input[name="profile-mode"]').forEach(radio => {
-                    radio.addEventListener('change', () => {
-                        updateProfileModeDisplay();
-                    });
-                });
-
-                // Remove preset buttons (they should apply to Display Settings, not profiles)
+                // Wire up preset buttons for Profile Builder
                 container.querySelectorAll('[id*="preset"]').forEach(btn => {
                     if (btn.tagName === 'BUTTON') {
-                        btn.style.display = 'none';
+                        const clonedId = btn.id;
+                        const originalId = clonedId.replace(PROFILE_ID_PREFIX, '');
+
+                        btn.addEventListener('click', e => {
+                            e.stopPropagation();
+                            applyProfilePreset(container, originalId);
+                        });
                     }
                 });
 
-                // Hide summary pills (dynamic content not relevant for profiles)
-                container.querySelectorAll('[id*="summary"]').forEach(el => {
-                    el.style.display = 'none';
-                });
+                // Initialize summary pills
+                updateProfileSummary(container);
+
+                // Initialize specific complex UI elements
+                initProfileMusicMode(container);
+                initProfileGamesMode(container);
+            }
+
+            /**
+             * Initialize color pickers in the Profile Builder.
+             * Color pickers are dynamically created components that need to be
+             * recreated for the cloned profile settings.
+             * @param {HTMLElement} container - The profile settings container
+             * @param {Object} config - The server config with color values
+             */
+            function initProfileColorPickers(container, config) {
+                // 1. Film Cards Accent Color
+                const filmCardsContainer = container.querySelector(
+                    `[id="${PROFILE_ID_PREFIX}filmcards-color-picker-container"]`
+                );
+                if (filmCardsContainer) {
+                    const savedColor =
+                        config.wallartMode?.filmCards?.accentColor ||
+                        config.wallartMode?.layoutSettings?.filmCards?.accentColor ||
+                        '#b40f0f';
+
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.id = `${PROFILE_ID_PREFIX}wallartMode_filmCards_accentColor`;
+                    hiddenInput.value = savedColor;
+
+                    const picker = createColorPicker({
+                        label: 'Accent Color',
+                        color: savedColor,
+                        defaultColor: '#b40f0f',
+                        presets: COLOR_PRESETS,
+                        onColorChange: color => {
+                            hiddenInput.value = color;
+                        },
+                        refreshIframe: false,
+                    });
+
+                    filmCardsContainer.innerHTML = '';
+                    filmCardsContainer.appendChild(hiddenInput);
+                    filmCardsContainer.appendChild(picker);
+                }
+
+                // 2. Artist Cards (Music Mode) Accent Color
+                const artistCardsContainer = container.querySelector(
+                    `[id="${PROFILE_ID_PREFIX}artistcards-color-picker-container"]`
+                );
+                if (artistCardsContainer) {
+                    const savedColor =
+                        config.wallartMode?.musicMode?.artistCards?.accentColor || '#143c8c';
+
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.id = `${PROFILE_ID_PREFIX}wallartMode_musicMode_artistCards_accentColor`;
+                    hiddenInput.value = savedColor;
+
+                    const picker = createColorPicker({
+                        label: 'Accent Color',
+                        color: savedColor,
+                        defaultColor: '#143c8c',
+                        presets: COLOR_PRESETS,
+                        onColorChange: color => {
+                            hiddenInput.value = color;
+                        },
+                        refreshIframe: false,
+                    });
+
+                    artistCardsContainer.innerHTML = '';
+                    artistCardsContainer.appendChild(hiddenInput);
+                    artistCardsContainer.appendChild(picker);
+                }
+
+                // 3. Timeline Border Color (Cinema Now Playing)
+                const timelineBorderContainer = container.querySelector(
+                    `[id="${PROFILE_ID_PREFIX}timeline-border-color-picker-container"]`
+                );
+                if (timelineBorderContainer) {
+                    const savedColor =
+                        config.cinema?.nowPlaying?.timelineBorder?.color || '#ffffff';
+
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.id = `${PROFILE_ID_PREFIX}cinemaTimelineBorderColor`;
+                    hiddenInput.value = savedColor;
+
+                    const picker = createColorPicker({
+                        label: 'Border Color',
+                        color: savedColor,
+                        defaultColor: '#ffffff',
+                        presets: [
+                            '#ffffff',
+                            '#ff0000',
+                            '#00ff00',
+                            '#0066ff',
+                            '#ffcc00',
+                            '#ff00ff',
+                            '#00ffff',
+                            '#ff6600',
+                        ],
+                        onColorChange: color => {
+                            hiddenInput.value = color;
+                        },
+                        refreshIframe: false,
+                    });
+
+                    timelineBorderContainer.innerHTML = '';
+                    timelineBorderContainer.appendChild(hiddenInput);
+                    timelineBorderContainer.appendChild(picker);
+                }
+
+                console.log('[Profile] Color pickers initialized');
+            }
+
+            /**
+             * Initialize Music Mode visibility in profile builder
+             */
+            function initProfileMusicMode(container) {
+                const checkbox = container.querySelector('[id$="wallartMode_musicMode_enabled"]');
+                const settingsContainer = container.querySelector('[id$="music-mode-settings"]');
+
+                if (checkbox && settingsContainer) {
+                    const updateVisibility = () => {
+                        settingsContainer.style.display = checkbox.checked ? '' : 'none';
+                    };
+                    checkbox.addEventListener('change', updateVisibility);
+                    updateVisibility();
+                }
+            }
+
+            /**
+             * Initialize Games Mode visibility in profile builder
+             */
+            function initProfileGamesMode(container) {
+                const checkbox =
+                    container.querySelector('[id$="wallartMode_gamesMode_enabled"]') ||
+                    container.querySelector('[id$="wallartGamesMode-enabled"]');
+                const settingsContainer = container.querySelector('[id$="games-mode-settings"]');
+
+                if (checkbox && settingsContainer) {
+                    const updateVisibility = () => {
+                        settingsContainer.style.display = checkbox.checked ? '' : 'none';
+                    };
+                    checkbox.addEventListener('change', updateVisibility);
+                    updateVisibility();
+                }
+            }
+
+            /**
+             * Apply preset values to Profile Builder cloned elements
+             */
+            function applyProfilePreset(container, presetId) {
+                const presets = {
+                    // Screensaver presets
+                    'saver-preset-chill': { interval: 30, effect: 'kenburns', pause: 0 },
+                    'saver-preset-standard': { interval: 15, effect: 'fade', pause: 2 },
+                    'saver-preset-lively': { interval: 8, effect: 'slide', pause: 0.5 },
+                    'saver-preset-reset': { interval: 12, effect: 'kenburns', pause: 1 },
+                    // Wallart presets
+                    'wallart-preset-gallery': {
+                        density: 6,
+                        layout: 'grid',
+                        anim: 'drift',
+                        refresh: 120,
+                        rand: 30,
+                    },
+                    'wallart-preset-dynamic': {
+                        density: 9,
+                        layout: 'masonry',
+                        anim: 'drift',
+                        refresh: 60,
+                        rand: 50,
+                    },
+                    'wallart-preset-calm': {
+                        density: 4,
+                        layout: 'grid',
+                        anim: 'fade',
+                        refresh: 180,
+                        rand: 20,
+                    },
+                    'wallart-preset-reset': {
+                        density: 6,
+                        layout: 'grid',
+                        anim: 'drift',
+                        refresh: 120,
+                        rand: 30,
+                    },
+                };
+
+                const preset = presets[presetId];
+                if (!preset) return;
+
+                const setVal = (idSuffix, value) => {
+                    const el = container.querySelector(`[id$="${idSuffix}"]`);
+                    if (el && value !== undefined) {
+                        el.value = String(value);
+                        el.dispatchEvent(new Event('input', { bubbles: false }));
+                        el.dispatchEvent(new Event('change', { bubbles: false }));
+                    }
+                };
+
+                // Apply screensaver preset
+                if (preset.interval !== undefined) {
+                    setVal('transitionIntervalSeconds', preset.interval);
+                    setVal('transitionEffect', preset.effect);
+                    setVal('effectPauseTime', preset.pause);
+                }
+
+                // Apply wallart preset
+                if (preset.density !== undefined) {
+                    setVal('wallartMode_density', preset.density);
+                    setVal('wallartMode_layoutVariant', preset.layout);
+                    setVal('wallartMode_animationType', preset.anim);
+                    setVal('wallartMode_refreshRate', preset.refresh);
+                    setVal('wallartMode_randomness', preset.rand);
+                }
+
+                // Update summary
+                updateProfileSummary(container);
+            }
+
+            /**
+             * Update summary pills in Profile Builder
+             */
+            function updateProfileSummary(container) {
+                // Screensaver summary
+                const interval = container.querySelector(
+                    '[id$="transitionIntervalSeconds"]'
+                )?.value;
+                const effect = container.querySelector('[id$="transitionEffect"]')?.value;
+                const pause = container.querySelector('[id$="effectPauseTime"]')?.value;
+                const clock = container.querySelector('[id$="clockWidget"]')?.checked;
+
+                const summaryInterval = container.querySelector('[id$="saver-summary-interval"]');
+                const summaryEffect = container.querySelector('[id$="saver-summary-effect"]');
+                const summaryPause = container.querySelector('[id$="saver-summary-pause"]');
+                const summaryClock = container.querySelector('[id$="saver-summary-clock"]');
+
+                if (summaryInterval && interval)
+                    summaryInterval.textContent = `Every ${interval} s`;
+                if (summaryEffect && effect) summaryEffect.textContent = `Effect: ${effect}`;
+                if (summaryPause && pause) summaryPause.textContent = `Pause: ${pause}`;
+                if (summaryClock) summaryClock.textContent = `Clock: ${clock ? 'On' : 'Off'}`;
             }
 
             /**
@@ -15064,13 +15767,32 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             function handleProfileCheckboxChange(checkbox) {
                 const id = checkbox.id.replace(PROFILE_ID_PREFIX, '');
 
-                // Map of checkbox IDs to elements they control
+                // Comprehensive map of checkbox IDs to elements they control
                 const visibilityMap = {
+                    // Screensaver
                     clockWidget: ['sec-clock-format', 'sec-clock-timezone'],
-                    showRottenTomatoes: ['showRottenTomatoes-settings'],
-                    'cinemaHeader-enabled': ['cinemaHeader-settings'],
-                    'cinemaFooter-enabled': ['cinemaFooter-settings'],
-                    'cinemaTimelineBorder-enabled': ['cinemaTimelineBorder-settings'],
+                    showRottenTomatoes: ['showRottenTomatoes-settings', 'rt-score-row'],
+
+                    // Wallart
+                    wallartMode_musicMode_enabled: ['music-mode-settings'],
+                    wallartMode_gamesMode_enabled: ['games-mode-settings'],
+                    wallartAmbientGradient: ['wallart-ambient-settings'],
+
+                    // Cinema
+                    'cin-h-enabled': ['cin-h-settings', 'cinema-header-settings'],
+                    'cin-f-enabled': ['cin-f-settings', 'cinema-footer-settings'],
+                    'cin-a-enabled': ['cin-a-settings', 'cinema-ambilight-settings'],
+                    'cin-ctx-enabled': ['cin-ctx-container', 'ctx-settings'],
+                    cinemaNowPlayingEnabled: ['cinema-nowplaying-settings', 'now-playing-settings'],
+                    cinemaTimelineBorderEnabled: [
+                        'cinema-timeline-settings',
+                        'timeline-border-settings',
+                    ],
+                    cinemaTrailerEnabled: ['cinema-trailer-settings', 'trailer-settings'],
+                    cinemaQREnabled: ['cinema-qr-settings', 'qr-settings'],
+                    cinemaRatingBadge: ['cinema-rating-settings'],
+                    cinemaWatchProviders: ['cinema-providers-settings'],
+                    cinemaAwardsBadge: ['cinema-awards-settings'],
                 };
 
                 const targets = visibilityMap[id];
@@ -15081,6 +15803,51 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             el.style.display = checkbox.checked ? '' : 'none';
                         }
                     });
+                }
+
+                // Handle specific complex toggles
+                handleComplexToggle(checkbox, id);
+            }
+
+            /**
+             * Handle complex toggles that need special logic
+             */
+            function handleComplexToggle(checkbox, originalId) {
+                const container = document.getElementById('profile-settings-container');
+                if (!container) return;
+
+                // Music Mode toggle - show/hide the entire music settings card
+                if (originalId === 'wallartMode_musicMode_enabled') {
+                    const musicCard = container.querySelector('[data-card-key="music-mode"]');
+                    const musicSettings = document.getElementById(
+                        PROFILE_ID_PREFIX + 'music-mode-settings'
+                    );
+                    if (musicSettings) {
+                        musicSettings.style.display = checkbox.checked ? '' : 'none';
+                    }
+                    if (musicCard) {
+                        const settingsContent = musicCard.querySelectorAll(
+                            '.form-row, .form-group, select, input:not([type="checkbox"])'
+                        );
+                        settingsContent.forEach(el => {
+                            if (!el.closest('.card-title')) {
+                                el.style.display = checkbox.checked ? '' : 'none';
+                            }
+                        });
+                    }
+                }
+
+                // Games Mode toggle
+                if (
+                    originalId === 'wallartMode_gamesMode_enabled' ||
+                    originalId === 'wallartGamesMode-enabled'
+                ) {
+                    const gamesSettings = document.getElementById(
+                        PROFILE_ID_PREFIX + 'games-mode-settings'
+                    );
+                    if (gamesSettings) {
+                        gamesSettings.style.display = checkbox.checked ? '' : 'none';
+                    }
                 }
             }
 
@@ -15123,7 +15890,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 });
             }
 
-            function openProfileEditor(profileId = null) {
+            async function openProfileEditor(profileId = null) {
                 editingProfileId = profileId;
                 const modal = document.getElementById('modal-profile-builder');
                 const titleText = document.getElementById('profile-modal-title-text');
@@ -15131,6 +15898,66 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
                 // Clone Display Settings into Profile Builder (if not already done)
                 cloneDisplaySettingsToProfile();
+
+                // Fetch current config from server to get actual values
+                let serverConfig = {};
+                try {
+                    serverConfig = await fetchJSON('/get-config').catch(() => ({}));
+                    console.log('[Profile] Fetched server config:', {
+                        showPoster: serverConfig.showPoster,
+                        showMetadata: serverConfig.showMetadata,
+                        clockWidget: serverConfig.clockWidget,
+                    });
+                } catch (e) {
+                    console.warn('[Profile] Failed to fetch config:', e);
+                }
+
+                // Initialize color pickers in Profile Builder with server config values
+                const container = document.getElementById('profile-settings-container');
+                if (container && serverConfig && Object.keys(serverConfig).length > 0) {
+                    initProfileColorPickers(container, serverConfig);
+                }
+
+                // DEBUG: Check container state right before populate
+                if (container) {
+                    const cinemaContent = container.querySelector('[data-profile-mode="cinema"]');
+                    const cinemaInputs = cinemaContent
+                        ? cinemaContent.querySelectorAll('input')
+                        : [];
+                    console.log('[Profile] Pre-populate DOM check:', {
+                        cinemaContentExists: !!cinemaContent,
+                        cinemaContentDisplay: cinemaContent?.style?.display,
+                        cinemaInputCount: cinemaInputs.length,
+                        sampleCinemaInputIds: Array.from(cinemaInputs)
+                            .slice(0, 10)
+                            .map(el => el.id),
+                    });
+                }
+
+                // Populate cloned form with server config values (not DOM which may not be loaded)
+                if (serverConfig && Object.keys(serverConfig).length > 0) {
+                    populateProfileFromServerConfig(serverConfig);
+
+                    // Set the display mode based on server config
+                    const currentMode = serverConfig.cinemaMode
+                        ? 'cinema'
+                        : serverConfig.wallartMode?.enabled
+                          ? 'wallart'
+                          : 'screensaver';
+                    const modeRadio = document.querySelector(
+                        `input[name="profile-mode"][value="${currentMode}"]`
+                    );
+                    if (modeRadio) {
+                        modeRadio.checked = true;
+                        updateProfileModeDisplay();
+                    }
+                }
+
+                // ALSO try to copy from Display Settings DOM if it's loaded
+                // This catches any settings not in the server config mapping
+                setTimeout(() => {
+                    copyAllDisplaySettingsToProfile();
+                }, 100);
 
                 if (profileId) {
                     const profile = state.profiles.find(p => p.id === profileId);
@@ -15157,7 +15984,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     if (modeRadio) modeRadio.checked = true;
                     updateProfileModeDisplay();
 
-                    // Populate all cloned form fields with saved values
+                    // THEN: Override with saved profile values
                     populateClonedSettingsFromProfile(s);
 
                     document.getElementById('profile-json-editor').value = JSON.stringify(
@@ -15172,18 +15999,612 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     document.getElementById('profile-description').value = '';
                     document.getElementById('profile-json-editor').value = '{}';
 
-                    // Set default mode
-                    const modeRadio = document.querySelector(
-                        'input[name="profile-mode"][value="screensaver"]'
-                    );
-                    if (modeRadio) modeRadio.checked = true;
-                    updateProfileModeDisplay();
-
-                    // Copy current Display Settings values to profile (sensible defaults)
-                    copyDisplaySettingsToProfile();
+                    // Mode is already set from server config above, no need to change
                 }
 
                 __showOverlay(modal, 'modal-profile-builder');
+            }
+
+            /**
+             * Populate Profile Builder form directly from server config.
+             * This bypasses the DOM which may not be loaded yet.
+             */
+            function populateProfileFromServerConfig(config) {
+                const container = document.getElementById('profile-settings-container');
+                if (!container) return;
+
+                let populated = 0;
+
+                // Debug: verify container state at start of populate
+                const trailerDelayCheck = container.querySelector(
+                    `[id="${PROFILE_ID_PREFIX}cinemaTrailerDelay"]`
+                );
+                const qrSizeCheck = container.querySelector(
+                    `[id="${PROFILE_ID_PREFIX}cinemaQRSize"]`
+                );
+
+                // More detailed debug - look for ALL inputs containing "Trailer" or "QR"
+                const allInputs = container.querySelectorAll('input');
+                const trailerInputs = Array.from(allInputs).filter(el =>
+                    el.id?.toLowerCase().includes('trailer')
+                );
+                const qrInputs = Array.from(allInputs).filter(el =>
+                    el.id?.toLowerCase().includes('qr')
+                );
+
+                console.log('[Profile] Populate start check:', {
+                    containerExists: !!container,
+                    trailerDelayFound: !!trailerDelayCheck,
+                    qrSizeFound: !!qrSizeCheck,
+                    containerId: container?.id,
+                    childCount: container?.children?.length,
+                    totalInputs: allInputs.length,
+                    trailerInputIds: trailerInputs.map(el => el.id),
+                    qrInputIds: qrInputs.map(el => el.id),
+                    hasCinemaContent: !!container.querySelector('[data-profile-mode="cinema"]'),
+                });
+
+                // Helper to get nested config value by path (e.g., "cinema.poster.style")
+                const getConfigValue = path => {
+                    const parts = path.split(/[._]/);
+                    let value = config;
+                    for (const part of parts) {
+                        if (value === undefined || value === null) return undefined;
+                        value = value[part];
+                    }
+                    return value;
+                };
+
+                // Track which IDs we successfully set
+                const populatedIds = new Set();
+                const missingElements = [];
+
+                // Helper to set a cloned element value
+                const setVal = (id, value) => {
+                    if (value === undefined || value === null) return;
+                    const el = container.querySelector(`[id="${PROFILE_ID_PREFIX}${id}"]`);
+                    if (el) {
+                        el.value = value;
+                        if (el.type === 'range') {
+                            el.dispatchEvent(new Event('input', { bubbles: false }));
+                        }
+                        populated++;
+                        populatedIds.add(id);
+                    } else {
+                        missingElements.push(id);
+                        // Debug: check if element exists with different casing or similar
+                        const similar = container.querySelector(`[id*="${id}"]`);
+                        if (similar) {
+                            console.log(`[Profile] Found similar element for ${id}:`, similar.id);
+                        }
+                    }
+                };
+
+                const setChecked = (id, value) => {
+                    const el = container.querySelector(`[id="${PROFILE_ID_PREFIX}${id}"]`);
+                    if (el) {
+                        el.checked = !!value;
+                        el.dispatchEvent(new Event('change', { bubbles: false }));
+                        populated++;
+                        populatedIds.add(id);
+                    } else {
+                        missingElements.push(id);
+                    }
+                };
+
+                // === SCREENSAVER SETTINGS ===
+                setVal(
+                    'screensaverOrientation',
+                    config.screensaverMode?.orientation || config.screensaverOrientation || 'auto'
+                );
+                setChecked('showPoster', config.showPoster);
+                setChecked('showMetadata', config.showMetadata);
+                setChecked('showClearLogo', config.showClearLogo);
+                setChecked('showRottenTomatoes', config.showRottenTomatoes);
+                setVal('rottenTomatoesMinimumScore', config.rottenTomatoesMinimumScore);
+                setVal('transitionEffect', config.transitionEffect);
+                setVal('effectPauseTime', config.effectPauseTime);
+                setVal('transitionIntervalSeconds', config.transitionIntervalSeconds);
+                setVal('transitionDuration', config.transitionDuration);
+                setChecked('clockWidget', config.clockWidget);
+                setVal('clockFormat', config.clockFormat);
+                setVal('clockTimezone', config.clockTimezone);
+
+                // UI Scaling (IDs use underscore: uiScaling_content)
+                if (config.uiScaling) {
+                    setVal('uiScaling_global', config.uiScaling.global);
+                    setVal('uiScaling_content', config.uiScaling.content);
+                    setVal('uiScaling_clearlogo', config.uiScaling.clearlogo);
+                    setVal('uiScaling_clock', config.uiScaling.clock);
+                }
+
+                // === WALLART SETTINGS ===
+                console.log('[Profile] Wallart config debug:', {
+                    hasWallartMode: !!config.wallartMode,
+                    hasLayoutSettings: !!config.wallartMode?.layoutSettings,
+                    hasFilmCards: !!config.wallartMode?.layoutSettings?.filmCards,
+                    hasHeroGrid: !!config.wallartMode?.layoutSettings?.heroGrid,
+                    hasMusicMode: !!config.wallartMode?.musicMode,
+                });
+
+                if (config.wallartMode) {
+                    const w = config.wallartMode;
+                    // Note: wallartMode_enabled is not a separate element - it's the display mode
+                    setVal('wallartOrientation', w.orientation);
+                    setVal('wallartMode_refreshRate', w.refreshRate);
+                    setVal('wallartMode_randomness', w.randomness);
+                    setVal('wallartMode_animationType', w.animationType);
+                    setVal('wallartMode_layoutVariant', w.layoutVariant);
+                    setVal('wallartMode_density', w.density);
+                    setChecked('wallartMode_ambientGradient', w.ambientGradient);
+                    setChecked('wallartMode_biasAmbientToHero', w.biasAmbientToHero);
+                    setChecked('wallartMode_gamesOnly', w.gamesOnly);
+
+                    // Parallax depth settings
+                    if (w.parallaxDepth) {
+                        setVal('wallartMode_parallaxDepth_layerCount', w.parallaxDepth.layerCount);
+                        setVal('wallartMode_parallaxDepth_speed', w.parallaxDepth.speed);
+                        setVal('wallartMode_parallaxDepth_depthScale', w.parallaxDepth.depthScale);
+                        setChecked(
+                            'wallartMode_parallaxDepth_smoothScroll',
+                            w.parallaxDepth.smoothScroll
+                        );
+                        setVal(
+                            'wallartMode_parallaxDepth_perspective',
+                            w.parallaxDepth.perspective
+                        );
+                    }
+
+                    // Film cards
+                    if (w.filmCards || w.layoutSettings?.filmCards) {
+                        const fc = w.filmCards || w.layoutSettings?.filmCards || {};
+                        setVal('wallartMode_filmCards_groupBy', fc.groupBy);
+                        setVal('wallartMode_filmCards_minGroupSize', fc.minGroupSize);
+                        setVal('wallartMode_filmCards_cardRotationSeconds', fc.cardRotationSeconds);
+                        setVal(
+                            'wallartMode_filmCards_posterRotationSeconds',
+                            fc.posterRotationSeconds
+                        );
+                        // Note: accentColor is a dynamic color picker
+                    }
+
+                    // Hero grid settings
+                    if (w.layoutSettings?.heroGrid) {
+                        const hg = w.layoutSettings.heroGrid;
+                        setVal('wallartMode_heroSide', hg.heroSide);
+                        setVal('wallartMode_heroRotationMinutes', hg.heroRotationMinutes);
+                        setChecked('wallartMode_biasAmbientToHero', hg.biasAmbientToHero);
+                    }
+
+                    // Music mode
+                    if (w.musicMode) {
+                        setChecked('wallartMode_musicMode_enabled', w.musicMode.enabled);
+                        setVal('wallartMode_musicMode_displayStyle', w.musicMode.displayStyle);
+                        setVal('wallartMode_musicMode_animation', w.musicMode.animation);
+                        setVal('wallartMode_musicMode_density', w.musicMode.density);
+                        setChecked('wallartMode_musicMode_showArtist', w.musicMode.showArtist);
+                        setChecked(
+                            'wallartMode_musicMode_showAlbumTitle',
+                            w.musicMode.showAlbumTitle
+                        );
+                        setChecked('wallartMode_musicMode_showYear', w.musicMode.showYear);
+                        setChecked('wallartMode_musicMode_showGenre', w.musicMode.showGenre);
+                        // Note: minRating element doesn't exist in HTML
+                        setVal(
+                            'wallartMode_musicMode_artistRotationSeconds',
+                            w.musicMode.artistRotationSeconds
+                        );
+                        setVal(
+                            'wallartMode_musicMode_albumRotationSeconds',
+                            w.musicMode.albumRotationSeconds
+                        );
+                        setVal('wallartMode_musicMode_sortMode', w.musicMode.sortMode);
+                        if (w.musicMode.sortWeights) {
+                            setVal(
+                                'wallartMode_musicMode_sortWeight_recent',
+                                w.musicMode.sortWeights.recent
+                            );
+                            setVal(
+                                'wallartMode_musicMode_sortWeight_popular',
+                                w.musicMode.sortWeights.popular
+                            );
+                            setVal(
+                                'wallartMode_musicMode_sortWeight_random',
+                                w.musicMode.sortWeights.random
+                            );
+                        }
+                        // Note: artistCards accentColor is a dynamic color picker
+                    }
+                }
+
+                // === CINEMA SETTINGS ===
+                // Note: cinemaMode is controlled by the display mode radio, not a checkbox
+                setVal('cinemaOrientation', config.cinemaOrientation || config.cinema?.orientation);
+
+                console.log('[Profile] Cinema config debug:', {
+                    hasCinema: !!config.cinema,
+                    hasNowPlaying: !!config.cinema?.nowPlaying,
+                    nowPlayingEnabled: config.cinema?.nowPlaying?.enabled,
+                    rotationInterval: config.cinema?.rotationIntervalMinutes,
+                    hasPoster: !!config.cinema?.poster,
+                    hasBackground: !!config.cinema?.background,
+                });
+
+                if (config.cinema) {
+                    const c = config.cinema;
+                    setVal('cinemaOrientation', c.orientation);
+                    setVal('cinemaRotationInterval', c.rotationIntervalMinutes);
+
+                    // Poster settings
+                    if (c.poster) {
+                        setVal('cinemaPosterStyle', c.poster.style);
+                        setVal('cinemaPosterOverlay', c.poster.overlay);
+                        setVal('cinemaPosterTransition', c.poster.transitionDuration);
+                        setVal('cinemaFrameWidth', c.poster.frameWidth);
+                        setVal('cinemaFrameColorMode', c.poster.frameColorMode);
+                        if (c.poster.cinematicTransitions) {
+                            setVal(
+                                'cinemaSingleTransition',
+                                c.poster.cinematicTransitions.singleTransition
+                            );
+                            setVal(
+                                'cinemaTransitionMode',
+                                c.poster.cinematicTransitions.selectionMode
+                            );
+                        }
+                    }
+
+                    // Background settings
+                    if (c.background) {
+                        setVal('cinemaBackgroundMode', c.background.mode);
+                        setVal('cinemaBackgroundBlur', c.background.blurAmount);
+                        setVal('cinemaVignette', c.background.vignette);
+                    }
+
+                    // Global effects
+                    if (c.globalEffects) {
+                        setVal('cinemaColorFilter', c.globalEffects.colorFilter);
+                        setVal('cinemaContrast', c.globalEffects.contrast);
+                        setVal('cinemaBrightness', c.globalEffects.brightness);
+                        setVal('cinemaGlobalFont', c.globalEffects.fontFamily);
+                        setVal('cinemaGlobalTextColorMode', c.globalEffects.textColorMode);
+                        setVal('cinemaGlobalTstIntensity', c.globalEffects.tonSurTonIntensity);
+                        setVal('cinemaGlobalTextEffect', c.globalEffects.textEffect);
+                    }
+
+                    // Metadata settings
+                    if (c.metadata) {
+                        setVal('cinemaMetadataOpacity', c.metadata.opacity);
+                        setVal('cinemaMetadataLayout', c.metadata.layout);
+                        setChecked('cinemaShowYear', c.metadata.showYear);
+                        setChecked('cinemaShowRuntime', c.metadata.showRuntime);
+                        setChecked('cinemaShowRating', c.metadata.showRating);
+                        setChecked('cinemaShowCertification', c.metadata.showCertification);
+                        setChecked('cinemaShowGenre', c.metadata.showGenre);
+                        setChecked('cinemaShowDirector', c.metadata.showDirector);
+                        setChecked('cinemaShowStudioLogo', c.metadata.showStudioLogo);
+                        if (c.metadata.specs) {
+                            setChecked('cinemaShowResolution', c.metadata.specs.showResolution);
+                            setChecked('cinemaShowAudio', c.metadata.specs.showAudio);
+                            setChecked('cinemaShowHDR', c.metadata.specs.showHDR);
+                            setChecked('cinemaShowAspectRatio', c.metadata.specs.showAspectRatio);
+                            setVal('cinemaSpecsStyle', c.metadata.specs.style);
+                            setVal('cinemaSpecsIconSet', c.metadata.specs.iconSet);
+                        }
+                    }
+
+                    // Now Playing settings
+                    // Note: There's no cinemaNowPlayingEnabled checkbox - nowPlaying is always available
+                    if (c.nowPlaying) {
+                        setVal('cinemaNowPlayingPriority', c.nowPlaying.priority);
+                        setVal('cinemaNowPlayingFilterUser', c.nowPlaying.filterUser);
+                        setVal('cinemaNowPlayingInterval', c.nowPlaying.updateIntervalSeconds);
+                        if (c.nowPlaying.timelineBorder) {
+                            setChecked(
+                                'cinemaTimelineBorderEnabled',
+                                c.nowPlaying.timelineBorder.enabled
+                            );
+                            setVal(
+                                'cinemaTimelineBorderThickness',
+                                c.nowPlaying.timelineBorder.thickness
+                            );
+                            setVal(
+                                'cinemaTimelineBorderColorMode',
+                                c.nowPlaying.timelineBorder.colorMode
+                            );
+                            // Note: cinemaTimelineBorderColor is a dynamic color picker
+                            setVal(
+                                'cinemaTimelineBorderOpacity',
+                                c.nowPlaying.timelineBorder.opacity
+                            );
+                            setVal('cinemaTimelineBorderStyle', c.nowPlaying.timelineBorder.style);
+                            setChecked(
+                                'cinemaTimelineBorderGradient',
+                                c.nowPlaying.timelineBorder.gradient
+                            );
+                            setChecked(
+                                'cinemaTimelineBorderGlow',
+                                c.nowPlaying.timelineBorder.glowEnabled
+                            );
+                            setChecked(
+                                'cinemaTimelineBorderPaused',
+                                c.nowPlaying.timelineBorder.pausedIndicator
+                            );
+                        }
+                    }
+
+                    // Promotional settings
+                    if (c.promotional) {
+                        setChecked('cinemaRatingBadge', c.promotional.showRating);
+                        setChecked('cinemaWatchProviders', c.promotional.showWatchProviders);
+                        setChecked('cinemaAwardsBadge', c.promotional.showAwardsBadge);
+
+                        // Rating badge settings
+                        if (c.promotional.rating) {
+                            setVal('cinemaRatingSource', c.promotional.rating.source);
+                            setVal('cinemaRatingPosition', c.promotional.rating.position);
+                        }
+
+                        // Watch providers settings
+                        if (c.promotional.watchProviders) {
+                            setVal(
+                                'cinemaWatchProviderPosition',
+                                c.promotional.watchProviders.position
+                            );
+                        }
+
+                        // Trailer settings
+                        if (c.promotional.trailer) {
+                            setChecked('cinemaTrailerEnabled', c.promotional.trailer.enabled);
+                            setVal('cinemaTrailerDelay', c.promotional.trailer.delay);
+                            setChecked('cinemaTrailerMuted', c.promotional.trailer.muted);
+                            setChecked('cinemaTrailerLoop', c.promotional.trailer.loop);
+                            setVal('cinemaTrailerQuality', c.promotional.trailer.quality);
+                            setVal('cinemaTrailerAutohide', c.promotional.trailer.autohide);
+                            setVal('cinemaTrailerReshow', c.promotional.trailer.reshow);
+                        }
+
+                        // QR Code settings
+                        if (c.promotional.qrCode) {
+                            setChecked('cinemaQREnabled', c.promotional.qrCode.enabled);
+                            setVal('cinemaQRUrlType', c.promotional.qrCode.urlType);
+                            setVal('cinemaQRUrl', c.promotional.qrCode.url);
+                            setVal('cinemaQRPosition', c.promotional.qrCode.position);
+                            setVal('cinemaQRSize', c.promotional.qrCode.size);
+                        }
+                    }
+
+                    // Cinema Header (dynamic mount uses cin-h-* IDs)
+                    if (c.header) {
+                        setChecked('cin-h-enabled', c.header.enabled);
+                        setVal('cin-h-presets', c.header.text);
+                        setVal('cin-h-font', c.header.style?.fontFamily);
+                        setVal('cin-h-size', c.header.style?.fontSize);
+                        setVal('cin-h-color', c.header.style?.color);
+                        setVal('cin-h-shadow', c.header.style?.shadow);
+                        setVal('cin-h-texteffect', c.header.style?.textEffect);
+                        setVal('cin-h-entrance', c.header.style?.entranceAnimation);
+                        setVal('cin-h-decoration', c.header.style?.decoration);
+                        setChecked('cin-h-tst', c.header.style?.tonSurTon);
+                        setVal('cin-h-tst-intensity', c.header.style?.tonSurTonIntensity);
+                    }
+
+                    // Cinema Footer (dynamic mount uses cin-f-* IDs)
+                    if (c.footer) {
+                        setChecked('cin-f-enabled', c.footer.enabled);
+                        setVal('cin-f-presets', c.footer.text);
+                        setVal('cin-f-font', c.footer.style?.fontFamily);
+                        setVal('cin-f-size', c.footer.style?.fontSize);
+                        setVal('cin-f-color', c.footer.style?.color);
+                        setVal('cin-f-shadow', c.footer.style?.shadow);
+                        setVal('cin-f-texteffect', c.footer.style?.textEffect);
+                        setVal('cin-f-entrance', c.footer.style?.entranceAnimation);
+                        setVal('cin-f-decoration', c.footer.style?.decoration);
+                        setChecked('cin-f-tst', c.footer.style?.tonSurTon);
+                        setVal('cin-f-tst-intensity', c.footer.style?.tonSurTonIntensity);
+                    }
+
+                    // Cinema Ambilight (dynamic mount uses cin-a-* IDs)
+                    if (c.ambilight) {
+                        setChecked('cin-a-enabled', c.ambilight.enabled);
+                        setVal('cin-a-intensity', c.ambilight.intensity);
+                        setVal('cin-a-blur', c.ambilight.blur);
+                        setVal('cin-a-spread', c.ambilight.spread);
+                        setVal('cin-a-opacity', c.ambilight.opacity);
+                        setChecked('cin-a-animated', c.ambilight.animated);
+                        setVal('cin-a-animation-speed', c.ambilight.animationSpeed);
+                    }
+
+                    // Cinema Context (dynamic mount uses cin-ctx-* IDs)
+                    if (c.context) {
+                        setChecked('cin-ctx-enabled', c.context.enabled);
+                        setVal('cin-ctx-position', c.context.position);
+                        setVal('cin-ctx-style', c.context.style);
+                        setVal('cin-ctx-size', c.context.size);
+                        setChecked('cin-ctx-showServer', c.context.showServer);
+                        setChecked('cin-ctx-showLibrary', c.context.showLibrary);
+                        setChecked('cin-ctx-showGenre', c.context.showGenre);
+                        setChecked('cin-ctx-showYear', c.context.showYear);
+                        setChecked('cin-ctx-showDecade', c.context.showDecade);
+                        setChecked('cin-ctx-showCollection', c.context.showCollection);
+                    }
+                }
+
+                // === AUTO-MATCH remaining form elements ===
+                // Try to automatically match any cloned form element with config values
+                const alreadyPopulated = populated;
+                const unpopulated = []; // Track what we couldn't populate
+
+                container.querySelectorAll('input, select, textarea').forEach(el => {
+                    if (!el.id || !el.id.startsWith(PROFILE_ID_PREFIX)) return;
+
+                    const originalId = el.id.replace(PROFILE_ID_PREFIX, '');
+
+                    // Skip if already populated by manual mapping
+                    if (populatedIds.has(originalId)) return;
+
+                    // Try to find matching config value
+                    let value = getConfigValue(originalId);
+
+                    // If not found, try common ID patterns
+                    if (value === undefined) {
+                        // Try without prefix (e.g., "cinemaShowYear" -> config.cinema.metadata.showYear)
+                        if (originalId.startsWith('cinema')) {
+                            const key = originalId
+                                .replace('cinema', '')
+                                .replace(/^[A-Z]/, c => c.toLowerCase());
+                            // Try various nested paths
+                            value =
+                                config.cinema?.metadata?.[key] ||
+                                config.cinema?.metadata?.specs?.[key] ||
+                                config.cinema?.poster?.[key] ||
+                                config.cinema?.background?.[key] ||
+                                config.cinema?.globalEffects?.[key] ||
+                                config.cinema?.nowPlaying?.[key] ||
+                                config.cinema?.promotional?.[key] ||
+                                config.cinema?.promotional?.trailer?.[key] ||
+                                config.cinema?.promotional?.qrCode?.[key] ||
+                                config.cinema?.[key];
+                        } else if (originalId.startsWith('wallartMode_')) {
+                            // Try wallart nested paths
+                            const key = originalId.replace('wallartMode_', '');
+                            value =
+                                config.wallartMode?.[key] ||
+                                config.wallartMode?.musicMode?.[key.replace('musicMode_', '')] ||
+                                config.wallartMode?.parallaxDepth?.[
+                                    key.replace('parallaxDepth_', '')
+                                ] ||
+                                config.wallartMode?.filmCards?.[key.replace('filmCards_', '')] ||
+                                config.wallartMode?.layoutSettings?.heroGrid?.[
+                                    key
+                                        .replace('heroGrid_', '')
+                                        .replace(/heroSide|heroRotationMinutes/, m => m)
+                                ];
+                        } else if (originalId.startsWith('uiScaling_')) {
+                            value = config.uiScaling?.[originalId.replace('uiScaling_', '')];
+                        }
+                    }
+
+                    if (value === undefined) {
+                        // Log missing settings for debug
+                        if (!originalId.includes('Preset') && !originalId.includes('Row')) {
+                            unpopulated.push(originalId);
+                        }
+                        return;
+                    }
+
+                    try {
+                        if (el.type === 'checkbox') {
+                            if (el.checked !== !!value) {
+                                el.checked = !!value;
+                                el.dispatchEvent(new Event('change', { bubbles: false }));
+                                populated++;
+                            }
+                        } else if (el.type !== 'radio') {
+                            if (el.value !== String(value)) {
+                                el.value = value;
+                                if (el.type === 'range') {
+                                    el.dispatchEvent(new Event('input', { bubbles: false }));
+                                }
+                                populated++;
+                            }
+                        }
+                    } catch (e) {
+                        /* ignore */
+                    }
+                });
+
+                console.log(
+                    `[Profile] Populated ${populated} settings from server config (${alreadyPopulated} manual + ${populated - alreadyPopulated} auto)`
+                );
+                if (missingElements.length > 0) {
+                    console.log(
+                        `[Profile] Elements not found in container (${missingElements.length}):`,
+                        missingElements.slice(0, 20)
+                    );
+                }
+                if (unpopulated.length > 0) {
+                    console.log(
+                        `[Profile] Unpopulated settings (${unpopulated.length}):`,
+                        unpopulated.slice(0, 20)
+                    );
+                }
+
+                // Update summary
+                updateProfileSummary(container);
+            }
+
+            /**
+             * Copy ALL values from original Display Settings form elements to cloned Profile Builder elements.
+             * This ensures 100% of settings are copied correctly.
+             */
+            function copyAllDisplaySettingsToProfile() {
+                const container = document.getElementById('profile-settings-container');
+                if (!container) {
+                    console.error('[Profile] No container found');
+                    return;
+                }
+
+                let copied = 0;
+                let failed = 0;
+                const debugSamples = [];
+
+                // Find ALL form elements in the cloned settings
+                container.querySelectorAll('input, select, textarea').forEach(clonedEl => {
+                    // Skip elements without proper IDs
+                    if (!clonedEl.id || !clonedEl.id.startsWith(PROFILE_ID_PREFIX)) return;
+
+                    // Get the original element ID by removing the prefix
+                    const originalId = clonedEl.id.replace(PROFILE_ID_PREFIX, '');
+                    if (!originalId) return;
+
+                    const originalEl = document.getElementById(originalId);
+                    if (!originalEl) {
+                        failed++;
+                        if (debugSamples.length < 5) {
+                            debugSamples.push({ clonedId: clonedEl.id, originalId, found: false });
+                        }
+                        return;
+                    }
+
+                    try {
+                        // Copy value based on element type
+                        if (clonedEl.type === 'checkbox') {
+                            const wasChecked = clonedEl.checked;
+                            clonedEl.checked = originalEl.checked;
+                            if (debugSamples.length < 10 && originalId.includes('show')) {
+                                debugSamples.push({
+                                    id: originalId,
+                                    type: 'checkbox',
+                                    original: originalEl.checked,
+                                    before: wasChecked,
+                                    after: clonedEl.checked,
+                                });
+                            }
+                        } else if (clonedEl.type === 'radio') {
+                            clonedEl.checked = originalEl.checked;
+                        } else {
+                            clonedEl.value = originalEl.value;
+                        }
+
+                        // Trigger events to update UI
+                        if (clonedEl.type === 'range') {
+                            clonedEl.dispatchEvent(new Event('input', { bubbles: false }));
+                        }
+                        clonedEl.dispatchEvent(new Event('change', { bubbles: false }));
+
+                        copied++;
+                    } catch (e) {
+                        failed++;
+                        console.error('[Profile] Error copying', originalId, e);
+                    }
+                });
+
+                console.log(`[Profile] Copied ${copied} settings, ${failed} failed`);
+                console.log('[Profile] Debug samples:', debugSamples);
+
+                // Update summary after copying
+                updateProfileSummary(container);
             }
 
             /**
@@ -15192,7 +16613,14 @@ window.COLOR_PRESETS = COLOR_PRESETS;
              */
             function copyDisplaySettingsToProfile() {
                 const container = document.getElementById('profile-settings-container');
-                if (!container) return;
+                if (!container) {
+                    console.warn('[Profile] No profile-settings-container found');
+                    return;
+                }
+
+                let copied = 0;
+                let notFound = 0;
+                const checkboxes = [];
 
                 // Find all form elements in the cloned settings
                 container.querySelectorAll('input, select, textarea').forEach(clonedEl => {
@@ -15201,15 +16629,36 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     if (!originalId) return;
 
                     const originalEl = document.getElementById(originalId);
-                    if (!originalEl) return;
+                    if (!originalEl) {
+                        notFound++;
+                        return;
+                    }
 
                     // Copy value based on element type
                     if (clonedEl.type === 'checkbox' || clonedEl.type === 'radio') {
                         clonedEl.checked = originalEl.checked;
+                        checkboxes.push({
+                            id: originalId,
+                            original: originalEl.checked,
+                            cloned: clonedEl.checked,
+                        });
+                        // Trigger change event for visibility handlers
+                        clonedEl.dispatchEvent(new Event('change', { bubbles: false }));
                     } else {
                         clonedEl.value = originalEl.value;
+                        // Trigger input event for sliders to update displays
+                        if (clonedEl.type === 'range') {
+                            clonedEl.dispatchEvent(new Event('input', { bubbles: false }));
+                        }
                     }
+                    copied++;
                 });
+
+                console.log(`[Profile] Copied ${copied} values, ${notFound} originals not found`);
+                console.log(
+                    '[Profile] Checkboxes:',
+                    checkboxes.filter(c => c.id.includes('show') || c.id.includes('clock'))
+                );
             }
 
             /**
@@ -15776,10 +17225,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             // Profile Builder event handlers
             document
                 .getElementById('btn-create-profile')
-                ?.addEventListener('click', () => openProfileEditor(null));
+                ?.addEventListener('click', () => createNewProfile());
             document
                 .getElementById('btn-create-profile-empty')
-                ?.addEventListener('click', () => openProfileEditor(null));
+                ?.addEventListener('click', () => createNewProfile());
             document.getElementById('btn-profile-save')?.addEventListener('click', saveProfile);
             document.getElementById('btn-profile-delete')?.addEventListener('click', deleteProfile);
 
