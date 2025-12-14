@@ -32,7 +32,8 @@ const {
     createAdminAuth,
     createAdminAuthDevices,
 } = require('./middleware');
-const { readPresets, writePresets } = require('./lib/preset-helpers');
+// NOTE: presets are deprecated - replaced by profiles system
+// const { readPresets, writePresets } = require('./lib/preset-helpers');
 const {
     createPlexClient,
     getPlexClient,
@@ -3311,12 +3312,17 @@ app.get('/admin/logs', isAuthenticated, (req, res) => {
 // Health check routes (modularized)
 app.use('/', require('./routes/health'));
 
-// Groups management routes (modularized)
+// Device Profiles management routes (replaces groups + presets)
+const createProfilesRouter = require('./routes/profiles');
+app.use('/api/profiles', createProfilesRouter({ adminAuth, cacheManager }));
+
+// Groups management routes - DEPRECATED (kept for migration compatibility)
 const createGroupsRouter = require('./routes/groups');
 app.use('/api/groups', createGroupsRouter({ adminAuth, cacheManager }));
 
 // Public configuration route (modularized)
 const createConfigPublicRouter = require('./routes/config-public');
+const profilesStore = require('./utils/profilesStore');
 app.use(
     '/get-config',
     createConfigPublicRouter({
@@ -3326,6 +3332,7 @@ app.use(
         isDebug,
         deviceStore,
         groupsStore,
+        profilesStore,
     })
 );
 

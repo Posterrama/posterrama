@@ -173,6 +173,23 @@
     border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
     color: var(--color-accent-light);
 }
+/* Profile pill - distinct teal/cyan color */
+#section-devices .status-pill.sp-profile {
+    background: color-mix(in srgb, #06b6d4 15%, transparent);
+    border-color: color-mix(in srgb, #06b6d4 35%, transparent);
+    color: #22d3ee;
+}
+/* Profile card styles */
+#profiles-ui .profile-card:hover {
+    border-color: var(--color-accent);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+#profiles-ui .profile-card h4 {
+    color: var(--color-text-primary);
+}
+#profiles-ui .profiles-grid {
+    margin-top: 8px;
+}
 /* Inline meta beside the thumbnail (single-line, no extra height) */
 #section-devices .nowplay-thumb .nowplay-meta {
     display: flex;

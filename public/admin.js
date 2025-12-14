@@ -11447,6 +11447,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 const segs = [
                     // 'device-ui' is now an inline content container inside the main device management panel
                     { id: 'seg-devices', val: 'devices', panel: 'device-ui' },
+                    { id: 'seg-profiles', val: 'profiles', panel: 'profiles-ui' },
                     { id: 'seg-dev-settings', val: 'settings', panel: 'device-settings-inline' },
                 ];
                 const setActive = val => {
@@ -11471,6 +11472,16 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             }
                         } catch (_) {
                             /* state export for numeric wrapper debug failed (dev only) */
+                        }
+                    }
+                    // When switching to Profiles, refresh profiles list
+                    if (val === 'profiles') {
+                        try {
+                            if (typeof window.loadProfiles === 'function') {
+                                window.loadProfiles();
+                            }
+                        } catch (_) {
+                            /* profiles load failed */
                         }
                     }
                 };
@@ -12032,8 +12043,9 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 query: '',
                 filterStatus: null,
                 filterRoom: null,
-                presets: [],
-                groups: [],
+                presets: [], // DEPRECATED: replaced by profiles
+                groups: [], // DEPRECATED: replaced by profiles
+                profiles: [], // NEW: Device profiles
                 syncEnabled: undefined, // loaded from /get-config
             };
 
@@ -12344,7 +12356,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     const safeIds = listIds.join(',').replace(/"/g, '&quot;');
                     return `<span class="status-pill sp-dupes js-dupes-hover" title="${safeTitle}" data-dupes-ids="${safeIds}" data-dupes-title="${safeTitle}"><i class="fas fa-clone"></i> Dupes: ${dupeList.length}</span>`;
                 })();
-                // Map preset and groups to human-readable labels
+                // Map preset and groups to human-readable labels (DEPRECATED - kept for migration)
                 const presetKey = (d && typeof d.preset === 'string' ? d.preset : '').trim();
                 const presetName = presetKey
                     ? state.presets.find(p => p.key === presetKey)?.name || presetKey
@@ -12359,6 +12371,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                           })
                           .filter(Boolean)
                     : [];
+                // NEW: Get profile name for device
+                const profileId = d?.profileId || '';
+                const profileName = profileId
+                    ? (state.profiles || []).find(p => p.id === profileId)?.name || profileId
+                    : '';
                 // Playback state helpers for toolbar play/pause button
                 const pausedFlag = d?.currentState?.paused;
                 const ppCls = pausedFlag === true ? ' is-paused' : ' is-playing';
@@ -12472,8 +12489,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                         ${thumbRightHtml}
                                         <div class="meta-pills" style="display:flex; gap:6px; flex-wrap:wrap;">
                                             <span class="status-pill" title="Location"><i class="fas fa-location-dot"></i> ${escapeHtml(room)}</span>
-                                            ${presetName ? `<span class="status-pill" title="Preset"><i class="fas fa-star"></i> ${escapeHtml(presetName)}</span>` : ''}
-                                            ${groupNames.length ? `<span class="status-pill" title="Groups"><i class="fas fa-layer-group"></i> ${escapeHtml(groupNames.join(', '))}</span>` : ''}
+                                            ${profileName ? `<span class="status-pill sp-profile" title="Profile"><i class="fas fa-id-card"></i> ${escapeHtml(profileName)}</span>` : ''}
                                         </div>
                                     </div>
                                     ${groupsHtml}
@@ -14664,8 +14680,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     <div class="dropdown-item" data-device-action="create-device"><i class="fas fa-plus"></i> New device…</div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-item" data-device-action="merge"><i class="fas fa-object-group"></i> Merge selected</div>
-                    <div class="dropdown-item" data-device-action="groups"><i class="fas fa-layer-group"></i> Groups…</div>
-                    <div class="dropdown-item" data-device-action="presets"><i class="fas fa-star"></i> Presets…</div>
+                    <div class="dropdown-item" data-device-action="profiles"><i class="fas fa-id-card"></i> Assign profile…</div>
                     <div class="dropdown-item" data-device-action="location"><i class="fas fa-location-dot"></i> Assign location</div>
                     <div class="dropdown-heading">Selection</div>
                     <div class="dropdown-item" data-device-action="select-all"><i class="fas fa-check-double"></i> Select all</div>
@@ -14868,6 +14883,429 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     state.groups = [];
                 }
             }
+
+            // ========================================
+            // DEVICE PROFILES MANAGEMENT
+            // ========================================
+            let editingProfileId = null; // Track which profile is being edited
+
+            async function loadProfiles() {
+                try {
+                    const list = await fetchJSON('/api/profiles');
+                    state.profiles = Array.isArray(list) ? list : [];
+                    renderProfiles();
+                } catch (_) {
+                    state.profiles = [];
+                    renderProfiles();
+                }
+            }
+            // Expose globally for tab switching
+            window.loadProfiles = loadProfiles;
+
+            function renderProfiles() {
+                const grid = document.getElementById('profiles-grid');
+                const empty = document.getElementById('profiles-empty');
+                if (!grid || !empty) return;
+
+                if (!state.profiles.length) {
+                    grid.style.display = 'none';
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                grid.style.display = 'grid';
+                empty.style.display = 'none';
+
+                grid.innerHTML = state.profiles
+                    .map(p => {
+                        const deviceCount = state.all.filter(d => d.profileId === p.id).length;
+                        const modeLabel = p.settings?.cinemaMode
+                            ? 'Cinema'
+                            : p.settings?.wallartMode?.enabled
+                              ? 'Wallart'
+                              : 'Screensaver';
+                        return `
+                        <div class="profile-card" data-profile-id="${escapeHtml(p.id)}" style="
+                            background: var(--color-bg-card);
+                            border: 1px solid var(--color-border);
+                            border-radius: var(--border-radius-lg);
+                            padding: 16px;
+                            cursor: pointer;
+                            transition: border-color 0.2s, box-shadow 0.2s;
+                        ">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                                <div>
+                                    <h4 style="margin: 0 0 4px 0; font-weight: 600;">${escapeHtml(p.name || 'Unnamed')}</h4>
+                                    <p style="margin: 0; font-size: 0.85rem; color: var(--color-text-secondary);">${escapeHtml(p.description || 'No description')}</p>
+                                </div>
+                                <span class="status-pill" style="flex-shrink: 0;"><i class="fas fa-tv"></i> ${modeLabel}</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
+                                <span class="status-pill" title="Devices using this profile"><i class="fas fa-desktop"></i> ${deviceCount} device${deviceCount !== 1 ? 's' : ''}</span>
+                            </div>
+                        </div>
+                    `;
+                    })
+                    .join('');
+
+                // Add click handlers to open editor
+                grid.querySelectorAll('.profile-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const profileId = card.getAttribute('data-profile-id');
+                        openProfileEditor(profileId);
+                    });
+                });
+            }
+
+            function openProfileEditor(profileId = null) {
+                editingProfileId = profileId;
+                const modal = document.getElementById('modal-profile-builder');
+                const titleText = document.getElementById('profile-modal-title-text');
+                const deleteBtn = document.getElementById('btn-profile-delete');
+                const nameInput = document.getElementById('profile-name');
+                const descInput = document.getElementById('profile-description');
+                const modeSelect = document.getElementById('profile-display-mode');
+                const transInput = document.getElementById('profile-transition-duration');
+                const intervalInput = document.getElementById('profile-screensaver-interval');
+                const scaleContent = document.getElementById('profile-scale-content');
+                const scaleClearlogo = document.getElementById('profile-scale-clearlogo');
+                const scaleClock = document.getElementById('profile-scale-clock');
+                const scaleGlobal = document.getElementById('profile-scale-global');
+                const wallartRefresh = document.getElementById('profile-wallart-refresh');
+                const wallartRandomness = document.getElementById('profile-wallart-randomness');
+                const clockWidget = document.getElementById('profile-clock-widget');
+                const jsonEditor = document.getElementById('profile-json-editor');
+
+                if (profileId) {
+                    // Editing existing profile
+                    const profile = state.profiles.find(p => p.id === profileId);
+                    if (!profile) return;
+
+                    titleText.textContent = 'Edit Profile';
+                    deleteBtn.style.display = 'block';
+                    nameInput.value = profile.name || '';
+                    descInput.value = profile.description || '';
+
+                    const s = profile.settings || {};
+                    modeSelect.value = s.cinemaMode
+                        ? 'cinema'
+                        : s.wallartMode?.enabled
+                          ? 'wallart'
+                          : 'screensaver';
+                    transInput.value = s.transitionDuration || 1200;
+                    intervalInput.value = s.screensaverInterval || 10000;
+                    scaleContent.value = s.uiScaling?.content || 100;
+                    scaleClearlogo.value = s.uiScaling?.clearlogo || 100;
+                    scaleClock.value = s.uiScaling?.clock || 110;
+                    scaleGlobal.value = s.uiScaling?.global || 100;
+                    wallartRefresh.value = s.wallartMode?.refreshRate || 6;
+                    wallartRandomness.value = s.wallartMode?.randomness || 5;
+                    clockWidget.checked = s.clockWidget !== false;
+                    jsonEditor.value = JSON.stringify(s, null, 2);
+                } else {
+                    // Creating new profile
+                    titleText.textContent = 'Create Profile';
+                    deleteBtn.style.display = 'none';
+                    nameInput.value = '';
+                    descInput.value = '';
+                    modeSelect.value = 'screensaver';
+                    transInput.value = 1200;
+                    intervalInput.value = 10000;
+                    scaleContent.value = 100;
+                    scaleClearlogo.value = 100;
+                    scaleClock.value = 110;
+                    scaleGlobal.value = 100;
+                    wallartRefresh.value = 6;
+                    wallartRandomness.value = 5;
+                    clockWidget.checked = true;
+                    jsonEditor.value = '{}';
+                }
+
+                updateWallartSettingsVisibility();
+                __showOverlay(modal, 'modal-profile-builder');
+            }
+
+            function updateWallartSettingsVisibility() {
+                const modeSelect = document.getElementById('profile-display-mode');
+                const wallartSettings = document.getElementById('profile-wallart-settings');
+                if (modeSelect && wallartSettings) {
+                    wallartSettings.style.display =
+                        modeSelect.value === 'wallart' ? 'block' : 'none';
+                }
+            }
+
+            function buildProfileSettingsFromForm() {
+                const mode =
+                    document.getElementById('profile-display-mode')?.value || 'screensaver';
+                const settings = {
+                    cinemaMode: mode === 'cinema',
+                    wallartMode: {
+                        enabled: mode === 'wallart',
+                        refreshRate: parseInt(
+                            document.getElementById('profile-wallart-refresh')?.value || 6,
+                            10
+                        ),
+                        randomness: parseInt(
+                            document.getElementById('profile-wallart-randomness')?.value || 5,
+                            10
+                        ),
+                    },
+                    transitionDuration: parseInt(
+                        document.getElementById('profile-transition-duration')?.value || 1200,
+                        10
+                    ),
+                    screensaverInterval: parseInt(
+                        document.getElementById('profile-screensaver-interval')?.value || 10000,
+                        10
+                    ),
+                    uiScaling: {
+                        content: parseInt(
+                            document.getElementById('profile-scale-content')?.value || 100,
+                            10
+                        ),
+                        clearlogo: parseInt(
+                            document.getElementById('profile-scale-clearlogo')?.value || 100,
+                            10
+                        ),
+                        clock: parseInt(
+                            document.getElementById('profile-scale-clock')?.value || 110,
+                            10
+                        ),
+                        global: parseInt(
+                            document.getElementById('profile-scale-global')?.value || 100,
+                            10
+                        ),
+                    },
+                    clockWidget: document.getElementById('profile-clock-widget')?.checked ?? true,
+                };
+                return settings;
+            }
+
+            async function saveProfile() {
+                const nameInput = document.getElementById('profile-name');
+                const descInput = document.getElementById('profile-description');
+                const jsonEditor = document.getElementById('profile-json-editor');
+                const jsonError = document.getElementById('profile-json-error');
+                const isJsonMode =
+                    document.querySelector('input[name="profile-edit-mode"]:checked')?.value ===
+                    'json';
+
+                const name = nameInput?.value?.trim();
+                if (!name) {
+                    window.notify?.toast({
+                        type: 'warning',
+                        title: 'Name required',
+                        message: 'Please enter a profile name',
+                    });
+                    nameInput?.focus();
+                    return;
+                }
+
+                let settings;
+                if (isJsonMode) {
+                    try {
+                        settings = JSON.parse(jsonEditor?.value || '{}');
+                        jsonError.style.display = 'none';
+                    } catch (e) {
+                        jsonError.textContent = `Invalid JSON: ${e.message}`;
+                        jsonError.style.display = 'block';
+                        return;
+                    }
+                } else {
+                    settings = buildProfileSettingsFromForm();
+                }
+
+                const payload = {
+                    name,
+                    description: descInput?.value?.trim() || '',
+                    settings,
+                };
+
+                try {
+                    if (editingProfileId) {
+                        await fetchJSON(`/api/profiles/${encodeURIComponent(editingProfileId)}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload),
+                        });
+                        window.notify?.toast({ type: 'success', title: 'Profile updated' });
+                    } else {
+                        await fetchJSON('/api/profiles', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload),
+                        });
+                        window.notify?.toast({ type: 'success', title: 'Profile created' });
+                    }
+                    document.getElementById('modal-profile-builder')?.classList.remove('open');
+                    await loadProfiles();
+                    await loadDevices(); // Refresh device cards
+                } catch (e) {
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'Save failed',
+                        message: e?.message || 'Unknown error',
+                    });
+                }
+            }
+
+            async function deleteProfile() {
+                if (!editingProfileId) return;
+
+                const profile = state.profiles.find(p => p.id === editingProfileId);
+                const deviceCount = state.all.filter(d => d.profileId === editingProfileId).length;
+
+                const msg =
+                    deviceCount > 0
+                        ? `Delete "${profile?.name}"? ${deviceCount} device(s) will have their profile cleared.`
+                        : `Delete "${profile?.name}"?`;
+
+                if (!confirm(msg)) return;
+
+                try {
+                    await fetchJSON(`/api/profiles/${encodeURIComponent(editingProfileId)}`, {
+                        method: 'DELETE',
+                    });
+                    window.notify?.toast({ type: 'success', title: 'Profile deleted' });
+                    document.getElementById('modal-profile-builder')?.classList.remove('open');
+                    await loadProfiles();
+                    await loadDevices();
+                } catch (e) {
+                    window.notify?.toast({
+                        type: 'error',
+                        title: 'Delete failed',
+                        message: e?.message || 'Unknown error',
+                    });
+                }
+            }
+
+            // Profile Builder event handlers
+            document
+                .getElementById('btn-create-profile')
+                ?.addEventListener('click', () => openProfileEditor(null));
+            document
+                .getElementById('btn-create-profile-empty')
+                ?.addEventListener('click', () => openProfileEditor(null));
+            document.getElementById('btn-profile-save')?.addEventListener('click', saveProfile);
+            document.getElementById('btn-profile-delete')?.addEventListener('click', deleteProfile);
+            document
+                .getElementById('profile-display-mode')
+                ?.addEventListener('change', updateWallartSettingsVisibility);
+
+            // Form/JSON mode toggle
+            document.querySelectorAll('input[name="profile-edit-mode"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    const isJson = radio.value === 'json';
+                    document.getElementById('profile-settings-form').style.display = isJson
+                        ? 'none'
+                        : 'block';
+                    document.getElementById('profile-settings-json').style.display = isJson
+                        ? 'block'
+                        : 'none';
+
+                    // Sync form to JSON when switching to JSON mode
+                    if (isJson) {
+                        const settings = buildProfileSettingsFromForm();
+                        document.getElementById('profile-json-editor').value = JSON.stringify(
+                            settings,
+                            null,
+                            2
+                        );
+                    }
+                });
+            });
+
+            // Assign Profile modal handlers
+            document.getElementById('btn-profile-assign')?.addEventListener('click', async () => {
+                const profileId = document.getElementById('assign-profile-select')?.value || '';
+                const ids = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+
+                if (!ids.length) {
+                    window.notify?.toast({ type: 'info', title: 'No devices selected' });
+                    return;
+                }
+
+                let ok = 0;
+                for (const id of ids) {
+                    try {
+                        await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ profileId: profileId || null }),
+                        });
+                        ok++;
+                    } catch (_) {
+                        /* continue */
+                    }
+                }
+
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Profile assigned',
+                    message: `Applied to ${ok}/${ids.length} device(s)`,
+                });
+                document.getElementById('modal-assign-profile')?.classList.remove('open');
+                await loadDevices();
+            });
+
+            document.getElementById('btn-profile-clear')?.addEventListener('click', async () => {
+                const ids = Array.from(
+                    document.querySelectorAll('#device-grid .device-card.selected')
+                ).map(c => c.getAttribute('data-id'));
+
+                if (!ids.length) {
+                    window.notify?.toast({ type: 'info', title: 'No devices selected' });
+                    return;
+                }
+
+                let ok = 0;
+                for (const id of ids) {
+                    try {
+                        await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ profileId: null }),
+                        });
+                        ok++;
+                    } catch (_) {
+                        /* continue */
+                    }
+                }
+
+                window.notify?.toast({
+                    type: 'success',
+                    title: 'Profile cleared',
+                    message: `Cleared on ${ok}/${ids.length} device(s)`,
+                });
+                document.getElementById('modal-assign-profile')?.classList.remove('open');
+                await loadDevices();
+            });
+
+            function openAssignProfileModal() {
+                const select = document.getElementById('assign-profile-select');
+                if (select) {
+                    if (!state.profiles.length) {
+                        select.innerHTML =
+                            '<option value="" disabled selected>No profiles created</option>';
+                    } else {
+                        select.innerHTML = state.profiles
+                            .map(
+                                p =>
+                                    `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name || p.id)}</option>`
+                            )
+                            .join('');
+                    }
+                }
+                const modal = document.getElementById('modal-assign-profile');
+                if (modal) __showOverlay(modal, 'modal-assign-profile');
+            }
+            // Expose for Actions menu
+            window.openAssignProfileModal = openAssignProfileModal;
+
+            // Load profiles on init
+            loadProfiles();
             // Dropdown toggles within device toolbar and cards
             document.querySelectorAll('#section-devices .dropdown-toggle').forEach(btn => {
                 btn.addEventListener('click', e => {
@@ -15433,7 +15871,21 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             return;
                         }
                         openAssignLocationModal();
+                    } else if (act === 'profiles') {
+                        const selected = Array.from(
+                            document.querySelectorAll('#device-grid .device-card.selected')
+                        );
+                        if (!selected.length) {
+                            window.notify?.toast({
+                                type: 'info',
+                                title: 'No devices selected',
+                                message: 'Select one or more devices first',
+                            });
+                            return;
+                        }
+                        openAssignProfileModal();
                     } else if (act === 'groups') {
+                        // DEPRECATED: Groups modal - kept for migration
                         const selected = Array.from(
                             document.querySelectorAll('#device-grid .device-card.selected')
                         );
@@ -15447,6 +15899,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         }
                         openGroupModal();
                     } else if (act === 'presets') {
+                        // DEPRECATED: Presets modal - kept for migration
                         const selected = Array.from(
                             document.querySelectorAll('#device-grid .device-card.selected')
                         );

@@ -3367,6 +3367,10 @@
                   <input type="radio" name="devices.active" value="devices" />
                   <i class="fas fa-desktop"></i> Devices
                 </label>
+                <label class="seg" id="seg-profiles" role="tab" aria-controls="profiles-ui" aria-checked="false">
+                  <input type="radio" name="devices.active" value="profiles" />
+                  <i class="fas fa-id-card"></i> Profiles
+                </label>
                 <label class="seg" id="seg-dev-settings" role="tab" aria-controls="device-settings-inline" aria-checked="false">
                   <input type="radio" name="devices.active" value="settings" />
                   <i class="fas fa-sliders-h"></i> Settings
@@ -3410,6 +3414,27 @@
                 <span class="page-numbers" id="device-page-numbers"></span>
                 <button class="btn btn-icon btn-sm" id="device-page-next" aria-label="Next page"><i class="fas fa-chevron-right"></i></button>
               </div>
+            </div>
+          </div>
+          <!-- Profiles content -->
+          <div id="profiles-ui" hidden>
+            <div class="profiles-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 4px;">
+              <div class="profiles-info" style="color: var(--color-text-secondary); font-size: 0.9rem;">
+                <i class="fas fa-info-circle"></i> Device Profiles contain all display settings. Assign a profile to a device to apply its settings.
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-create-profile">
+                <i class="fas fa-plus"></i> New Profile
+              </button>
+            </div>
+            <div class="profiles-grid" id="profiles-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+              <!-- Profile cards will be rendered dynamically -->
+            </div>
+            <div id="profiles-empty" style="display: none; text-align: center; padding: 48px 24px; color: var(--color-text-secondary);">
+              <i class="fas fa-id-card" style="font-size: 3rem; opacity: 0.3; margin-bottom: 16px; display: block;"></i>
+              <p style="margin: 0 0 16px 0;">No profiles created yet.</p>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-create-profile-empty">
+                <i class="fas fa-plus"></i> Create your first profile
+              </button>
             </div>
           </div>
           <!-- Inline Settings content (previously separate panel) -->
@@ -4633,8 +4658,168 @@
     </div>
   </div>
 
-  <!-- Group Assign Modal -->
-  <div class="modal-overlay" id="modal-group-assign">
+  <!-- Profile Builder Modal -->
+  <div class="modal-overlay" id="modal-profile-builder">
+    <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="modal-profile-title">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-profile-title">
+          <i class="fas fa-id-card"></i>
+          <span id="profile-modal-title-text">Create Profile</span>
+        </div>
+        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <div class="form-group">
+          <label for="profile-name">Profile Name *</label>
+          <input id="profile-name" type="text" placeholder="e.g. Living Room 4K" required />
+        </div>
+        <div class="form-group" style="margin-top: var(--space-md);">
+          <label for="profile-description">Description</label>
+          <input id="profile-description" type="text" placeholder="Optional description" />
+        </div>
+        
+        <!-- Mode Toggle -->
+        <div class="form-group" style="margin-top: var(--space-lg);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <label style="margin: 0;"><i class="fas fa-sliders-h"></i> Settings</label>
+            <div class="segmented segmented-sm" role="tablist" style="min-width: 200px;">
+              <div class="seg-indicator"></div>
+              <label class="seg" id="seg-profile-form" role="tab">
+                <input type="radio" name="profile-edit-mode" value="form" checked />
+                <i class="fas fa-edit"></i> Form
+              </label>
+              <label class="seg" id="seg-profile-json" role="tab">
+                <input type="radio" name="profile-edit-mode" value="json" />
+                <i class="fas fa-code"></i> JSON
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Form-based settings -->
+        <div id="profile-settings-form">
+          <!-- Display Mode -->
+          <div class="form-group">
+            <label>Display Mode</label>
+            <div class="select-wrap has-caret">
+              <select id="profile-display-mode">
+                <option value="screensaver">Screensaver</option>
+                <option value="wallart">Wallart</option>
+                <option value="cinema">Cinema</option>
+              </select>
+              <span class="select-caret" aria-hidden="true">▾</span>
+            </div>
+          </div>
+          
+          <!-- Transition Settings -->
+          <div class="form-group" style="margin-top: var(--space-md);">
+            <label>Transition Duration (ms)</label>
+            <input id="profile-transition-duration" type="number" min="500" max="5000" step="100" value="1200" />
+          </div>
+          
+          <div class="form-group" style="margin-top: var(--space-md);">
+            <label>Screensaver Interval (ms)</label>
+            <input id="profile-screensaver-interval" type="number" min="3000" max="60000" step="1000" value="10000" />
+          </div>
+          
+          <!-- UI Scaling -->
+          <fieldset class="form-group" style="margin-top: var(--space-lg); border: 1px solid var(--color-border); border-radius: var(--border-radius-md); padding: 16px;">
+            <legend style="padding: 0 8px; font-weight: 500;"><i class="fas fa-expand"></i> UI Scaling</legend>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+              <div>
+                <label for="profile-scale-content" style="font-size: 0.85rem;">Content</label>
+                <input id="profile-scale-content" type="number" min="50" max="200" value="100" />
+              </div>
+              <div>
+                <label for="profile-scale-clearlogo" style="font-size: 0.85rem;">Clearlogo</label>
+                <input id="profile-scale-clearlogo" type="number" min="50" max="200" value="100" />
+              </div>
+              <div>
+                <label for="profile-scale-clock" style="font-size: 0.85rem;">Clock</label>
+                <input id="profile-scale-clock" type="number" min="50" max="200" value="110" />
+              </div>
+              <div>
+                <label for="profile-scale-global" style="font-size: 0.85rem;">Global</label>
+                <input id="profile-scale-global" type="number" min="50" max="200" value="100" />
+              </div>
+            </div>
+          </fieldset>
+          
+          <!-- Wallart Mode Settings -->
+          <fieldset id="profile-wallart-settings" class="form-group" style="margin-top: var(--space-lg); border: 1px solid var(--color-border); border-radius: var(--border-radius-md); padding: 16px; display: none;">
+            <legend style="padding: 0 8px; font-weight: 500;"><i class="fas fa-images"></i> Wallart Settings</legend>
+            <div class="form-group">
+              <label for="profile-wallart-refresh">Refresh Rate (seconds)</label>
+              <input id="profile-wallart-refresh" type="number" min="1" max="60" value="6" />
+            </div>
+            <div class="form-group" style="margin-top: 12px;">
+              <label for="profile-wallart-randomness">Randomness (1-10)</label>
+              <input id="profile-wallart-randomness" type="number" min="1" max="10" value="5" />
+            </div>
+          </fieldset>
+          
+          <!-- Clock Widget -->
+          <div class="form-group" style="margin-top: var(--space-md);">
+            <label class="toggle-label" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+              <input type="checkbox" id="profile-clock-widget" checked style="width: auto;" />
+              <span>Show Clock Widget</span>
+            </label>
+          </div>
+        </div>
+        
+        <!-- JSON Editor -->
+        <div id="profile-settings-json" style="display: none;">
+          <div class="form-group">
+            <label for="profile-json-editor">Settings JSON</label>
+            <textarea id="profile-json-editor" rows="15" style="font-family: monospace; font-size: 0.85rem; resize: vertical;" placeholder='{"cinemaMode": true, "transitionDuration": 1200}'></textarea>
+          </div>
+          <div id="profile-json-error" style="color: var(--color-danger); font-size: 0.85rem; margin-top: 8px; display: none;"></div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; gap:12px; justify-content:space-between;">
+        <button class="btn btn-secondary btn-sm btn-danger" id="btn-profile-delete" style="display: none;">
+          <i class="fas fa-trash" aria-hidden="true"></i><span>Delete</span>
+        </button>
+        <div style="display: flex; gap: 12px;">
+          <button class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
+          <button class="btn btn-primary btn-sm" id="btn-profile-save">
+            <i class="fas fa-save" aria-hidden="true"></i><span>Save Profile</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assign Profile Modal -->
+  <div class="modal-overlay" id="modal-assign-profile">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-assign-profile-title">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-assign-profile-title">
+          <i class="fas fa-id-card"></i>
+          Assign Profile
+        </div>
+        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Select a profile to assign to the selected devices, or clear the current profile.</p>
+        <div class="form-group" style="margin-top: var(--space-md);">
+          <label for="assign-profile-select">Profile</label>
+          <div class="select-wrap has-caret">
+            <select id="assign-profile-select"></select>
+            <span class="select-caret" aria-hidden="true">▾</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end;">
+        <button class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
+        <button class="btn btn-secondary btn-sm btn-remove-accent" id="btn-profile-clear"><i class="fas fa-ban" aria-hidden="true"></i><span>Clear</span></button>
+        <button class="btn btn-primary btn-sm" id="btn-profile-assign"><i class="fas fa-id-card" aria-hidden="true"></i><span>Assign</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Group Assign Modal (DEPRECATED - kept for migration) -->
+  <div class="modal-overlay" id="modal-group-assign" style="display: none;">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-group-title">
       <div class="modal-header">
         <div class="modal-title" id="modal-group-title">
@@ -4674,8 +4859,8 @@
     </div>
   </div>
 
-  <!-- Assign Preset Modal -->
-  <div class="modal-overlay" id="modal-assign-preset">
+  <!-- Assign Preset Modal (DEPRECATED - kept for migration) -->
+  <div class="modal-overlay" id="modal-assign-preset" style="display: none;">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-preset-title">
       <div class="modal-header">
         <div class="modal-title" id="modal-preset-title">

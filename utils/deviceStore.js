@@ -167,14 +167,15 @@ async function registerDevice({
         name,
         location,
         tags: [],
-        groups: [],
+        groups: [], // DEPRECATED: replaced by profileId
         createdAt: now,
         updatedAt: now,
         lastSeenAt: null,
         status: 'unknown',
         clientInfo: {},
-        settingsOverride: {},
-        preset: '',
+        settingsOverride: {}, // DEPRECATED: replaced by profileId
+        preset: '', // DEPRECATED: replaced by profileId
+        profileId: null, // NEW: Reference to device profile
         currentState: {},
         pairing: {},
     };

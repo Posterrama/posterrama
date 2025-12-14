@@ -24,7 +24,8 @@ const deepMerge = require('../utils/deep-merge');
  * @param {Function} deps.cacheMiddleware - Cache middleware factory
  * @param {boolean} deps.isDebug - Debug mode flag
  * @param {Object} deps.deviceStore - Device storage
- * @param {Object} deps.groupsStore - Groups storage
+ * @param {Object} deps.groupsStore - Groups storage (deprecated, kept for compatibility)
+ * @param {Object} [deps.profilesStore] - Profiles storage (new system)
  * @returns {express.Router} Configured router
  */
 module.exports = function createConfigPublicRouter({
@@ -34,6 +35,7 @@ module.exports = function createConfigPublicRouter({
     isDebug,
     deviceStore,
     groupsStore,
+    profilesStore,
 }) {
     const router = express.Router();
 
@@ -226,7 +228,7 @@ module.exports = function createConfigPublicRouter({
                 burnInPrevention: config.burnInPrevention || null,
             };
 
-            // Try to identify device and merge settings from groups and device (Global < Group < Device)
+            // Try to identify device and merge settings from profile (Global < Profile)
             let merged = baseConfig;
             try {
                 const deviceId = req.get('X-Device-Id');
@@ -245,10 +247,31 @@ module.exports = function createConfigPublicRouter({
                     device = await deviceStore.findByHardwareId(hardwareId);
                 }
 
-                // Accumulate group templates deterministically by group.order, then device order, then apply device overrides
+                // NEW: Apply profile settings if device has profileId
+                let fromProfile = {};
+                try {
+                    if (device && device.profileId && profilesStore) {
+                        const profile = await profilesStore.getById(device.profileId);
+                        if (profile && profile.settings && typeof profile.settings === 'object') {
+                            fromProfile = profile.settings;
+                        }
+                    }
+                } catch (pe) {
+                    if (isDebug)
+                        logger.debug('[get-config] Profile merge failed', {
+                            error: pe?.message,
+                        });
+                }
+
+                // DEPRECATED: Group templates (kept for migration compatibility)
                 let fromGroups = {};
                 try {
-                    if (device && Array.isArray(device.groups) && device.groups.length) {
+                    if (
+                        device &&
+                        Array.isArray(device.groups) &&
+                        device.groups.length &&
+                        groupsStore
+                    ) {
                         const allGroups = await groupsStore.getAll();
                         // Build and sort group sequence: by numeric order asc, then by device list index asc
                         const seq = device.groups
@@ -281,18 +304,30 @@ module.exports = function createConfigPublicRouter({
                         });
                 }
 
+                // DEPRECATED: Device settingsOverride (replaced by profile)
                 const devOverrides =
                     device && device.settingsOverride && typeof device.settingsOverride === 'object'
                         ? device.settingsOverride
                         : null;
 
-                merged = deepMerge({}, baseConfig, fromGroups || {}, devOverrides || {});
+                // Merge order: Global < Groups (deprecated) < Profile < Device Override (deprecated)
+                // For new devices with profileId, groups and settingsOverride should be empty
+                merged = deepMerge(
+                    {},
+                    baseConfig,
+                    fromGroups || {},
+                    fromProfile || {},
+                    devOverrides || {}
+                );
                 if (isDebug) {
+                    const pKeys = Object.keys(fromProfile || {});
                     const gKeys = Object.keys(fromGroups || {});
                     const dKeys = Object.keys(devOverrides || {});
-                    if (gKeys.length || dKeys.length) {
-                        logger.debug('[get-config] Applied group/device overrides', {
+                    if (pKeys.length || gKeys.length || dKeys.length) {
+                        logger.debug('[get-config] Applied profile/group/device overrides', {
                             deviceId: device?.id,
+                            profileId: device?.profileId || null,
+                            profileKeys: pKeys,
                             groupKeys: gKeys,
                             deviceKeys: dKeys,
                         });
