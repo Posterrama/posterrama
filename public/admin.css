@@ -2921,6 +2921,7 @@ input[type='range']::-moz-range-thumb {
 }
 .auth-container .panel-content {
     padding: var(--space-lg);
+    position: relative;
 }
 .auth-container .auth-title {
     display: flex;
@@ -2957,6 +2958,17 @@ input[type='range']::-moz-range-thumb {
     width: 32px;
     display: block;
     object-fit: contain;
+}
+
+.auth-container .auth-corner-logo {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    height: 28px;
+    width: 28px;
+    display: block;
+    object-fit: contain;
+    opacity: 0.95;
 }
 .auth-container .form-group {
     margin-bottom: var(--space-md);
