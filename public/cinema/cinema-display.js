@@ -127,6 +127,8 @@
     let lastSessionId = null; // Track last active session to detect changes
     let nowPlayingActive = false; // Track if currently showing Now Playing poster
     let sequentialTransitionIndex = 0; // Index for sequential transition mode
+    let isUpdateInProgress = false; // Lock to prevent concurrent updates
+    let pendingUpdate = null; // Store pending update if one is in progress
 
     // ===== DOM Element References =====
     let headerEl = null;
@@ -2926,9 +2928,38 @@
         console.log('[Cinema Display] updateCinemaDisplay called', {
             title: media?.title,
             cinemaInitialized,
+            isUpdateInProgress,
             stack: new Error().stack?.split('\\n').slice(1, 4).join(' <- '),
         });
 
+        // Prevent concurrent updates - if an update is in progress, queue this one
+        if (isUpdateInProgress) {
+            console.log('[Cinema Display] Update already in progress, queueing:', media?.title);
+            pendingUpdate = media;
+            return;
+        }
+
+        // Set the lock
+        isUpdateInProgress = true;
+
+        try {
+            await performCinemaDisplayUpdate(media);
+        } finally {
+            // Release the lock
+            isUpdateInProgress = false;
+
+            // If there's a pending update, process it
+            if (pendingUpdate) {
+                const nextMedia = pendingUpdate;
+                pendingUpdate = null;
+                console.log('[Cinema Display] Processing queued update:', nextMedia?.title);
+                // Use setTimeout to avoid deep call stacks
+                setTimeout(() => updateCinemaDisplay(nextMedia), 50);
+            }
+        }
+    }
+
+    async function performCinemaDisplayUpdate(media) {
         log('Updating cinema display', media);
 
         // Mark initialization complete on first display update
