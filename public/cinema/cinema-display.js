@@ -3611,28 +3611,6 @@
 
     // ===== Playback Control API =====
     window.__posterramaPlayback = {
-        pinPoster: payload => {
-            try {
-                isPinned = true;
-                pinnedMediaId = payload?.mediaId || window.__posterramaCurrentMediaId || null;
-                window.__posterramaPaused = true;
-                showPauseIndicator();
-
-                log('Poster pinned', { mediaId: pinnedMediaId });
-
-                // Trigger heartbeat to update admin UI
-                try {
-                    const dev = window.PosterramaDevice;
-                    if (dev && typeof dev.beat === 'function') {
-                        dev.beat();
-                    }
-                } catch (_) {
-                    /* ignore heartbeat */
-                }
-            } catch (e) {
-                error('Failed to pin poster', e);
-            }
-        },
         resume: () => {
             try {
                 isPinned = false;

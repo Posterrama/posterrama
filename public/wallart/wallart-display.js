@@ -1115,31 +1115,6 @@
                                     /* ignore refresh */
                                 }
                             },
-                            pinPoster: payload => {
-                                try {
-                                    _state.isPinned = true;
-                                    _state.paused = true;
-                                    _state.pinnedMediaId =
-                                        payload?.mediaId ||
-                                        window.__posterramaCurrentMediaId ||
-                                        null;
-                                    window.__posterramaPaused = true;
-                                    showPauseIndicator();
-
-                                    window.debugLog &&
-                                        window.debugLog('WALLART_POSTER_PINNED', {
-                                            mediaId: _state.pinnedMediaId,
-                                        });
-
-                                    try {
-                                        triggerLiveBeat();
-                                    } catch (_) {
-                                        /* noop */
-                                    }
-                                } catch (_) {
-                                    /* ignore pin poster */
-                                }
-                            },
                             remoteKey: key => {
                                 try {
                                     switch (key) {

@@ -14482,17 +14482,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         typeEl.value = v;
                         // Always refresh payload textarea to match command selection
                         if (payloadEl) {
-                            let tpl = '';
-                            switch (v) {
-                                case 'remote.key':
-                                    tpl = '{\n  "key": "up"\n}';
-                                    break;
-                                case 'playback.pinPoster':
-                                    tpl = '{\n  "id": "<posterId>"\n}';
-                                    break;
-                                default:
-                                    tpl = '';
-                            }
+                            const tpl = '';
                             payloadEl.value = tpl;
                         }
                     });

@@ -656,32 +656,6 @@
                                 // Note: triggerLiveBeat() removed - showNextBackground sends it
                                 api.showNextBackground({ forceNext: true });
                             },
-                            pinPoster: payload => {
-                                try {
-                                    _state.isPinned = true;
-                                    _state.paused = true;
-                                    _state.pinnedMediaId =
-                                        payload?.mediaId ||
-                                        window.__posterramaCurrentMediaId ||
-                                        null;
-                                    window.__posterramaPaused = true;
-                                    showPauseIndicator();
-
-                                    // Stop rotation timer
-                                    if (_state.cycleTimer) {
-                                        clearInterval(_state.cycleTimer);
-                                        _state.cycleTimer = null;
-                                    }
-
-                                    try {
-                                        triggerLiveBeat();
-                                    } catch (_) {
-                                        /* noop */
-                                    }
-                                } catch (_) {
-                                    /* noop */
-                                }
-                            },
                             remoteKey: key => {
                                 try {
                                     switch (key) {

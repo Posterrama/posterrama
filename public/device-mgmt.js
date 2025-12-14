@@ -1620,23 +1620,6 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                 api.resume();
                                 return void sendAck('ok');
                             }
-                            if (t === 'playback.pinPoster' && api.pinPoster) {
-                                liveDbg('[Live] invoking playback.pinPoster', {
-                                    payload: msg.payload,
-                                });
-                                // Ensure we provide mediaId when pinning for better persistence
-                                try {
-                                    const mediaIdHint =
-                                        (typeof window !== 'undefined' &&
-                                            window.__posterramaCurrentMediaId) ||
-                                        undefined;
-                                    api.pinPoster({ mediaId: mediaIdHint });
-                                    return void sendAck('ok');
-                                } catch (_) {
-                                    api.pinPoster(msg.payload);
-                                    return void sendAck('ok');
-                                }
-                            }
                             if (t === 'power.off') {
                                 if (api.powerOff) {
                                     liveDbg('[Live] invoking power.off');
@@ -2002,27 +1985,6 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                     if (api.resume) {
                         liveDbg('[Live] invoking playback.resume (queued via toggle,fallback)');
                         return void api.resume();
-                    }
-                } catch (_) {
-                    // ignore unsupported API or runtime
-                }
-                break;
-            }
-            case 'playback.pinPoster': {
-                try {
-                    const api =
-                        (typeof window !== 'undefined' && window.__posterramaPlayback) || {};
-                    if (api.pinPoster) {
-                        liveDbg('[Live] invoking playback.pinPoster (queued)', { payload });
-                        try {
-                            const mediaIdHint =
-                                (typeof window !== 'undefined' &&
-                                    window.__posterramaCurrentMediaId) ||
-                                undefined;
-                            return void api.pinPoster({ mediaId: mediaIdHint });
-                        } catch (_) {
-                            return void api.pinPoster(payload);
-                        }
                     }
                 } catch (_) {
                     // ignore unsupported API or runtime
