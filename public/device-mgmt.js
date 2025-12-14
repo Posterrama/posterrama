@@ -1382,6 +1382,29 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         },
     };
 
+    const REMOTE_LOGS_TTL_KEY = 'posterrama_remote_logs_enabled_until';
+
+    function setRemoteLogsEnabledUntil(ts) {
+        try {
+            if (typeof localStorage === 'undefined') return;
+            if (!ts) localStorage.removeItem(REMOTE_LOGS_TTL_KEY);
+            else localStorage.setItem(REMOTE_LOGS_TTL_KEY, String(ts));
+        } catch (_) {
+            /* ignore */
+        }
+    }
+
+    function getRemoteLogsEnabledUntil() {
+        try {
+            if (typeof localStorage === 'undefined') return 0;
+            const raw = localStorage.getItem(REMOTE_LOGS_TTL_KEY);
+            const n = Number(raw || 0);
+            return Number.isFinite(n) ? n : 0;
+        } catch (_) {
+            return 0;
+        }
+    }
+
     function safeStringifyForLog(value, maxLen = 1200) {
         try {
             if (value === null) return 'null';
@@ -1744,12 +1767,16 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         remoteLogs.enabled = on;
         try {
             if (!remoteLogs.enabled) {
+                setRemoteLogsEnabledUntil(0);
                 remoteLogs.buffer = [];
                 if (remoteLogs.flushTimer) {
                     clearTimeout(remoteLogs.flushTimer);
                     remoteLogs.flushTimer = null;
                 }
             } else {
+                // Persist a short TTL so a quick device reload still resumes log streaming.
+                // Admin modal also re-enables periodically while open.
+                setRemoteLogsEnabledUntil(Date.now() + 2 * 60 * 1000);
                 // Replay recent logs captured by client-logger (if available) so the admin
                 // sees the same startup log stream the device console shows.
                 try {
@@ -1772,6 +1799,16 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         } catch (_) {
             // ignore
         }
+    }
+
+    // If the device was reloaded while a remote log viewer was open, resume streaming briefly.
+    try {
+        const until = getRemoteLogsEnabledUntil();
+        if (until && until > Date.now()) {
+            setRemoteLogsEnabled(true);
+        }
+    } catch (_) {
+        /* ignore */
     }
 
     // Allow other scripts (e.g. client-logger.js) to forward their logs without

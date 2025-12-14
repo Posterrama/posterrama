@@ -14782,6 +14782,83 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 }
             }
 
+            function formatDevtoolsValue(value, depth = 0) {
+                const MAX_DEPTH = 3;
+                const MAX_KEYS = 40;
+                const MAX_ITEMS = 30;
+                const indent = n => '  '.repeat(n);
+
+                try {
+                    if (value === null) return 'null';
+                    if (value === undefined) return 'undefined';
+                    const t = typeof value;
+                    if (t === 'string') {
+                        const s = value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                        return `'${s}'`;
+                    }
+                    if (t === 'number' || t === 'boolean') return String(value);
+                    if (t === 'bigint') return String(value);
+                    if (t !== 'object') return String(value);
+
+                    if (Array.isArray(value)) {
+                        if (depth >= MAX_DEPTH) return '[Array]';
+                        if (value.length === 0) return '[]';
+                        const items = value
+                            .slice(0, MAX_ITEMS)
+                            .map(v => formatDevtoolsValue(v, depth + 1));
+                        const more =
+                            value.length > MAX_ITEMS
+                                ? `\n${indent(depth + 1)}…(${value.length - MAX_ITEMS} more)`
+                                : '';
+                        return (
+                            `[` +
+                            `\n${items.map(s => `${indent(depth + 1)}${s}`).join(',\n')}` +
+                            `${more}\n${indent(depth)}]`
+                        );
+                    }
+
+                    if (depth >= MAX_DEPTH) return '[Object]';
+
+                    const keys = Object.keys(value);
+                    if (keys.length === 0) return '{}';
+                    const shown = keys.slice(0, MAX_KEYS);
+                    const lines = [];
+                    for (const k of shown) {
+                        const isIdent = /^[A-Za-z_$][0-9A-Za-z_$]*$/.test(k);
+                        const keyStr = isIdent
+                            ? k
+                            : `'${k.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+                        lines.push(
+                            `${indent(depth + 1)}${keyStr}: ${formatDevtoolsValue(value[k], depth + 1)}`
+                        );
+                    }
+                    if (keys.length > MAX_KEYS) {
+                        lines.push(`${indent(depth + 1)}…(${keys.length - MAX_KEYS} more)`);
+                    }
+                    return `{\n${lines.join(',\n')}\n${indent(depth)}}`;
+                } catch (_) {
+                    try {
+                        return safeJsonPreview(value);
+                    } catch (_) {
+                        return '[Unserializable]';
+                    }
+                }
+            }
+
+            function formatDeviceLogDataBlocks(data) {
+                try {
+                    if (data === undefined || data === null) return [];
+                    if (Array.isArray(data)) {
+                        if (data.length === 0) return [];
+                        if (data.length === 1) return [formatDevtoolsValue(data[0], 0)];
+                        return data.slice(0, 4).map(v => formatDevtoolsValue(v, 0));
+                    }
+                    return [formatDevtoolsValue(data, 0)];
+                } catch (_) {
+                    return [];
+                }
+            }
+
             function openDeviceLogsFor(id) {
                 if (!id) return;
                 const overlay = document.getElementById('modal-device-logs');
@@ -14820,6 +14897,58 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 let lines = 0;
                 let paused = false;
                 const MAX_LINES = 600;
+
+                let lastLogAt = 0;
+                let enableUntil = 0;
+                let lastEnableSentAt = 0;
+
+                const bumpEnableWindow = (ms = 30000) => {
+                    try {
+                        const until = Date.now() + ms;
+                        if (until > enableUntil) enableUntil = until;
+                    } catch (_) {
+                        /* ignore */
+                    }
+                };
+
+                const maybeEnsureRemoteLogsEnabled = (reason = '') => {
+                    try {
+                        if (paused) return;
+
+                        // If we haven't seen logs recently, keep trying for a while.
+                        const now = Date.now();
+                        const stale = !lastLogAt || now - lastLogAt > 8000;
+                        if (stale) bumpEnableWindow(30000);
+
+                        if (now > enableUntil) return;
+                        if (now - lastEnableSentAt < 2500) return; // throttle
+
+                        const devNow = state.all.find(d => d.id === id);
+                        if (devNow) {
+                            const st =
+                                typeof getStatusClass === 'function' ? getStatusClass(devNow) : '';
+                            if (st === 'offline') return;
+                        }
+
+                        lastEnableSentAt = now;
+                        sendCommand(id, 'core.mgmt.enableRemoteLogs', { enabled: true }).catch(
+                            () => {}
+                        );
+
+                        if (statusEl && reason) {
+                            const rs = window.__adminSSE?.readyState;
+                            const sseState =
+                                rs === 1
+                                    ? 'SSE connected'
+                                    : rs === 0
+                                      ? 'SSE connecting'
+                                      : 'SSE offline';
+                            statusEl.textContent = `Waiting for logs… (${sseState})`;
+                        }
+                    } catch (_) {
+                        /* ignore */
+                    }
+                };
 
                 let filterQ = '';
                 const setFilter = q => {
@@ -14874,25 +15003,56 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     if (!consoleEl) return;
                     if (paused) return;
                     if (!payload || payload.deviceId !== id) return;
+                    try {
+                        lastLogAt = Date.now();
+                    } catch (_) {
+                        /* ignore */
+                    }
                     const shouldScroll = atBottom();
-                    const lvl = String(payload.level || 'log').toLowerCase();
                     const ts = formatDeviceLogTimestamp(payload.t);
-                    const msg = String(payload.message || '');
-                    const extra = payload.data !== undefined ? safeJsonPreview(payload.data) : '';
+
+                    let lvl = String(payload.level || 'log').toLowerCase();
+                    let msg = String(payload.message || '');
+
+                    // If the message already starts with a [DEBUG]/[INFO]/... tag, use that for level
+                    // and strip it from the message to avoid duplicates.
+                    try {
+                        const m = msg.match(/^\[(DEBUG|INFO|WARN|ERROR|LOG)\]\s*/i);
+                        if (m && m[1]) {
+                            const fromMsg = m[1].toLowerCase();
+                            if (lvl === 'log' || lvl === fromMsg) {
+                                lvl = fromMsg;
+                                msg = msg.slice(m[0].length);
+                            }
+                        }
+                    } catch (_) {
+                        /* ignore */
+                    }
+
+                    const dataBlocks = formatDeviceLogDataBlocks(payload.data);
 
                     const row = document.createElement('div');
                     row.className = `device-log-line lvl-${lvl}`;
                     const levelTag = `[${lvl.toUpperCase()}]`;
-                    const hay = `${ts} ${lvl} ${msg} ${extra}`.trim();
+                    const hay = `${ts} ${lvl} ${msg} ${dataBlocks.join(' ')}`.trim();
                     try {
                         row.setAttribute('data-hay', hay);
                     } catch (_) {
                         /* ignore */
                     }
+
+                    const dataHtml = dataBlocks.length
+                        ? dataBlocks
+                              .map(
+                                  s =>
+                                      `<div class="device-log-data-block"><span class="device-log-bullet">•</span><pre class="device-log-data-pre">${escapeHtml(s)}</pre></div>`
+                              )
+                              .join('')
+                        : '';
                     row.innerHTML = `
                         <div class="device-log-ts">${escapeHtml(ts)}</div>
                         <div class="device-log-level">${escapeHtml(levelTag)}</div>
-                        <div class="device-log-msg">${escapeHtml(msg)}${extra ? ' <span class="device-log-data">' + escapeHtml(extra) + '</span>' : ''}</div>
+                        <div class="device-log-msg">${escapeHtml(msg)}${dataHtml}</div>
                     `;
                     consoleEl.appendChild(row);
                     lines++;
@@ -14968,7 +15128,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         } catch (_) {
                             /* ignore */
                         }
+                        bumpEnableWindow(60000);
                         await sendCommand(id, 'core.mgmt.reload');
+                        // Device will reconnect with a fresh JS context; keep re-enabling while it comes back.
+                        maybeEnsureRemoteLogsEnabled('reload');
                     });
 
                     btnClearCache?.addEventListener('click', async () => {
@@ -14978,7 +15141,9 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         } catch (_) {
                             /* ignore */
                         }
+                        bumpEnableWindow(60000);
                         await sendCommand(id, 'core.mgmt.clearCache');
+                        maybeEnsureRemoteLogsEnabled('clearcache');
                     });
 
                     btnClear?.addEventListener('click', () => {
@@ -15001,6 +15166,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         if (window.__adminSSE && window.__adminSSE !== lastSse) {
                             attachToSse(window.__adminSSE);
                         }
+
+                        // If the device refreshed/reloaded, the enabled flag resets.
+                        // Keep best-effort enabling while modal is open.
+                        maybeEnsureRemoteLogsEnabled('heartbeat');
                     }, 1500);
                 } catch (_) {
                     /* ignore */
@@ -15009,6 +15178,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 // Enable logging on device (best-effort)
                 (async () => {
                     try {
+                        bumpEnableWindow(30000);
                         await sendCommand(id, 'core.mgmt.enableRemoteLogs', { enabled: true });
                         if (statusEl) {
                             const rs = window.__adminSSE?.readyState;
