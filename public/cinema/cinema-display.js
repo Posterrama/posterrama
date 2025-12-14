@@ -129,6 +129,8 @@
     let sequentialTransitionIndex = 0; // Index for sequential transition mode
     let isUpdateInProgress = false; // Lock to prevent concurrent updates
     let pendingUpdate = null; // Store pending update if one is in progress
+    let lastUpdateTime = 0; // Track last update timestamp for debugging
+    let updateCounter = 0; // Counter for tracking update sequence
 
     // ===== DOM Element References =====
     let headerEl = null;
@@ -2924,26 +2926,57 @@
 
     // ===== Update Cinema Display =====
     async function updateCinemaDisplay(media) {
-        // DEBUG: Track where calls come from
-        console.log('[Cinema Display] updateCinemaDisplay called', {
-            title: media?.title,
-            cinemaInitialized,
-            isUpdateInProgress,
-            stack: new Error().stack?.split('\\n').slice(1, 4).join(' <- '),
-        });
+        const now = Date.now();
+        const timeSinceLastUpdate = now - lastUpdateTime;
+        updateCounter++;
+        const updateId = updateCounter;
+
+        // Get call source from stack trace
+        const stackLines = new Error().stack?.split('\n') || [];
+        const callSource = stackLines
+            .slice(2, 5)
+            .map(line => {
+                const match = line.match(/at\s+(\w+)/);
+                return match ? match[1] : line.trim();
+            })
+            .join(' → ');
+
+        console.log(
+            `%c[Cinema Update #${updateId}] 📺 UPDATE CALLED`,
+            'background: #2196F3; color: white; padding: 2px 6px; border-radius: 3px;',
+            {
+                title: media?.title,
+                key: media?.key,
+                timestamp: new Date().toISOString(),
+                timeSinceLastUpdateMs: timeSinceLastUpdate,
+                isUpdateInProgress,
+                hasPendingUpdate: !!pendingUpdate,
+                cinemaInitialized,
+                nowPlayingActive,
+                callSource,
+            }
+        );
 
         // Prevent concurrent updates - if an update is in progress, queue this one
         if (isUpdateInProgress) {
-            console.log('[Cinema Display] Update already in progress, queueing:', media?.title);
+            console.log(
+                `%c[Cinema Update #${updateId}] ⏳ QUEUED (update in progress)`,
+                'background: #FF9800; color: white; padding: 2px 6px; border-radius: 3px;',
+                {
+                    queuedTitle: media?.title,
+                    currentlyUpdating: currentMedia?.title,
+                }
+            );
             pendingUpdate = media;
             return;
         }
 
         // Set the lock
         isUpdateInProgress = true;
+        lastUpdateTime = now;
 
         try {
-            await performCinemaDisplayUpdate(media);
+            await performCinemaDisplayUpdate(media, updateId);
         } finally {
             // Release the lock
             isUpdateInProgress = false;
@@ -2952,14 +2985,30 @@
             if (pendingUpdate) {
                 const nextMedia = pendingUpdate;
                 pendingUpdate = null;
-                console.log('[Cinema Display] Processing queued update:', nextMedia?.title);
+                console.log(
+                    `%c[Cinema Update #${updateId}] 🔄 PROCESSING QUEUED UPDATE`,
+                    'background: #9C27B0; color: white; padding: 2px 6px; border-radius: 3px;',
+                    {
+                        nextTitle: nextMedia?.title,
+                        delayMs: 50,
+                    }
+                );
                 // Use setTimeout to avoid deep call stacks
                 setTimeout(() => updateCinemaDisplay(nextMedia), 50);
             }
         }
     }
 
-    async function performCinemaDisplayUpdate(media) {
+    async function performCinemaDisplayUpdate(media, updateId = 0) {
+        console.log(
+            `%c[Cinema Update #${updateId}] 🎬 PERFORMING UPDATE`,
+            'background: #4CAF50; color: white; padding: 2px 6px; border-radius: 3px;',
+            {
+                title: media?.title,
+                key: media?.key,
+            }
+        );
+
         log('Updating cinema display', media);
 
         // Mark initialization complete on first display update
@@ -3017,6 +3066,17 @@
             void posterEl.offsetWidth;
             document.body.classList.add(animClass);
 
+            console.log(
+                `%c[Cinema Update #${updateId}] 🎭 TRANSITION: ${selectedTransition}`,
+                'background: #E91E63; color: white; padding: 2px 6px; border-radius: 3px;',
+                {
+                    title: media.title,
+                    transition: selectedTransition,
+                    mode: cinemaConfig.poster?.cinematicTransitions?.selectionMode,
+                    timestamp: new Date().toISOString(),
+                }
+            );
+
             log('Applied cinematic transition', {
                 selectedTransition,
                 mode: cinemaConfig.poster?.cinematicTransitions?.selectionMode,
@@ -3027,7 +3087,7 @@
                 ? `${url}&quality=30&width=400`
                 : `${url}?quality=30&width=400`;
 
-            console.log('[Cinema Display] 🖼️ THUMBNAIL loading:', {
+            console.log(`[Cinema Update #${updateId}] 🖼️ THUMBNAIL loading:`, {
                 url: thumbUrl,
                 expectedSize: '400x600',
                 title: media.title,
@@ -3707,6 +3767,11 @@
 
             rotationTimer = setInterval(() => {
                 if (!isPinned && !nowPlayingActive) {
+                    console.log(
+                        '%c⏱️ ROTATION TIMER TICK',
+                        'background: #607D8B; color: white; padding: 2px 6px; border-radius: 4px;',
+                        { intervalMs, timestamp: new Date().toISOString() }
+                    );
                     showNextPoster();
                 }
             }, intervalMs);
@@ -3807,6 +3872,18 @@
             }
             const nextMedia = mediaQueue[currentMediaIndex];
 
+            console.log(
+                '%c[Cinema] 🔄 showNextPoster CALLED',
+                'background: #00BCD4; color: white; padding: 2px 6px; border-radius: 3px;',
+                {
+                    source: 'showNextPoster',
+                    index: currentMediaIndex,
+                    title: nextMedia?.title,
+                    queueLength: mediaQueue.length,
+                    timestamp: new Date().toISOString(),
+                }
+            );
+
             log('Showing next poster', { index: currentMediaIndex, title: nextMedia?.title });
             updateCinemaDisplay(nextMedia);
             // Note: Don't dispatch mediaUpdated here - updateCinemaDisplay already handles the update
@@ -3825,6 +3902,18 @@
 
             currentMediaIndex = (currentMediaIndex - 1 + mediaQueue.length) % mediaQueue.length;
             const prevMedia = mediaQueue[currentMediaIndex];
+
+            console.log(
+                '%c[Cinema] ⬅️ showPreviousPoster CALLED',
+                'background: #00BCD4; color: white; padding: 2px 6px; border-radius: 3px;',
+                {
+                    source: 'showPreviousPoster',
+                    index: currentMediaIndex,
+                    title: prevMedia?.title,
+                    queueLength: mediaQueue.length,
+                    timestamp: new Date().toISOString(),
+                }
+            );
 
             log('Showing previous poster', { index: currentMediaIndex, title: prevMedia?.title });
             updateCinemaDisplay(prevMedia);
@@ -4105,6 +4194,16 @@
                         currentSessionIndex = 0;
                         const media = convertSessionToMedia(filteredSessions[0]);
                         if (media) {
+                            console.log(
+                                '%c[Cinema] 📺 NOW PLAYING: First multi-stream session',
+                                'background: #FF5722; color: white; padding: 2px 6px; border-radius: 3px;',
+                                {
+                                    source: 'checkNowPlaying (multi-stream first)',
+                                    title: media.title,
+                                    sessionCount: filteredSessions.length,
+                                    timestamp: new Date().toISOString(),
+                                }
+                            );
                             updateCinemaDisplay(media);
                             lastSessionId =
                                 filteredSessions[0].ratingKey || filteredSessions[0].key;
@@ -4136,6 +4235,16 @@
 
                         const media = convertSessionToMedia(selectedSession);
                         if (media) {
+                            console.log(
+                                '%c[Cinema] 📺 NOW PLAYING: Session changed',
+                                'background: #FF5722; color: white; padding: 2px 6px; border-radius: 3px;',
+                                {
+                                    source: 'checkNowPlaying (session changed)',
+                                    title: media.title,
+                                    sessionId,
+                                    timestamp: new Date().toISOString(),
+                                }
+                            );
                             updateCinemaDisplay(media);
                         }
                     }
@@ -4159,12 +4268,18 @@
                 // 1. Was previously showing Now Playing and sessions ended, OR
                 // 2. This is the first check and there are no sessions (initial fallback)
                 if ((wasActive || isFirstCheck) && nowPlayingConfig.fallbackToRotation !== false) {
-                    console.log('[Cinema Display] No sessions, starting rotation fallback', {
-                        wasActive,
-                        isFirstCheck,
-                        fallbackToRotation: nowPlayingConfig.fallbackToRotation,
-                        queueLength: mediaQueue.length,
-                    });
+                    console.log(
+                        '%c[Cinema] ⬇️ FALLBACK TO ROTATION',
+                        'background: #795548; color: white; padding: 2px 6px; border-radius: 3px;',
+                        {
+                            source: 'checkNowPlaying fallback',
+                            wasActive,
+                            isFirstCheck,
+                            fallbackToRotation: nowPlayingConfig.fallbackToRotation,
+                            queueLength: mediaQueue.length,
+                            timestamp: new Date().toISOString(),
+                        }
+                    );
                     log('No active sessions, applying fallback behavior');
 
                     // Wait for media queue if this is the first check and queue is empty
@@ -4186,7 +4301,7 @@
                         console.log('[Cinema Display] Queue still empty, retrying fetch...');
                         // Retry up to 7 times with increasing delays (1s, 2s, 3s, etc.)
                         for (let retry = 1; retry <= 7 && mediaQueue.length === 0; retry++) {
-                            await new Promise(resolve => setTimeout(resolve, retry * 1000));
+                            await new Promise(resolve => setTimeout(resolve, 100));
                             console.log(`[Cinema Display] Retry ${retry}/7...`);
                             mediaQueue = await fetchMediaQueue();
                             console.log(
@@ -4200,9 +4315,13 @@
                     // Return to rotation mode
                     if (mediaQueue.length > 0) {
                         console.log(
-                            '[Cinema Display] Starting rotation with',
-                            mediaQueue.length,
-                            'items'
+                            '%c[Cinema] 🔄 STARTING ROTATION FROM FALLBACK',
+                            'background: #607D8B; color: white; padding: 2px 6px; border-radius: 3px;',
+                            {
+                                source: 'checkNowPlaying fallback → showNextPoster',
+                                queueLength: mediaQueue.length,
+                                timestamp: new Date().toISOString(),
+                            }
                         );
                         showNextPoster();
                         if (cinemaConfig.rotationIntervalMinutes > 0) {
@@ -4278,6 +4397,12 @@
                 index: currentSessionIndex,
                 title: session.title,
             });
+            console.log(
+                '%c🔄 NowPlayingRotation',
+                'background: #9c27b0; color: white; padding: 2px 6px; border-radius: 4px;',
+                'Rotating to next stream, calling updateCinemaDisplay',
+                { sessionIndex: currentSessionIndex, title: session.title }
+            );
 
             const media = convertSessionToMedia(session);
             if (media) {
@@ -4319,10 +4444,20 @@
             // Initialize device data first, then start checking
             initNowPlayingDeviceData().then(() => {
                 // Initial check
+                console.log(
+                    '%c🎬 NOW PLAYING: Initial check',
+                    'background: #E91E63; color: white; padding: 2px 6px; border-radius: 4px;',
+                    { timestamp: new Date().toISOString() }
+                );
                 checkNowPlaying();
 
                 // Set up polling interval
                 nowPlayingTimer = setInterval(() => {
+                    console.log(
+                        '%c🎬 NOW PLAYING: Poll tick',
+                        'background: #E91E63; color: white; padding: 2px 6px; border-radius: 4px;',
+                        { intervalSeconds, timestamp: new Date().toISOString() }
+                    );
                     checkNowPlaying();
                 }, intervalMs);
             });
