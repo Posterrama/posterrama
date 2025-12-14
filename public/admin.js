@@ -1832,7 +1832,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             const topItem = items[0];
                             const title = topItem.title || topItem.id || 'unknown';
                             const shortTitle =
-                                title.length > 15 ? title.substring(0, 15) + '…' : title;
+                                title.length > 25 ? title.substring(0, 25) + '…' : title;
                             subEl.textContent = `top: ${shortTitle}`;
                         } else {
                             subEl.textContent = 'displays tracked';
