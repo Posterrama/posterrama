@@ -199,7 +199,7 @@ function verifySwagger() {
     for (const r of expressRoutes) uniqueExpress.set(r.method + ' ' + r.path, r);
     const missing = []; // exists in code but not in spec
     for (const key of uniqueExpress.keys()) {
-        const [method, p] = key.split(' ');
+        const [_method, p] = key.split(' ');
         if (!isMonitoredPath(p)) continue;
         if (!documented.has(key)) missing.push(key);
     }
