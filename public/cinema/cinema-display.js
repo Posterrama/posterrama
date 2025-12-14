@@ -3499,10 +3499,20 @@
             window.location.search.includes('preview=') ||
             window.Core?.isPreviewMode?.();
 
-        if (!isPreview && !config?.enabled) {
-            // Not in preview and disabled - destroy if exists
-            if (window.PosterramaTimelineBorder) {
-                window.PosterramaTimelineBorder.destroy();
+        // Outside preview mode, never show demo progress. Timeline border is only allowed
+        // to be visible during active Now Playing playback.
+        if (!isPreview) {
+            if (!config?.enabled || !cinemaConfig.nowPlaying?.enabled) {
+                if (window.PosterramaTimelineBorder) {
+                    window.PosterramaTimelineBorder.destroy();
+                }
+                return;
+            }
+
+            // Apply config (kept hidden until nowPlayingActive becomes true)
+            initTimelineBorder(config);
+            if (window.PosterramaTimelineBorder && !nowPlayingActive) {
+                window.PosterramaTimelineBorder.hide();
             }
             return;
         }
@@ -4423,6 +4433,12 @@
             script.onload = () => {
                 if (window.PosterramaTimelineBorder) {
                     window.PosterramaTimelineBorder.init(config);
+                    // Keep hidden until Now Playing is actually active.
+                    if (nowPlayingActive) {
+                        window.PosterramaTimelineBorder.show();
+                    } else {
+                        window.PosterramaTimelineBorder.hide();
+                    }
                     log('Timeline border initialized');
                 }
             };
@@ -4433,6 +4449,13 @@
         } else {
             // Already loaded, just init/update
             window.PosterramaTimelineBorder.init(config);
+
+            // Keep hidden unless Now Playing is actually active.
+            if (nowPlayingActive) {
+                window.PosterramaTimelineBorder.show();
+            } else {
+                window.PosterramaTimelineBorder.hide();
+            }
         }
     }
 
