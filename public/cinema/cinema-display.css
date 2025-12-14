@@ -329,7 +329,13 @@ body[data-orientation='portrait-flipped'] #poster {
 .cinema-header.decoration-frame.text-effect-gradient-rainbow,
 .cinema-header.decoration-frame.text-effect-gradient-gold,
 .cinema-header.decoration-frame.text-effect-gradient-silver {
-    border-image: linear-gradient(135deg, var(--header-color, #fff), rgba(255,255,255,0.5), var(--header-color, #fff)) 1;
+    border-image: linear-gradient(
+            135deg,
+            var(--header-color, #fff),
+            rgba(255, 255, 255, 0.5),
+            var(--header-color, #fff)
+        )
+        1;
 }
 
 .cinema-header.decoration-frame.text-effect-gradient-gold {
@@ -342,7 +348,12 @@ body[data-orientation='portrait-flipped'] #poster {
 
 .cinema-header.decoration-underline.text-effect-gradient::after,
 .cinema-header.decoration-underline.text-effect-gradient-rainbow::after {
-    background: linear-gradient(90deg, var(--header-color, #fff), rgba(255,255,255,0.5), var(--header-color, #fff));
+    background: linear-gradient(
+        90deg,
+        var(--header-color, #fff),
+        rgba(255, 255, 255, 0.5),
+        var(--header-color, #fff)
+    );
 }
 
 .cinema-header.decoration-underline.text-effect-gradient-gold::after {
@@ -367,7 +378,7 @@ body[data-orientation='portrait-flipped'] #poster {
 
 .cinema-header.decoration-frame.text-effect-outline-double {
     border-width: 0.15rem;
-    box-shadow: 
+    box-shadow:
         inset 0 0 0 0.35rem transparent,
         inset 0 0 0 0.5rem currentColor;
 }
@@ -389,23 +400,23 @@ body[data-orientation='portrait-flipped'] #poster {
 /* Metallic effects for decorations */
 .cinema-header.decoration-frame.text-effect-metallic {
     border-image: linear-gradient(180deg, #e8e8e8, #4a4a4a, #b8b8b8) 1;
-    box-shadow: 
-        inset 0 1px 0 rgba(255,255,255,0.5),
-        0 2px 4px rgba(0,0,0,0.4);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
 .cinema-header.decoration-frame.text-effect-chrome {
     border-image: linear-gradient(180deg, #fff, #a0a0a0, #808080, #c0c0c0, #fff) 1;
-    box-shadow: 
-        inset 0 1px 0 rgba(255,255,255,0.8),
-        0 3px 6px rgba(0,0,0,0.5);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        0 3px 6px rgba(0, 0, 0, 0.5);
 }
 
 .cinema-header.decoration-frame.text-effect-gold-metallic {
     border-image: linear-gradient(180deg, #ffd700, #8b6914, #d4af37, #ffd700) 1;
-    box-shadow: 
-        inset 0 1px 0 rgba(255,215,0,0.6),
-        0 3px 6px rgba(0,0,0,0.4);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 215, 0, 0.6),
+        0 3px 6px rgba(0, 0, 0, 0.4);
 }
 
 .cinema-header.decoration-underline.text-effect-metallic::after {
@@ -423,7 +434,7 @@ body[data-orientation='portrait-flipped'] #poster {
 /* Vintage/Retro effects for decorations */
 .cinema-header.decoration-frame.text-effect-vintage {
     border-color: #8b4513;
-    box-shadow: 
+    box-shadow:
         3px 3px 0 #654321,
         inset 0 0 0 1px #f5deb3;
 }
@@ -2497,7 +2508,11 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 
 /* Gradient Text Fill Effects */
 .text-effect-gradient {
-    background: linear-gradient(135deg, var(--header-color, #ffffff) 0%, var(--gradient-end-color, #ffd700) 100%);
+    background: linear-gradient(
+        135deg,
+        var(--header-color, #ffffff) 0%,
+        var(--gradient-end-color, #ffd700) 100%
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -2513,23 +2528,43 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 .text-effect-gradient-gold {
-    background: linear-gradient(135deg, #ffd700 0%, #ffb300 25%, #ffd700 50%, #ffb300 75%, #ffd700 100%);
+    background: linear-gradient(
+        135deg,
+        #ffd700 0%,
+        #ffb300 25%,
+        #ffd700 50%,
+        #ffb300 75%,
+        #ffd700 100%
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
 .text-effect-gradient-silver {
-    background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 25%, #c0c0c0 50%, #e8e8e8 75%, #c0c0c0 100%);
+    background: linear-gradient(
+        135deg,
+        #c0c0c0 0%,
+        #e8e8e8 25%,
+        #c0c0c0 50%,
+        #e8e8e8 75%,
+        #c0c0c0 100%
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
 @keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 /* Outline/Stroke Text Effects */
@@ -2549,7 +2584,7 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
     -webkit-text-stroke: 3px var(--header-color, currentColor);
     -webkit-text-fill-color: transparent;
     paint-order: stroke fill;
-    text-shadow: 
+    text-shadow:
         0 0 0 transparent,
         6px 0 0 var(--header-color, currentColor),
         -6px 0 0 var(--header-color, currentColor),
@@ -2637,8 +2672,12 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes fireFlicker {
-    0% { filter: drop-shadow(0 -2px 10px rgba(255, 100, 0, 0.6)) brightness(1); }
-    100% { filter: drop-shadow(0 -4px 15px rgba(255, 50, 0, 0.8)) brightness(1.1); }
+    0% {
+        filter: drop-shadow(0 -2px 10px rgba(255, 100, 0, 0.6)) brightness(1);
+    }
+    100% {
+        filter: drop-shadow(0 -4px 15px rgba(255, 50, 0, 0.8)) brightness(1.1);
+    }
 }
 
 /* Ice/Frozen Text Effect */
@@ -2649,8 +2688,6 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
     background-clip: text;
     filter: drop-shadow(0 0 8px rgba(168, 216, 234, 0.6));
 }
-
-
 
 /* =================================================================
    ENTRANCE ANIMATION CLASSES (Issue #126)
@@ -2686,15 +2723,14 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes typewriterCursor {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
-}
-    to { width: var(--typewriter-width, 100%); }
-}
-
-@keyframes typewriterCursor {
-    0%, 50% { border-right-color: currentColor; }
-    51%, 100% { border-right-color: transparent; }
+    0%,
+    50% {
+        opacity: 1;
+    }
+    51%,
+    100% {
+        opacity: 0;
+    }
 }
 
 /* Fade In Word by Word */
@@ -2712,8 +2748,14 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes fadeInWord {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Slide In From Left */
@@ -2722,13 +2764,13 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes slideInLeft {
-    from { 
-        transform: translateX(-100%); 
-        opacity: 0; 
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
     }
-    to { 
-        transform: translateX(0); 
-        opacity: 1; 
+    to {
+        transform: translateX(0);
+        opacity: 1;
     }
 }
 
@@ -2738,13 +2780,13 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes slideInRight {
-    from { 
-        transform: translateX(100%); 
-        opacity: 0; 
+    from {
+        transform: translateX(100%);
+        opacity: 0;
     }
-    to { 
-        transform: translateX(0); 
-        opacity: 1; 
+    to {
+        transform: translateX(0);
+        opacity: 1;
     }
 }
 
@@ -2754,13 +2796,13 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes slideInTop {
-    from { 
-        transform: translateY(-100%); 
-        opacity: 0; 
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
     }
-    to { 
-        transform: translateY(0); 
-        opacity: 1; 
+    to {
+        transform: translateY(0);
+        opacity: 1;
     }
 }
 
@@ -2770,13 +2812,13 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes slideInBottom {
-    from { 
-        transform: translateY(100%); 
-        opacity: 0; 
+    from {
+        transform: translateY(100%);
+        opacity: 0;
     }
-    to { 
-        transform: translateY(0); 
-        opacity: 1; 
+    to {
+        transform: translateY(0);
+        opacity: 1;
     }
 }
 
@@ -2786,13 +2828,13 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes zoomIn {
-    from { 
-        transform: scale(0); 
-        opacity: 0; 
+    from {
+        transform: scale(0);
+        opacity: 0;
     }
-    to { 
-        transform: scale(1); 
-        opacity: 1; 
+    to {
+        transform: scale(1);
+        opacity: 1;
     }
 }
 
@@ -2801,17 +2843,17 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes zoomInBounce {
-    0% { 
-        transform: scale(0); 
-        opacity: 0; 
+    0% {
+        transform: scale(0);
+        opacity: 0;
     }
-    60% { 
-        transform: scale(1.1); 
-        opacity: 1; 
+    60% {
+        transform: scale(1.1);
+        opacity: 1;
     }
-    100% { 
-        transform: scale(1); 
-        opacity: 1; 
+    100% {
+        transform: scale(1);
+        opacity: 1;
     }
 }
 
@@ -2821,13 +2863,13 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes blurToFocus {
-    from { 
-        filter: blur(20px); 
+    from {
+        filter: blur(20px);
         opacity: 0;
         transform: scale(1.1);
     }
-    to { 
-        filter: blur(0); 
+    to {
+        filter: blur(0);
         opacity: 1;
         transform: scale(1);
     }
@@ -2839,8 +2881,13 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
 }
 
 /* Letter Spacing Animation */
@@ -2850,13 +2897,13 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes letterSpread {
-    from { 
-        letter-spacing: -0.5em; 
-        opacity: 0; 
+    from {
+        letter-spacing: -0.5em;
+        opacity: 0;
     }
-    to { 
-        letter-spacing: 0.1em; 
-        opacity: 1; 
+    to {
+        letter-spacing: 0.1em;
+        opacity: 1;
     }
 }
 
@@ -2867,13 +2914,13 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes rotateIn3D {
-    from { 
+    from {
         transform: perspective(400px) rotateX(90deg);
-        opacity: 0; 
+        opacity: 0;
     }
-    to { 
+    to {
         transform: perspective(400px) rotateX(0);
-        opacity: 1; 
+        opacity: 1;
     }
 }
 
@@ -2884,13 +2931,13 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes flipIn {
-    from { 
+    from {
         transform: perspective(400px) rotateY(-180deg);
-        opacity: 0; 
+        opacity: 0;
     }
-    to { 
+    to {
         transform: perspective(400px) rotateY(0);
-        opacity: 1; 
+        opacity: 1;
     }
 }
 
@@ -2900,17 +2947,17 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes dropIn {
-    0% { 
+    0% {
         transform: translateY(-200%) scale(0.5);
-        opacity: 0; 
+        opacity: 0;
     }
-    60% { 
+    60% {
         transform: translateY(10%) scale(1.02);
         opacity: 1;
     }
-    100% { 
+    100% {
         transform: translateY(0) scale(1);
-        opacity: 1; 
+        opacity: 1;
     }
 }
 
@@ -2920,8 +2967,12 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes entranceFade {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
 /* Cinematic Reveal - dramatic with brightness */
@@ -2930,16 +2981,16 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
 }
 
 @keyframes cinematicReveal {
-    0% { 
+    0% {
         opacity: 0;
         transform: scale(1.2);
         filter: brightness(0.3) blur(5px);
     }
-    50% { 
+    50% {
         opacity: 0.7;
         filter: brightness(0.8) blur(2px);
     }
-    100% { 
+    100% {
         opacity: 1;
         transform: scale(1);
         filter: brightness(1) blur(0);
