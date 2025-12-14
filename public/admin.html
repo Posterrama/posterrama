@@ -1543,11 +1543,23 @@
                           </div>
                           <div class="slider-percentage" data-target="cinema.poster.frameWidth">8px</div>
                         </div>
-                        <div class="cinema-section-header">Animation</div>
+                        <div class="cinema-section-header">Cinematic Transitions</div>
                         <div class="form-row">
-                          <label for="cinemaPosterAnimation">Transition Animation</label>
+                          <label for="cinemaTransitionMode">Selection Mode</label>
                           <div class="select-wrap has-caret">
-                            <select id="cinemaPosterAnimation">
+                            <select id="cinemaTransitionMode">
+                              <option value="random">Random</option>
+                              <option value="sequential">Sequential</option>
+                              <option value="smart">Smart (Genre-based)</option>
+                              <option value="single">Single</option>
+                            </select>
+                            <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        <div class="form-row" id="singleTransitionRow" style="display:none;">
+                          <label for="cinemaSingleTransition">Single Transition</label>
+                          <div class="select-wrap has-caret">
+                            <select id="cinemaSingleTransition">
                               <option value="fade">Fade</option>
                               <option value="zoomIn">Zoom In</option>
                               <option value="slideUp">Slide Up</option>
@@ -1560,6 +1572,21 @@
                               <option value="ripple">Ripple</option>
                             </select>
                             <span class="select-caret" aria-hidden="true">▾</span>
+                          </div>
+                        </div>
+                        <div class="form-row transitions-row" id="enabledTransitionsRow">
+                          <label>Enabled Transitions</label>
+                          <div class="transitions-checklist" id="enabledTransitionsGrid">
+                            <label class="toggle-row"><input type="checkbox" value="fade" checked><span>Fade</span></label>
+                            <label class="toggle-row"><input type="checkbox" value="zoomIn" checked><span>Zoom In</span></label>
+                            <label class="toggle-row"><input type="checkbox" value="slideUp" checked><span>Slide Up</span></label>
+                            <label class="toggle-row"><input type="checkbox" value="cinematic" checked><span>Cinematic Reveal</span></label>
+                            <label class="toggle-row"><input type="checkbox" value="lightFlare" checked><span>Light Flare</span></label>
+                            <label class="toggle-row"><input type="checkbox" value="shatter" checked><span>Shatter</span></label>
+                            <label class="toggle-row"><input type="checkbox" value="spotlight" checked><span>Spotlight</span></label>
+                            <label class="toggle-row"><input type="checkbox" value="unfold" checked><span>Unfold</span></label>
+                            <label class="toggle-row"><input type="checkbox" value="swing" checked><span>Swing</span></label>
+                            <label class="toggle-row"><input type="checkbox" value="ripple" checked><span>Ripple</span></label>
                           </div>
                         </div>
                         <div class="form-row">

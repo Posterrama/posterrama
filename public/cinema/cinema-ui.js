@@ -1526,8 +1526,40 @@
         const poster = c.poster || {};
         $('#cinemaPosterStyle') && ($('#cinemaPosterStyle').value = poster.style || 'floating');
         $('#cinemaPosterOverlay') && ($('#cinemaPosterOverlay').value = poster.overlay || 'none');
-        $('#cinemaPosterAnimation') &&
-            ($('#cinemaPosterAnimation').value = poster.animation || 'fade');
+
+        // Cinematic Transitions
+        const ct = poster.cinematicTransitions || {};
+        $('#cinemaTransitionMode') &&
+            ($('#cinemaTransitionMode').value = ct.selectionMode || 'random');
+        $('#cinemaSingleTransition') &&
+            ($('#cinemaSingleTransition').value = ct.singleTransition || 'fade');
+
+        // Show/hide single transition dropdown based on mode
+        const singleRow = document.getElementById('singleTransitionRow');
+        if (singleRow) {
+            singleRow.style.display = ct.selectionMode === 'single' ? '' : 'none';
+        }
+
+        // Set enabled transitions checkboxes
+        const enabledList = ct.enabledTransitions || [
+            'fade',
+            'zoomIn',
+            'slideUp',
+            'cinematic',
+            'lightFlare',
+            'shatter',
+            'spotlight',
+            'unfold',
+            'swing',
+            'ripple',
+        ];
+        const checkboxes = document.querySelectorAll(
+            '#enabledTransitionsGrid input[type="checkbox"]'
+        );
+        checkboxes.forEach(cb => {
+            cb.checked = enabledList.includes(cb.value);
+        });
+
         $('#cinemaPosterTransition') &&
             ($('#cinemaPosterTransition').value = poster.transitionDuration || 1.5);
         $('#cinemaFrameColorMode') &&
@@ -1973,6 +2005,25 @@
     }
 
     function wireConditionalVisibility() {
+        // Cinematic Transitions: show single transition dropdown only when mode is 'single'
+        const transitionModeSelect = $('#cinemaTransitionMode');
+        const singleTransitionRow = document.getElementById('singleTransitionRow');
+        const enabledTransitionsRow = document.getElementById('enabledTransitionsRow');
+        if (transitionModeSelect) {
+            const syncTransitionModeVisibility = () => {
+                const mode = transitionModeSelect.value;
+                if (singleTransitionRow) {
+                    singleTransitionRow.style.display = mode === 'single' ? '' : 'none';
+                }
+                // Hide checkboxes when in single mode (only one transition matters)
+                if (enabledTransitionsRow) {
+                    enabledTransitionsRow.style.display = mode === 'single' ? 'none' : '';
+                }
+            };
+            transitionModeSelect.addEventListener('change', syncTransitionModeVisibility);
+            syncTransitionModeVisibility();
+        }
+
         // Font Family: show custom font input when 'custom' is selected
         const fontFamilySelect = $('#cinemaFontFamily');
         const customFontRow = $('#cinemaCustomFontRow');
@@ -2880,11 +2931,24 @@
 
     // === NEW: Collect enhanced settings for save ===
     function collectEnhancedSettings() {
+        // Collect enabled transitions from checkboxes
+        const enabledTransitions = [];
+        document
+            .querySelectorAll('#enabledTransitionsGrid input[type="checkbox"]:checked')
+            .forEach(cb => {
+                enabledTransitions.push(cb.value);
+            });
+
         return {
             poster: {
                 style: $('#cinemaPosterStyle')?.value || 'floating',
                 overlay: $('#cinemaPosterOverlay')?.value || 'none',
-                animation: $('#cinemaPosterAnimation')?.value || 'fade',
+                cinematicTransitions: {
+                    enabledTransitions:
+                        enabledTransitions.length > 0 ? enabledTransitions : ['fade'],
+                    selectionMode: $('#cinemaTransitionMode')?.value || 'random',
+                    singleTransition: $('#cinemaSingleTransition')?.value || 'fade',
+                },
                 transitionDuration: parseFloat($('#cinemaPosterTransition')?.value || '1.5'),
                 frameColor: $('#cinemaFrameColor')?.value || '#333333',
                 frameColorMode: $('#cinemaFrameColorMode')?.value || 'custom',

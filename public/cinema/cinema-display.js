@@ -54,11 +54,15 @@
         // === Poster presentation ===
         poster: {
             style: 'floating', // fullBleed, framed, floating, perspective
-            animation: 'fade', // fade, zoomIn, slideUp, cinematic, kenBurns
             transitionDuration: 1.5, // seconds
             frameColor: '#333333',
             frameColorMode: 'custom', // custom, tonSurTonLight, tonSurTonDark
             frameWidth: 8, // pixels
+            cinematicTransitions: {
+                enabledTransitions: ['fade', 'zoomIn', 'slideUp', 'cinematic'],
+                selectionMode: 'random', // random, sequential, smart, single
+                singleTransition: 'fade',
+            },
         },
         // === NEW: Background settings ===
         background: {
@@ -122,6 +126,7 @@
     let nowPlayingTimer = null; // Timer for Now Playing session polling
     let lastSessionId = null; // Track last active session to detect changes
     let nowPlayingActive = false; // Track if currently showing Now Playing poster
+    let sequentialTransitionIndex = 0; // Index for sequential transition mode
 
     // ===== DOM Element References =====
     let headerEl = null;
@@ -2501,6 +2506,96 @@
         log('Background settings applied', { ...bg, effectiveBgColor });
     }
 
+    // ===== Transition Selection =====
+    // All available transitions
+    const ALL_TRANSITIONS = [
+        'fade',
+        'zoomIn',
+        'slideUp',
+        'cinematic',
+        'lightFlare',
+        'shatter',
+        'spotlight',
+        'unfold',
+        'swing',
+        'ripple',
+    ];
+
+    // Genre to transition mapping for smart mode
+    const GENRE_TRANSITION_MAP = {
+        action: ['shatter', 'swing', 'zoomIn'],
+        adventure: ['unfold', 'slideUp', 'zoomIn'],
+        thriller: ['spotlight', 'shatter', 'cinematic'],
+        horror: ['shatter', 'spotlight', 'ripple'],
+        comedy: ['swing', 'slideUp', 'fade'],
+        romance: ['fade', 'lightFlare', 'unfold'],
+        drama: ['cinematic', 'fade', 'spotlight'],
+        documentary: ['fade', 'slideUp', 'cinematic'],
+        animation: ['swing', 'ripple', 'zoomIn'],
+        fantasy: ['lightFlare', 'unfold', 'ripple'],
+        'sci-fi': ['lightFlare', 'shatter', 'ripple'],
+        'science fiction': ['lightFlare', 'shatter', 'ripple'],
+        mystery: ['spotlight', 'cinematic', 'fade'],
+        crime: ['spotlight', 'shatter', 'cinematic'],
+        family: ['fade', 'slideUp', 'swing'],
+        music: ['ripple', 'lightFlare', 'swing'],
+        war: ['shatter', 'cinematic', 'spotlight'],
+        western: ['unfold', 'slideUp', 'cinematic'],
+        history: ['unfold', 'fade', 'cinematic'],
+    };
+
+    /**
+     * Select the next transition based on the configured selection mode.
+     * @param {Object} media - Current media object (for smart mode genre matching)
+     * @returns {string} - The selected transition name
+     */
+    function selectTransition(media = null) {
+        const transitions = cinemaConfig.poster?.cinematicTransitions || {};
+        const mode = transitions.selectionMode || 'random';
+        const enabledTransitions = transitions.enabledTransitions || ['fade'];
+        const singleTransition = transitions.singleTransition || 'fade';
+
+        // Filter to only include valid transitions
+        const validTransitions = enabledTransitions.filter(t => ALL_TRANSITIONS.includes(t));
+        if (validTransitions.length === 0) {
+            return 'fade'; // Fallback
+        }
+
+        switch (mode) {
+            case 'single':
+                // Use the specified single transition
+                return ALL_TRANSITIONS.includes(singleTransition) ? singleTransition : 'fade';
+
+            case 'sequential': {
+                // Cycle through enabled transitions in order
+                const transition =
+                    validTransitions[sequentialTransitionIndex % validTransitions.length];
+                sequentialTransitionIndex++;
+                return transition;
+            }
+
+            case 'smart':
+                // Match transition to media genre
+                if (media && media.genres && Array.isArray(media.genres)) {
+                    const genre = (media.genres[0] || '').toLowerCase();
+                    const genreTransitions = GENRE_TRANSITION_MAP[genre] || [];
+                    // Find first genre-appropriate transition that's enabled
+                    for (const t of genreTransitions) {
+                        if (validTransitions.includes(t)) {
+                            return t;
+                        }
+                    }
+                }
+                // Fallback to random if no genre match
+                return validTransitions[Math.floor(Math.random() * validTransitions.length)];
+
+            case 'random':
+            default:
+                // Random selection from enabled transitions
+                return validTransitions[Math.floor(Math.random() * validTransitions.length)];
+        }
+    }
+
     // ===== Poster Settings =====
     function applyPosterSettings() {
         const root = document.documentElement;
@@ -2535,20 +2630,12 @@
             document.body.classList.add(`cinema-overlay-${poster.overlay}`);
         }
 
-        // Remove existing animation classes (kenBurns removed)
-        document.body.classList.remove(
-            'cinema-anim-fade',
-            'cinema-anim-zoomIn',
-            'cinema-anim-slideUp',
-            'cinema-anim-cinematic',
-            'cinema-anim-lightFlare',
-            'cinema-anim-shatter',
-            'cinema-anim-spotlight',
-            'cinema-anim-unfold',
-            'cinema-anim-swing',
-            'cinema-anim-ripple'
-        );
-        document.body.classList.add(`cinema-anim-${poster.animation}`);
+        // Remove existing animation classes using the ALL_TRANSITIONS constant
+        ALL_TRANSITIONS.forEach(t => document.body.classList.remove(`cinema-anim-${t}`));
+
+        // Apply initial transition based on selection mode
+        const initialTransition = selectTransition();
+        document.body.classList.add(`cinema-anim-${initialTransition}`);
 
         // Set CSS variables (use rem for 4K scaling)
         root.style.setProperty('--cinema-poster-transition', `${poster.transitionDuration}s`);
@@ -2646,9 +2733,16 @@
             if (config.nowPlaying) {
                 cinemaConfig.nowPlaying = { ...cinemaConfig.nowPlaying, ...config.nowPlaying };
             }
-            // === Merge poster settings ===
+            // === Merge poster settings (including nested cinematicTransitions) ===
             if (config.poster) {
                 cinemaConfig.poster = { ...cinemaConfig.poster, ...config.poster };
+                // Deep merge cinematicTransitions
+                if (config.poster.cinematicTransitions) {
+                    cinemaConfig.poster.cinematicTransitions = {
+                        ...cinemaConfig.poster.cinematicTransitions,
+                        ...config.poster.cinematicTransitions,
+                    };
+                }
             }
             // === Merge background settings ===
             if (config.background) {
@@ -2833,12 +2927,20 @@
         if (posterEl && media && media.posterUrl) {
             const url = media.posterUrl;
 
-            // Re-trigger animation by removing and re-adding the animation class
-            const animClass = `cinema-anim-${cinemaConfig.poster.animation}`;
-            document.body.classList.remove(animClass);
+            // Select transition based on configured mode and apply it
+            const selectedTransition = selectTransition(media);
+            const animClass = `cinema-anim-${selectedTransition}`;
+
+            // Remove all animation classes first
+            ALL_TRANSITIONS.forEach(t => document.body.classList.remove(`cinema-anim-${t}`));
             // Force reflow to restart animation
             void posterEl.offsetWidth;
             document.body.classList.add(animClass);
+
+            log('Applied cinematic transition', {
+                selectedTransition,
+                mode: cinemaConfig.poster?.cinematicTransitions?.selectionMode,
+            });
 
             // Show low-quality thumbnail immediately
             const thumbUrl = url.includes('?')
@@ -3182,9 +3284,17 @@
                 }
             }
 
-            // Update poster settings
+            // Update poster settings (including nested cinematicTransitions)
             if (newConfig.cinema.poster) {
                 cinemaConfig.poster = { ...cinemaConfig.poster, ...newConfig.cinema.poster };
+                // Deep merge cinematicTransitions
+                if (newConfig.cinema.poster.cinematicTransitions) {
+                    cinemaConfig.poster.cinematicTransitions = {
+                        ...cinemaConfig.poster.cinematicTransitions,
+                        ...newConfig.cinema.poster.cinematicTransitions,
+                    };
+                    log('Cinematic transitions updated', cinemaConfig.poster.cinematicTransitions);
+                }
                 applyPosterSettings();
             }
 

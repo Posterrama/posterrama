@@ -1124,22 +1124,82 @@
                             "default": "none",
                             "description": "Overlay effect applied to the poster"
                         },
-                        "animation": {
-                            "type": "string",
-                            "enum": [
-                                "fade",
-                                "zoomIn",
-                                "slideUp",
-                                "cinematic",
-                                "lightFlare",
-                                "shatter",
-                                "spotlight",
-                                "unfold",
-                                "swing",
-                                "ripple"
-                            ],
-                            "default": "fade",
-                            "description": "Poster transition animation"
+                        "cinematicTransitions": {
+                            "type": "object",
+                            "description": "Cinematic transition settings for poster changes",
+                            "properties": {
+                                "enabledTransitions": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "enum": [
+                                            "fade",
+                                            "zoomIn",
+                                            "slideUp",
+                                            "cinematic",
+                                            "lightFlare",
+                                            "shatter",
+                                            "spotlight",
+                                            "unfold",
+                                            "swing",
+                                            "ripple"
+                                        ]
+                                    },
+                                    "default": [
+                                        "fade",
+                                        "zoomIn",
+                                        "slideUp",
+                                        "cinematic",
+                                        "lightFlare",
+                                        "shatter",
+                                        "spotlight",
+                                        "unfold",
+                                        "swing",
+                                        "ripple"
+                                    ],
+                                    "description": "List of enabled transitions to use"
+                                },
+                                "selectionMode": {
+                                    "type": "string",
+                                    "enum": ["random", "sequential", "smart", "single"],
+                                    "default": "random",
+                                    "description": "How to select the next transition: random (random pick), sequential (cycle through list), smart (based on genre/metadata), single (always use singleTransition)"
+                                },
+                                "singleTransition": {
+                                    "type": "string",
+                                    "enum": [
+                                        "fade",
+                                        "zoomIn",
+                                        "slideUp",
+                                        "cinematic",
+                                        "lightFlare",
+                                        "shatter",
+                                        "spotlight",
+                                        "unfold",
+                                        "swing",
+                                        "ripple"
+                                    ],
+                                    "default": "fade",
+                                    "description": "The transition to use when selectionMode is 'single'"
+                                }
+                            },
+                            "additionalProperties": false,
+                            "default": {
+                                "enabledTransitions": [
+                                    "fade",
+                                    "zoomIn",
+                                    "slideUp",
+                                    "cinematic",
+                                    "lightFlare",
+                                    "shatter",
+                                    "spotlight",
+                                    "unfold",
+                                    "swing",
+                                    "ripple"
+                                ],
+                                "selectionMode": "random",
+                                "singleTransition": "fade"
+                            }
                         },
                         "transitionDuration": {
                             "type": "number",
@@ -1171,7 +1231,22 @@
                     "additionalProperties": false,
                     "default": {
                         "style": "floating",
-                        "animation": "fade",
+                        "cinematicTransitions": {
+                            "enabledTransitions": [
+                                "fade",
+                                "zoomIn",
+                                "slideUp",
+                                "cinematic",
+                                "lightFlare",
+                                "shatter",
+                                "spotlight",
+                                "unfold",
+                                "swing",
+                                "ripple"
+                            ],
+                            "selectionMode": "random",
+                            "singleTransition": "fade"
+                        },
                         "transitionDuration": 1.5,
                         "frameColor": "#333333",
                         "frameColorMode": "custom",
