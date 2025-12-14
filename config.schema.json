@@ -582,17 +582,59 @@
                                     "default": "subtle",
                                     "description": "Text shadow/glow effect"
                                 },
-                                "animation": {
+                                "textEffect": {
                                     "type": "string",
-                                    "enum": ["none", "pulse", "flicker", "marquee"],
+                                    "enum": [
+                                        "none",
+                                        "gradient",
+                                        "gradient-rainbow",
+                                        "gradient-gold",
+                                        "gradient-silver",
+                                        "outline",
+                                        "outline-thick",
+                                        "outline-double",
+                                        "metallic",
+                                        "chrome",
+                                        "gold-metallic",
+                                        "vintage",
+                                        "retro",
+                                        "fire",
+                                        "ice",
+                                        "pulse",
+                                        "marquee"
+                                    ],
                                     "default": "none",
-                                    "description": "Text animation effect"
+                                    "description": "Advanced text effect styling (gradient fills, metallic, animations, etc.)"
+                                },
+                                "entranceAnimation": {
+                                    "type": "string",
+                                    "enum": [
+                                        "none",
+                                        "typewriter",
+                                        "fade-words",
+                                        "slide-left",
+                                        "slide-right",
+                                        "slide-top",
+                                        "slide-bottom",
+                                        "zoom",
+                                        "zoom-bounce",
+                                        "blur-focus",
+                                        "float",
+                                        "letter-spread",
+                                        "rotate-3d",
+                                        "flip",
+                                        "drop",
+                                        "fade",
+                                        "cinematic"
+                                    ],
+                                    "default": "none",
+                                    "description": "Entrance animation when header appears (typewriter, slide-in, zoom, blur-focus, etc.)"
                                 },
                                 "decoration": {
                                     "type": "string",
-                                    "enum": ["none", "frame", "underline", "backdrop"],
+                                    "enum": ["none", "frame", "underline"],
                                     "default": "none",
-                                    "description": "Header decoration style (only when animation is none)"
+                                    "description": "Header decoration style (only when textEffect has no animation)"
                                 }
                             },
                             "additionalProperties": false,
@@ -602,7 +644,8 @@
                                 "color": "#ffffff",
                                 "tonSurTon": false,
                                 "shadow": "subtle",
-                                "animation": "none",
+                                "textEffect": "none",
+                                "entranceAnimation": "none",
                                 "decoration": "none"
                             }
                         },

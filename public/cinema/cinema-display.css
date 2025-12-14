@@ -231,10 +231,9 @@ body[data-orientation='portrait-flipped'] #poster {
     padding: 0.1em 0.15em 0em 0.3em;
     /* Never wrap text */
     white-space: nowrap;
-    /* Horizontal center */
-    left: 50% !important;
-    transform: translateX(-50%);
-    right: auto !important;
+    /* Center without transform - use left/right auto positioning */
+    left: 0 !important;
+    right: 0 !important;
     /* Reset any text-align that might cause offset */
     text-align: center;
     /* Align text to top of line-height */
@@ -269,10 +268,11 @@ body[data-orientation='portrait-flipped'] #poster {
     /* Shrink to fit text */
     width: fit-content !important;
     height: auto !important;
-    /* Center in header - shift slightly right to compensate for letter-spacing */
-    left: calc(50% + 0.065em) !important;
-    transform: translateX(-50%);
-    right: auto !important;
+    /* Center without transform - use left/right auto positioning */
+    left: 0 !important;
+    right: 0 !important;
+    margin-left: auto;
+    margin-right: auto;
     /* Never wrap */
     white-space: nowrap;
     /* Move text down a bit */
@@ -319,48 +319,152 @@ body[data-orientation='portrait-flipped'] #poster {
         0 0 2.5rem currentColor;
 }
 
-/* Backdrop decoration - frosted glass effect behind text */
-.cinema-header.decoration-backdrop {
-    /* Fill most of header area with equal padding on all sides */
-    width: calc(100% - 2.5rem) !important;
-    height: calc(var(--poster-top, 3rem) - 2.6rem) !important;
-    /* Center in header - slightly more margin at bottom */
-    margin: 1rem auto 1.6rem auto;
-    left: 50% !important;
-    transform: translateX(-50%);
-    right: auto !important;
-    /* Never wrap */
-    white-space: nowrap;
-    line-height: 1;
-    /* Frosted glass effect */
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-radius: 0.375rem;
-    border: 0.0625rem solid rgba(255, 255, 255, 0.1);
+/* =================================================================
+   TEXT EFFECTS APPLIED TO DECORATIONS
+   Frame borders and underlines inherit text effect styling
+   ================================================================= */
+
+/* Gradient effects for decorations */
+.cinema-header.decoration-frame.text-effect-gradient,
+.cinema-header.decoration-frame.text-effect-gradient-rainbow,
+.cinema-header.decoration-frame.text-effect-gradient-gold,
+.cinema-header.decoration-frame.text-effect-gradient-silver {
+    border-image: linear-gradient(135deg, var(--header-color, #fff), rgba(255,255,255,0.5), var(--header-color, #fff)) 1;
 }
 
-/* Apply shadow effects to backdrop */
-.cinema-header.decoration-backdrop.shadow-subtle {
-    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.3);
+.cinema-header.decoration-frame.text-effect-gradient-gold {
+    border-image: linear-gradient(135deg, #ffd700, #b8860b, #ffd700, #daa520) 1;
 }
-.cinema-header.decoration-backdrop.shadow-dramatic {
-    box-shadow:
-        0 0.25rem 1.25rem rgba(0, 0, 0, 0.6),
-        0 0 2.5rem rgba(0, 0, 0, 0.3);
+
+.cinema-header.decoration-frame.text-effect-gradient-silver {
+    border-image: linear-gradient(135deg, #c0c0c0, #808080, #e8e8e8, #a0a0a0) 1;
 }
-.cinema-header.decoration-backdrop.shadow-glow {
-    box-shadow:
-        0 0 0.9375rem currentColor,
-        0 0 1.875rem currentColor;
-    border-color: currentColor;
+
+.cinema-header.decoration-underline.text-effect-gradient::after,
+.cinema-header.decoration-underline.text-effect-gradient-rainbow::after {
+    background: linear-gradient(90deg, var(--header-color, #fff), rgba(255,255,255,0.5), var(--header-color, #fff));
 }
-.cinema-header.decoration-backdrop.shadow-neon {
-    box-shadow:
-        0 0 0.625rem currentColor,
-        0 0 1.25rem currentColor,
-        0 0 2.5rem currentColor;
-    border-color: currentColor;
+
+.cinema-header.decoration-underline.text-effect-gradient-gold::after {
+    background: linear-gradient(90deg, #ffd700, #b8860b, #ffd700, #daa520);
+}
+
+.cinema-header.decoration-underline.text-effect-gradient-silver::after {
+    background: linear-gradient(90deg, #c0c0c0, #808080, #e8e8e8, #a0a0a0);
+}
+
+/* Outline effects for decorations - double/thick borders */
+.cinema-header.decoration-frame.text-effect-outline,
+.cinema-header.decoration-frame.text-effect-outline-thick {
+    border-width: 0.15rem;
+    box-shadow: inset 0 0 0 0.15rem currentColor;
+}
+
+.cinema-header.decoration-frame.text-effect-outline-thick {
+    border-width: 0.25rem;
+    box-shadow: inset 0 0 0 0.2rem currentColor;
+}
+
+.cinema-header.decoration-frame.text-effect-outline-double {
+    border-width: 0.15rem;
+    box-shadow: 
+        inset 0 0 0 0.35rem transparent,
+        inset 0 0 0 0.5rem currentColor;
+}
+
+.cinema-header.decoration-underline.text-effect-outline::after,
+.cinema-header.decoration-underline.text-effect-outline-thick::after {
+    background: transparent;
+    border: 0.15rem solid currentColor;
+    height: 0.5rem;
+}
+
+.cinema-header.decoration-underline.text-effect-outline-double::after {
+    background: transparent;
+    border: 0.15rem solid currentColor;
+    box-shadow: inset 0 0 0 0.25rem currentColor;
+    height: 0.6rem;
+}
+
+/* Metallic effects for decorations */
+.cinema-header.decoration-frame.text-effect-metallic {
+    border-image: linear-gradient(180deg, #e8e8e8, #4a4a4a, #b8b8b8) 1;
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.5),
+        0 2px 4px rgba(0,0,0,0.4);
+}
+
+.cinema-header.decoration-frame.text-effect-chrome {
+    border-image: linear-gradient(180deg, #fff, #a0a0a0, #808080, #c0c0c0, #fff) 1;
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.8),
+        0 3px 6px rgba(0,0,0,0.5);
+}
+
+.cinema-header.decoration-frame.text-effect-gold-metallic {
+    border-image: linear-gradient(180deg, #ffd700, #8b6914, #d4af37, #ffd700) 1;
+    box-shadow: 
+        inset 0 1px 0 rgba(255,215,0,0.6),
+        0 3px 6px rgba(0,0,0,0.4);
+}
+
+.cinema-header.decoration-underline.text-effect-metallic::after {
+    background: linear-gradient(180deg, #e8e8e8, #4a4a4a, #b8b8b8);
+}
+
+.cinema-header.decoration-underline.text-effect-chrome::after {
+    background: linear-gradient(180deg, #fff, #a0a0a0, #808080, #c0c0c0, #fff);
+}
+
+.cinema-header.decoration-underline.text-effect-gold-metallic::after {
+    background: linear-gradient(180deg, #ffd700, #8b6914, #d4af37, #ffd700);
+}
+
+/* Vintage/Retro effects for decorations */
+.cinema-header.decoration-frame.text-effect-vintage {
+    border-color: #8b4513;
+    box-shadow: 
+        3px 3px 0 #654321,
+        inset 0 0 0 1px #f5deb3;
+}
+
+.cinema-header.decoration-frame.text-effect-retro {
+    border-image: linear-gradient(180deg, #ff6b6b, #b33939) 1;
+    box-shadow: 3px 3px 0 #b33939;
+}
+
+.cinema-header.decoration-underline.text-effect-vintage::after {
+    background: #8b4513;
+    box-shadow: 2px 2px 0 #654321;
+}
+
+.cinema-header.decoration-underline.text-effect-retro::after {
+    background: linear-gradient(90deg, #ff6b6b, #b33939);
+    box-shadow: 2px 2px 0 #b33939;
+}
+
+/* Fire effect for decorations */
+.cinema-header.decoration-frame.text-effect-fire {
+    border-image: linear-gradient(180deg, #ffcc00, #ff6600, #ff0000, #990000) 1;
+    box-shadow: 0 0 10px rgba(255, 100, 0, 0.6);
+    animation: fireFlicker 0.5s ease-in-out infinite alternate;
+}
+
+.cinema-header.decoration-underline.text-effect-fire::after {
+    background: linear-gradient(90deg, #ffcc00, #ff6600, #ff0000);
+    box-shadow: 0 0 8px rgba(255, 100, 0, 0.6);
+    animation: fireFlicker 0.5s ease-in-out infinite alternate;
+}
+
+/* Ice effect for decorations */
+.cinema-header.decoration-frame.text-effect-ice {
+    border-image: linear-gradient(180deg, #fff, #a8d8ea, #6bb3d9, #4a90b8) 1;
+    box-shadow: 0 0 8px rgba(168, 216, 234, 0.6);
+}
+
+.cinema-header.decoration-underline.text-effect-ice::after {
+    background: linear-gradient(90deg, #a8d8ea, #6bb3d9, #4a90b8);
+    box-shadow: 0 0 6px rgba(168, 216, 234, 0.6);
 }
 
 /* =================================================================
@@ -2385,6 +2489,461 @@ body.cinema-poster-fullBleed .cinema-trailer-overlay {
         0 0 0.625rem currentColor,
         0 0 1.25rem currentColor,
         0 0 2.5rem currentColor !important;
+}
+
+/* =================================================================
+   TEXT EFFECT CLASSES (Issue #126 - Enhanced Header Text Effects)
+   ================================================================= */
+
+/* Gradient Text Fill Effects */
+.text-effect-gradient {
+    background: linear-gradient(135deg, var(--header-color, #ffffff) 0%, var(--gradient-end-color, #ffd700) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.text-effect-gradient-rainbow {
+    background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff, #5f27cd);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 3s ease infinite;
+}
+
+.text-effect-gradient-gold {
+    background: linear-gradient(135deg, #ffd700 0%, #ffb300 25%, #ffd700 50%, #ffb300 75%, #ffd700 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.text-effect-gradient-silver {
+    background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 25%, #c0c0c0 50%, #e8e8e8 75%, #c0c0c0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Outline/Stroke Text Effects */
+.text-effect-outline {
+    -webkit-text-stroke: 2px currentColor;
+    -webkit-text-fill-color: transparent;
+    paint-order: stroke fill;
+}
+
+.text-effect-outline-thick {
+    -webkit-text-stroke: 4px currentColor;
+    -webkit-text-fill-color: transparent;
+    paint-order: stroke fill;
+}
+
+.text-effect-outline-double {
+    -webkit-text-stroke: 3px var(--header-color, currentColor);
+    -webkit-text-fill-color: transparent;
+    paint-order: stroke fill;
+    text-shadow: 
+        0 0 0 transparent,
+        6px 0 0 var(--header-color, currentColor),
+        -6px 0 0 var(--header-color, currentColor),
+        0 6px 0 var(--header-color, currentColor),
+        0 -6px 0 var(--header-color, currentColor);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+
+/* Metallic/Chrome Text Effects */
+.text-effect-metallic {
+    background: linear-gradient(
+        180deg,
+        #e8e8e8 0%,
+        #b8b8b8 25%,
+        #4a4a4a 50%,
+        #b8b8b8 75%,
+        #e8e8e8 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(2px 2px 1px rgba(0, 0, 0, 0.3));
+}
+
+.text-effect-chrome {
+    background: linear-gradient(
+        180deg,
+        #ffffff 0%,
+        #e0e0e0 10%,
+        #a0a0a0 30%,
+        #808080 50%,
+        #a0a0a0 70%,
+        #e0e0e0 90%,
+        #ffffff 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
+}
+
+.text-effect-gold-metallic {
+    background: linear-gradient(
+        180deg,
+        #ffd700 0%,
+        #d4af37 20%,
+        #8b6914 50%,
+        #d4af37 80%,
+        #ffd700 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(2px 4px 3px rgba(0, 0, 0, 0.4));
+}
+
+/* Vintage/Retro Text Effects */
+.text-effect-vintage {
+    color: #f5deb3;
+    text-shadow:
+        2px 2px 0 #8b4513,
+        4px 4px 0 #654321,
+        6px 6px 8px rgba(0, 0, 0, 0.5);
+    font-style: italic;
+}
+
+.text-effect-retro {
+    background: linear-gradient(180deg, #ff6b6b 0%, #ee5253 50%, #b33939 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    filter: drop-shadow(3px 3px 0 #b33939) drop-shadow(6px 6px 0 rgba(0, 0, 0, 0.3));
+}
+
+/* Fire/Flame Text Effect */
+.text-effect-fire {
+    background: linear-gradient(180deg, #ffcc00 0%, #ff6600 40%, #ff0000 70%, #990000 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: fireFlicker 0.5s ease-in-out infinite alternate;
+    filter: drop-shadow(0 0 10px rgba(255, 100, 0, 0.6));
+}
+
+@keyframes fireFlicker {
+    0% { filter: drop-shadow(0 -2px 10px rgba(255, 100, 0, 0.6)) brightness(1); }
+    100% { filter: drop-shadow(0 -4px 15px rgba(255, 50, 0, 0.8)) brightness(1.1); }
+}
+
+/* Ice/Frozen Text Effect */
+.text-effect-ice {
+    background: linear-gradient(180deg, #ffffff 0%, #a8d8ea 30%, #6bb3d9 60%, #4a90b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 8px rgba(168, 216, 234, 0.6));
+}
+
+
+
+/* =================================================================
+   ENTRANCE ANIMATION CLASSES (Issue #126)
+   One-time animations for header text entrance
+   ================================================================= */
+
+/* Typewriter Animation - text revealed letter by letter */
+.entrance-typewriter {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.entrance-typewriter .typewriter-inner {
+    position: relative;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.entrance-typewriter .typewriter-inner::after {
+    content: '';
+    position: absolute;
+    right: -0.05em;
+    top: 0;
+    height: 100%;
+    width: 0.1em;
+    background: currentColor;
+    animation: typewriterCursor 0.5s step-end infinite;
+}
+
+.entrance-typewriter .typewriter-inner.typing-done::after {
+    display: none;
+}
+
+@keyframes typewriterCursor {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+    to { width: var(--typewriter-width, 100%); }
+}
+
+@keyframes typewriterCursor {
+    0%, 50% { border-right-color: currentColor; }
+    51%, 100% { border-right-color: transparent; }
+}
+
+/* Fade In Word by Word */
+.entrance-fade-words {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25em;
+}
+
+.entrance-fade-words .word {
+    display: inline-block;
+    opacity: 0;
+    animation: fadeInWord 0.5s ease forwards;
+}
+
+@keyframes fadeInWord {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Slide In From Left */
+.entrance-slide-left {
+    animation: slideInLeft 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes slideInLeft {
+    from { 
+        transform: translateX(-100%); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateX(0); 
+        opacity: 1; 
+    }
+}
+
+/* Slide In From Right */
+.entrance-slide-right {
+    animation: slideInRight 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes slideInRight {
+    from { 
+        transform: translateX(100%); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateX(0); 
+        opacity: 1; 
+    }
+}
+
+/* Slide In From Top */
+.entrance-slide-top {
+    animation: slideInTop 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes slideInTop {
+    from { 
+        transform: translateY(-100%); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1; 
+    }
+}
+
+/* Slide In From Bottom */
+.entrance-slide-bottom {
+    animation: slideInBottom 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes slideInBottom {
+    from { 
+        transform: translateY(100%); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1; 
+    }
+}
+
+/* Scale/Zoom Entrance */
+.entrance-zoom {
+    animation: zoomIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes zoomIn {
+    from { 
+        transform: scale(0); 
+        opacity: 0; 
+    }
+    to { 
+        transform: scale(1); 
+        opacity: 1; 
+    }
+}
+
+.entrance-zoom-bounce {
+    animation: zoomInBounce 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+@keyframes zoomInBounce {
+    0% { 
+        transform: scale(0); 
+        opacity: 0; 
+    }
+    60% { 
+        transform: scale(1.1); 
+        opacity: 1; 
+    }
+    100% { 
+        transform: scale(1); 
+        opacity: 1; 
+    }
+}
+
+/* Blur to Sharp Focus */
+.entrance-blur-focus {
+    animation: blurToFocus 1.2s ease-out forwards;
+}
+
+@keyframes blurToFocus {
+    from { 
+        filter: blur(20px); 
+        opacity: 0;
+        transform: scale(1.1);
+    }
+    to { 
+        filter: blur(0); 
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Floating/Breathing Animation (continuous) */
+.entrance-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+/* Letter Spacing Animation */
+.entrance-letter-spread {
+    animation: letterSpread 1s ease-out forwards;
+    letter-spacing: 0;
+}
+
+@keyframes letterSpread {
+    from { 
+        letter-spacing: -0.5em; 
+        opacity: 0; 
+    }
+    to { 
+        letter-spacing: 0.1em; 
+        opacity: 1; 
+    }
+}
+
+/* Rotate In 3D */
+.entrance-rotate-3d {
+    animation: rotateIn3D 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    transform-style: preserve-3d;
+}
+
+@keyframes rotateIn3D {
+    from { 
+        transform: perspective(400px) rotateX(90deg);
+        opacity: 0; 
+    }
+    to { 
+        transform: perspective(400px) rotateX(0);
+        opacity: 1; 
+    }
+}
+
+/* Flip In */
+.entrance-flip {
+    animation: flipIn 0.8s ease-out forwards;
+    backface-visibility: visible;
+}
+
+@keyframes flipIn {
+    from { 
+        transform: perspective(400px) rotateY(-180deg);
+        opacity: 0; 
+    }
+    to { 
+        transform: perspective(400px) rotateY(0);
+        opacity: 1; 
+    }
+}
+
+/* Drop In with Bounce */
+.entrance-drop {
+    animation: dropIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes dropIn {
+    0% { 
+        transform: translateY(-200%) scale(0.5);
+        opacity: 0; 
+    }
+    60% { 
+        transform: translateY(10%) scale(1.02);
+        opacity: 1;
+    }
+    100% { 
+        transform: translateY(0) scale(1);
+        opacity: 1; 
+    }
+}
+
+/* Fade In Simple */
+.entrance-fade {
+    animation: entranceFade 1s ease-out forwards;
+}
+
+@keyframes entranceFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Cinematic Reveal - dramatic with brightness */
+.entrance-cinematic {
+    animation: cinematicReveal 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes cinematicReveal {
+    0% { 
+        opacity: 0;
+        transform: scale(1.2);
+        filter: brightness(0.3) blur(5px);
+    }
+    50% { 
+        opacity: 0.7;
+        filter: brightness(0.8) blur(2px);
+    }
+    100% { 
+        opacity: 1;
+        transform: scale(1);
+        filter: brightness(1) blur(0);
+    }
 }
 
 /* Animation Classes */

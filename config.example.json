@@ -86,7 +86,8 @@
                 "fontSize": 120,
                 "color": "#ffd700",
                 "shadow": "glow",
-                "animation": "none",
+                "textEffect": "none",
+                "entranceAnimation": "none",
                 "decoration": "none"
             }
         },

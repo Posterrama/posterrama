@@ -457,17 +457,38 @@
         // Apply header typography classes
         const fontClass = `font-${typo.fontFamily || 'cinematic'}`;
         const shadowClass = `shadow-${typo.shadow || 'subtle'}`;
-        const animClass =
-            typo.animation && typo.animation !== 'none' ? `anim-${typo.animation}` : '';
-        // Decoration only applies when no animation
+        // Animation effects that need anim- prefix (pulse, marquee are in textEffect now)
+        const animationEffects = ['pulse', 'marquee'];
+        const isAnimationEffect = animationEffects.includes(typo.textEffect);
+        const animClass = isAnimationEffect ? `anim-${typo.textEffect}` : '';
+
+        // Text Reveal entrance animations don't work with decorations
+        const textRevealEntrances = ['typewriter', 'fade-words', 'letter-spread'];
+        const isTextRevealEntrance = textRevealEntrances.includes(typo.entranceAnimation);
+
+        // Decoration only applies when no animation effect and no text reveal entrance is selected
         const decorationClass =
-            (!typo.animation || typo.animation === 'none') &&
+            !isAnimationEffect &&
+            !isTextRevealEntrance &&
             typo.decoration &&
             typo.decoration !== 'none'
                 ? `decoration-${typo.decoration}`
                 : '';
+        // Text effect class (gradient, metallic, outline, neon, etc.) - Issue #126
+        // Skip anim- prefix effects as they use different class naming
+        const textEffectClass =
+            typo.textEffect && typo.textEffect !== 'none' && !isAnimationEffect
+                ? `text-effect-${typo.textEffect}`
+                : '';
+        // Entrance animation class (typewriter, slide-in, zoom, etc.) - Issue #126
+        const entranceClass =
+            typo.entranceAnimation && typo.entranceAnimation !== 'none'
+                ? `entrance-${typo.entranceAnimation}`
+                : '';
         headerEl.className =
-            `cinema-header ${fontClass} ${shadowClass} ${animClass} ${decorationClass}`.trim();
+            `cinema-header ${fontClass} ${shadowClass} ${animClass} ${decorationClass} ${textEffectClass} ${entranceClass}`
+                .trim()
+                .replace(/\\s+/g, ' ');
 
         // Apply inline styles for size and color
         headerEl.style.setProperty('--header-font-size', `${(typo.fontSize || 100) / 100}`);
@@ -484,7 +505,46 @@
 
         // Set header text - use context-aware text if enabled
         const headerText = getContextAwareHeaderText();
-        headerEl.textContent = headerText;
+
+        // For typewriter entrance animation - type character by character
+        if (typo.entranceAnimation === 'typewriter') {
+            const inner = document.createElement('span');
+            inner.className = 'typewriter-inner';
+            inner.textContent = ''; // Start empty
+            headerEl.innerHTML = '';
+            headerEl.appendChild(inner);
+
+            const chars = headerText.split('');
+            let currentIndex = 0;
+            const msPerChar = 70; // Speed per character
+
+            // Type one character at a time
+            const typeInterval = setInterval(() => {
+                if (currentIndex < chars.length) {
+                    inner.textContent += chars[currentIndex];
+                    currentIndex++;
+                } else {
+                    clearInterval(typeInterval);
+                    // Hide cursor after typing is done
+                    setTimeout(() => {
+                        inner.classList.add('typing-done');
+                    }, 200);
+                }
+            }, msPerChar);
+        }
+        // For fade-words entrance animation, wrap each word in a span with staggered delay
+        else if (typo.entranceAnimation === 'fade-words') {
+            const words = headerText.split(' ').filter(w => w.length > 0);
+            const html = words
+                .map(
+                    (word, i) =>
+                        `<span class="word" style="animation-delay: ${0.2 + i * 0.15}s">${word}</span>`
+                )
+                .join('');
+            headerEl.innerHTML = html;
+        } else {
+            headerEl.textContent = headerText;
+        }
 
         // Show header now that styling is complete (was hidden to prevent FOUC)
         headerEl.style.visibility = 'visible';

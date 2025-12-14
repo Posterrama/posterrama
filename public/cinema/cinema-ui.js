@@ -758,7 +758,7 @@
 
         // Shadow row
         const rowShadow = el('div', { class: 'form-row' }, [
-            el('label', { for: 'cin-h-shadow' }, 'Text Effect'),
+            el('label', { for: 'cin-h-shadow' }, 'Shadow'),
             el('div', { class: 'select-wrap has-caret' }, [
                 el('select', { id: 'cin-h-shadow' }, [
                     el('option', { value: 'none' }, 'None'),
@@ -771,21 +771,85 @@
             ]),
         ]);
 
-        // Animation row
-        const rowAnim = el('div', { class: 'form-row' }, [
-            el('label', { for: 'cin-h-anim' }, 'Animation'),
+        // Text Effect row (Issue #126 - Enhanced Header Text Effects)
+        const rowTextEffect = el('div', { class: 'form-row' }, [
+            el('label', { for: 'cin-h-texteffect' }, 'Text Effect'),
             el('div', { class: 'select-wrap has-caret' }, [
-                el('select', { id: 'cin-h-anim' }, [
-                    el('option', { value: 'none' }, 'None'),
-                    el('option', { value: 'pulse' }, 'Pulse'),
-                    el('option', { value: 'flicker' }, 'Flicker (Neon)'),
-                    el('option', { value: 'marquee' }, 'Marquee Scroll'),
+                el('select', { id: 'cin-h-texteffect' }, [
+                    el('optgroup', { label: 'Basic' }, [el('option', { value: 'none' }, 'None')]),
+                    el('optgroup', { label: 'Gradient Fills' }, [
+                        el('option', { value: 'gradient' }, 'Gradient'),
+                        el('option', { value: 'gradient-rainbow' }, 'Rainbow Gradient'),
+                        el('option', { value: 'gradient-gold' }, 'Gold Gradient'),
+                        el('option', { value: 'gradient-silver' }, 'Silver Gradient'),
+                    ]),
+                    el('optgroup', { label: 'Outline/Stroke' }, [
+                        el('option', { value: 'outline' }, 'Outline'),
+                        el('option', { value: 'outline-thick' }, 'Thick Outline'),
+                        el('option', { value: 'outline-double' }, 'Double Outline'),
+                    ]),
+                    el('optgroup', { label: 'Metallic' }, [
+                        el('option', { value: 'metallic' }, 'Metallic'),
+                        el('option', { value: 'chrome' }, 'Chrome'),
+                        el('option', { value: 'gold-metallic' }, 'Gold Metallic'),
+                    ]),
+                    el('optgroup', { label: 'Vintage/Retro' }, [
+                        el('option', { value: 'vintage' }, 'Vintage'),
+                        el('option', { value: 'retro' }, 'Retro'),
+                    ]),
+                    el('optgroup', { label: 'Special Effects' }, [
+                        el('option', { value: 'fire' }, 'Fire'),
+                        el('option', { value: 'ice' }, 'Ice'),
+                    ]),
+                    el('optgroup', { label: 'Animations' }, [
+                        el('option', { value: 'pulse' }, 'Pulse'),
+                        el('option', { value: 'marquee' }, 'Marquee Scroll'),
+                    ]),
                 ]),
                 el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
             ]),
         ]);
 
-        // Decoration row (only shown when animation is 'none')
+        // Entrance Animation row (Issue #126 - Enhanced Header Text Effects)
+        const rowEntranceAnim = el('div', { class: 'form-row' }, [
+            el('label', { for: 'cin-h-entrance' }, 'Entrance Animation'),
+            el('div', { class: 'select-wrap has-caret' }, [
+                el('select', { id: 'cin-h-entrance' }, [
+                    el('option', { value: 'none' }, 'None'),
+                    el('optgroup', { label: 'Text Reveals' }, [
+                        el('option', { value: 'typewriter' }, 'Typewriter'),
+                        el('option', { value: 'fade-words' }, 'Fade Word by Word'),
+                        el('option', { value: 'letter-spread' }, 'Letter Spread'),
+                    ]),
+                    el('optgroup', { label: 'Slide In' }, [
+                        el('option', { value: 'slide-left' }, 'Slide from Left'),
+                        el('option', { value: 'slide-right' }, 'Slide from Right'),
+                        el('option', { value: 'slide-top' }, 'Slide from Top'),
+                        el('option', { value: 'slide-bottom' }, 'Slide from Bottom'),
+                    ]),
+                    el('optgroup', { label: 'Scale/Zoom' }, [
+                        el('option', { value: 'zoom' }, 'Zoom In'),
+                        el('option', { value: 'zoom-bounce' }, 'Zoom Bounce'),
+                        el('option', { value: 'drop' }, 'Drop In'),
+                    ]),
+                    el('optgroup', { label: 'Focus' }, [
+                        el('option', { value: 'blur-focus' }, 'Blur to Focus'),
+                        el('option', { value: 'fade' }, 'Fade In'),
+                        el('option', { value: 'cinematic' }, 'Cinematic Reveal'),
+                    ]),
+                    el('optgroup', { label: '3D Effects' }, [
+                        el('option', { value: 'rotate-3d' }, 'Rotate 3D'),
+                        el('option', { value: 'flip' }, 'Flip In'),
+                    ]),
+                    el('optgroup', { label: 'Continuous' }, [
+                        el('option', { value: 'float' }, 'Floating'),
+                    ]),
+                ]),
+                el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
+            ]),
+        ]);
+
+        // Decoration row (only shown when textEffect has no animation)
         const rowDecoration = el('div', { class: 'form-row', id: 'cin-h-decoration-row' }, [
             el('label', { for: 'cin-h-decoration' }, 'Decoration'),
             el('div', { class: 'select-wrap has-caret' }, [
@@ -793,7 +857,6 @@
                     el('option', { value: 'none' }, 'None'),
                     el('option', { value: 'frame' }, 'Frame'),
                     el('option', { value: 'underline' }, 'Underline'),
-                    el('option', { value: 'backdrop' }, 'Backdrop'),
                 ]),
                 el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
             ]),
@@ -810,7 +873,8 @@
             rowTstIntensity,
             rowColor,
             rowShadow,
-            rowAnim,
+            rowTextEffect,
+            rowEntranceAnim,
             rowDecoration,
         ]);
         container.replaceChildren(grid);
@@ -818,7 +882,8 @@
         // Initialize values
         $('#cin-h-font').value = typo.fontFamily || 'cinematic';
         $('#cin-h-shadow').value = typo.shadow || 'subtle';
-        $('#cin-h-anim').value = typo.animation || 'none';
+        $('#cin-h-texteffect').value = typo.textEffect || 'none';
+        $('#cin-h-entrance').value = typo.entranceAnimation || 'none';
         $('#cin-h-decoration').value = typo.decoration || 'none';
         $('#cin-h-tst').checked = typo.tonSurTon || false;
         $('#cin-h-tst-intensity').value = typo.tonSurTonIntensity || 45;
@@ -907,15 +972,24 @@
             saveWorkingState();
         });
 
-        // Wire decoration visibility based on animation
+        // Wire decoration visibility based on textEffect and entranceAnimation
         const decorationRow = document.getElementById('cin-h-decoration-row');
-        const animSelect = document.getElementById('cin-h-anim');
+        const textEffectSelect = document.getElementById('cin-h-texteffect');
+        const entranceSelect = document.getElementById('cin-h-entrance');
         const decorationSelect = document.getElementById('cin-h-decoration');
         const shadowRow = document.getElementById('cin-h-shadow')?.closest('.form-row');
 
         const syncDecorationVisibility = () => {
-            const isNoAnim = animSelect?.value === 'none';
-            if (decorationRow) decorationRow.style.display = isNoAnim ? '' : 'none';
+            // Hide decoration when using animation-based textEffects (pulse, marquee)
+            const animEffects = ['pulse', 'marquee'];
+            const isAnimEffect = animEffects.includes(textEffectSelect?.value);
+
+            // Also hide decoration for Text Reveal entrance animations (they don't work well with decorations)
+            const textRevealEntrances = ['typewriter', 'fade-words', 'letter-spread'];
+            const isTextReveal = textRevealEntrances.includes(entranceSelect?.value);
+
+            if (decorationRow)
+                decorationRow.style.display = isAnimEffect || isTextReveal ? 'none' : '';
         };
 
         const syncShadowVisibility = () => {
@@ -923,9 +997,12 @@
             if (shadowRow) shadowRow.style.display = '';
         };
 
-        animSelect?.addEventListener('change', () => {
+        textEffectSelect?.addEventListener('change', () => {
             syncDecorationVisibility();
             syncShadowVisibility();
+        });
+        entranceSelect?.addEventListener('change', () => {
+            syncDecorationVisibility();
         });
         decorationSelect?.addEventListener('change', syncShadowVisibility);
         syncDecorationVisibility();
@@ -2298,13 +2375,19 @@
             setFieldValue($('#cin-f-tst-intensity'), typo.tonSurTonIntensity, 'input');
         }
 
-        // Text Effect (shadow)
+        // Text Effect (shadow) - Issue #126: textEffect is now separate from shadow
         if (typo.textEffect) {
             setFieldValue($('#cinemaGlobalTextEffect'), typo.textEffect);
-            setFieldValue($('#cin-h-shadow'), typo.textEffect);
+            // Map to advanced text effect dropdown if it exists
+            setFieldValue($('#cin-h-texteffect'), typo.textEffect);
+        }
+
+        // Shadow (basic shadow effects)
+        if (typo.shadow) {
+            setFieldValue($('#cin-h-shadow'), typo.shadow);
             // Footer has fewer options, map to closest match
-            const footerValue = ['none', 'subtle', 'dramatic'].includes(typo.textEffect)
-                ? typo.textEffect
+            const footerValue = ['none', 'subtle', 'dramatic'].includes(typo.shadow)
+                ? typo.shadow
                 : 'subtle';
             setFieldValue($('#cin-f-shadow'), footerValue);
         }
@@ -2379,20 +2462,18 @@
             });
         }
 
-        // Global Text Effect → sync to header + footer shadow
+        // Global Text Effect → sync to header textEffect (Issue #126: now syncs to advanced text effect)
         const globalEffectSelect = $('#cinemaGlobalTextEffect');
         if (globalEffectSelect) {
             globalEffectSelect.addEventListener('change', () => {
                 const value = globalEffectSelect.value;
-                const headerShadowSelect = $('#cin-h-shadow');
-                const footerShadowSelect = $('#cin-f-shadow');
-                if (headerShadowSelect) headerShadowSelect.value = value;
-                // Footer has fewer options
-                if (footerShadowSelect) {
-                    const footerValue = ['none', 'subtle', 'dramatic'].includes(value)
-                        ? value
-                        : 'subtle';
-                    footerShadowSelect.value = footerValue;
+                // Sync to advanced text effect dropdown
+                const headerTextEffectSelect = $('#cin-h-texteffect');
+                if (headerTextEffectSelect) headerTextEffectSelect.value = value;
+                // Also sync shadow to none when using advanced effect (to avoid conflicts)
+                if (value !== 'none' && value !== 'subtle' && value !== 'dramatic') {
+                    const headerShadowSelect = $('#cin-h-shadow');
+                    if (headerShadowSelect) headerShadowSelect.value = 'none';
                 }
             });
         }
@@ -2940,7 +3021,8 @@
                 fontSize: parseInt($('#cin-h-size')?.value || '100', 10),
                 color: $('#cin-h-color')?.value || '#ffffff',
                 shadow: $('#cin-h-shadow')?.value || 'subtle',
-                animation: $('#cin-h-anim')?.value || 'none',
+                textEffect: $('#cin-h-texteffect')?.value || 'none',
+                entranceAnimation: $('#cin-h-entrance')?.value || 'none',
                 decoration: $('#cin-h-decoration')?.value || 'none',
                 tonSurTon: $('#cin-h-tst')?.checked || false,
                 tonSurTonIntensity: parseInt($('#cin-h-tst-intensity')?.value || '45', 10),
