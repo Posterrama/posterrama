@@ -14929,12 +14929,77 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 // Hydrate the form with profile settings
                 hydrateDisplayForm(configFromProfile);
 
+                // Also hydrate cinema-ui.js managed elements (mounted separately)
+                hydrateCinemaUI(settings.cinema || {});
+
                 window.notify?.toast({
                     type: 'info',
                     title: 'Profile loaded',
                     message: `Editing profile: ${profile.name}`,
                     duration: 2000,
                 });
+            }
+
+            /**
+             * Hydrate cinema UI elements that are managed by cinema-ui.js
+             * These are mounted separately and not handled by hydrateDisplayForm
+             * @param {Object} cinema - Cinema settings object
+             */
+            function hydrateCinemaUI(cinema) {
+                const c = cinema || {};
+                const h = c.header || {};
+                const f = c.footer || {};
+                const hTypo = h.typography || {};
+                const fTypo = f.typography || {};
+
+                // Helper to set element value
+                const setEl = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (!el || val === undefined || val === null) return;
+                    if (el.type === 'checkbox') {
+                        el.checked = !!val;
+                    } else {
+                        el.value = String(val);
+                    }
+                    // Trigger change event for any listeners
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                };
+
+                // Header settings
+                setEl('cin-h-enabled', h.enabled);
+                setEl('cin-h-style', h.style);
+                setEl('cin-h-presets', h.text);
+                setEl('cin-h-font', hTypo.fontFamily);
+                setEl('cin-h-size', hTypo.fontSize);
+                setEl('cin-h-shadow', hTypo.textShadow);
+                setEl('cin-h-entrance', h.entranceAnimation);
+                setEl('cin-h-texteffect', h.textEffect);
+                setEl('cin-h-decoration', h.decoration);
+                setEl('cin-h-tst', hTypo.textStroke);
+                setEl('cin-h-tst-intensity', hTypo.textStrokeIntensity);
+
+                // Footer settings
+                setEl('cin-f-enabled', f.enabled);
+                setEl('cin-f-type', f.type);
+                setEl('cin-f-presets', f.marqueeText);
+                setEl('cin-f-tagline-marquee', f.taglineMarquee);
+                setEl('cin-f-style', f.marqueeStyle);
+                setEl('cin-f-s-style', f.specsStyle);
+                setEl('cin-f-font', fTypo.fontFamily);
+                setEl('cin-f-size', fTypo.fontSize);
+                setEl('cin-f-shadow', fTypo.textShadow);
+                setEl('cin-f-tst', fTypo.textStroke);
+                setEl('cin-f-tst-intensity', fTypo.textStrokeIntensity);
+
+                // Ambilight settings
+                const a = c.ambilight || {};
+                setEl('cin-a-enabled', a.enabled);
+                setEl('cin-a-strength', a.strength);
+                setEl('cin-a-blur', a.blurRadius);
+                setEl('cin-a-opacity', a.opacity != null ? a.opacity * 100 : null);
+                setEl('cin-a-animation', a.animation);
+
+                console.log('[Profile] Hydrated cinema UI with profile settings');
             }
 
             /**
@@ -14979,6 +15044,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         title: 'Profile saved',
                         message: `"${profile.name}" has been updated`,
                     });
+
+                    // Clear unsaved changes tracking for Display Settings
+                    if (typeof unsavedTracker !== 'undefined' && unsavedTracker.clear) {
+                        unsavedTracker.clear('section-display');
+                    }
 
                     // Reload profiles and exit edit mode
                     await loadProfiles();
@@ -15135,31 +15205,24 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                               ? 'Wallart'
                               : 'Screensaver';
                         return `
-                        <div class="profile-card" data-profile-id="${escapeHtml(p.id)}" style="
-                            background: var(--color-bg-card);
-                            border: 1px solid var(--color-border);
-                            border-radius: var(--border-radius-lg);
-                            padding: 16px;
-                            cursor: pointer;
-                            transition: border-color 0.2s, box-shadow 0.2s;
-                        ">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                                <div>
-                                    <h4 style="margin: 0 0 4px 0; font-weight: 600;">${escapeHtml(p.name || 'Unnamed')}</h4>
-                                    <p style="margin: 0; font-size: 0.85rem; color: var(--color-text-secondary);">${escapeHtml(p.description || 'No description')}</p>
+                        <div class="profile-card" data-profile-id="${escapeHtml(p.id)}">
+                            <div class="profile-card-header">
+                                <div class="profile-card-info">
+                                    <h4 class="profile-card-name">${escapeHtml(p.name || 'Unnamed')}</h4>
+                                    <p class="profile-card-desc">${escapeHtml(p.description || 'No description')}</p>
                                 </div>
-                                <span class="status-pill" style="flex-shrink: 0;"><i class="fas fa-tv"></i> ${modeLabel}</span>
+                                <span class="status-pill profile-card-mode"><i class="fas fa-tv"></i> ${modeLabel}</span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
-                                <span class="status-pill" title="Devices using this profile"><i class="fas fa-desktop"></i> ${deviceCount} device${deviceCount !== 1 ? 's' : ''}</span>
-                                <div style="display: flex; gap: 8px;">
+                            <div class="profile-card-footer">
+                                <span class="status-pill profile-card-devices" title="Devices using this profile"><i class="fas fa-desktop"></i> ${deviceCount} device${deviceCount !== 1 ? 's' : ''}</span>
+                                <div class="profile-card-actions">
                                     <button class="btn btn-sm btn-secondary profile-edit-settings-btn" data-profile-id="${escapeHtml(p.id)}" title="Edit display settings">
-                                        <i class="fas fa-sliders-h"></i> Settings
+                                        <i class="fas fa-sliders-h"></i><span>Settings</span>
                                     </button>
-                                    <button class="btn btn-sm btn-icon profile-rename-btn" data-profile-id="${escapeHtml(p.id)}" title="Rename profile">
+                                    <button class="btn btn-sm btn-secondary btn-icon profile-rename-btn" data-profile-id="${escapeHtml(p.id)}" title="Rename profile">
                                         <i class="fas fa-pen"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-icon profile-delete-btn" data-profile-id="${escapeHtml(p.id)}" title="Delete profile" style="color: var(--color-error);">
+                                    <button class="btn btn-sm btn-secondary btn-icon profile-delete-btn" data-profile-id="${escapeHtml(p.id)}" title="Delete profile">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>

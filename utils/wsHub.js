@@ -248,7 +248,7 @@ function sendToDevice(deviceId, message) {
         hasPayload: !!message.payload,
         payloadSize: message.payload ? JSON.stringify(message.payload).length : 0,
     });
-    return false;
+    return true;
 }
 
 /**
@@ -308,8 +308,10 @@ function sendCommandAwait(deviceId, { type, payload, timeoutMs }) {
  * @returns {boolean} True if command was sent
  */
 function sendApplySettings(deviceId, settingsOverride) {
-    return sendCommand(deviceId, {
-        type: 'apply-settings',
+    // Send as kind: 'apply-settings' directly (not wrapped in command)
+    // This matches what device-mgmt.js expects
+    return sendToDevice(deviceId, {
+        kind: 'apply-settings',
         payload: settingsOverride || {},
     });
 }
