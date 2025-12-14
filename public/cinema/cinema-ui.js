@@ -3131,6 +3131,7 @@
             enabled: $('#cin-f-enabled')?.checked || false,
             type: $('#cin-f-type')?.value || 'metadata',
             marqueeText: $('#cin-f-presets')?.value || 'Feature Presentation',
+            taglineMarquee: $('#cin-f-tagline-marquee')?.checked || false,
             typography: {
                 fontFamily: $('#cin-f-font')?.value || 'system',
                 fontSize: parseInt($('#cin-f-size')?.value || '100', 10),
