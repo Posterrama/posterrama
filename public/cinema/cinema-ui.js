@@ -1137,16 +1137,36 @@
             void 0;
         }
 
-        // Footer type row
+        // Footer type row with Marquee checkbox for tagline
         const ctrlType = el('div', { class: 'form-row' }, [
             el('label', { for: 'cin-f-type' }, 'Footer type'),
-            el('div', { class: 'select-wrap has-caret' }, [
-                el('select', { id: 'cin-f-type' }, [
-                    el('option', { value: 'marquee' }, 'Marquee Text'),
-                    el('option', { value: 'metadata' }, 'Metadata & Specs'),
-                    el('option', { value: 'tagline' }, 'Movie Tagline'),
+            el('div', { class: 'cinema-inline', style: 'gap: 12px;' }, [
+                el('div', { class: 'select-wrap has-caret' }, [
+                    el('select', { id: 'cin-f-type' }, [
+                        el('option', { value: 'marquee' }, 'Marquee Text'),
+                        el('option', { value: 'metadata' }, 'Metadata & Specs'),
+                        el('option', { value: 'tagline' }, 'Movie Tagline'),
+                    ]),
+                    el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
                 ]),
-                el('span', { class: 'select-caret', 'aria-hidden': 'true' }, '▾'),
+                el(
+                    'label',
+                    {
+                        class: 'checkbox',
+                        for: 'cin-f-tagline-marquee',
+                        id: 'cin-f-tagline-marquee-wrap',
+                        style: 'display: none;',
+                    },
+                    [
+                        el('input', {
+                            type: 'checkbox',
+                            id: 'cin-f-tagline-marquee',
+                            checked: f.taglineMarquee ? 'checked' : null,
+                        }),
+                        el('span', { class: 'checkmark' }),
+                        el('span', {}, 'Marquee'),
+                    ]
+                ),
             ]),
         ]);
 
@@ -1171,25 +1191,13 @@
             mRowText,
         ]);
 
-        // === Tagline Block with marquee option ===
+        // === Tagline Block (info text only, checkbox moved to type row) ===
         const taglineBlock = el('div', { id: 'cin-f-tagline', class: 'cin-footer-col' }, [
             el(
                 'p',
                 { class: 'help-text', style: 'margin: 8px 0; color: var(--color-text-secondary);' },
                 'Displays the movie/series tagline from metadata.'
             ),
-            el('div', { class: 'form-row' }, [
-                el('label', { for: 'cin-f-tagline-marquee' }, 'Marquee'),
-                el('label', { class: 'checkbox', for: 'cin-f-tagline-marquee' }, [
-                    el('input', {
-                        type: 'checkbox',
-                        id: 'cin-f-tagline-marquee',
-                        checked: f.taglineMarquee ? 'checked' : null,
-                    }),
-                    el('span', { class: 'checkmark' }),
-                    el('span', {}, 'Scroll tagline as marquee'),
-                ]),
-            ]),
         ]);
 
         // === Typography Block (for marquee and tagline) ===
@@ -1453,6 +1461,12 @@
             const textRow = document.getElementById('cin-f-text-row');
             if (textRow) {
                 textRow.style.display = showMarq ? '' : 'none';
+            }
+
+            // Show/hide Marquee checkbox (only for tagline type)
+            const marqueeWrap = document.getElementById('cin-f-tagline-marquee-wrap');
+            if (marqueeWrap) {
+                marqueeWrap.style.display = showTagline ? '' : 'none';
             }
 
             // Typography is always shown (important for all footer types)
