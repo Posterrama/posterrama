@@ -363,6 +363,54 @@ class MetricsManager {
         };
     }
 
+    // Get response time history for sparkline charts
+    getResponseTimeHistory(limit = 20) {
+        const now = Date.now();
+        const oneHourAgo = now - 60 * 60 * 1000;
+
+        // Get recent response times and aggregate by minute
+        const recentData = this.aggregatedMetrics.responseTime
+            .filter(d => d.timestamp >= oneHourAgo)
+            .slice(-limit)
+            .map(d => ({
+                timestamp: d.timestamp,
+                avg: Math.round(d.avg || 0),
+                p95: Math.round(d.p95 || 0),
+            }));
+
+        return recentData;
+    }
+
+    // Get source-specific metrics
+    getSourceMetrics() {
+        const sources = {};
+
+        // Extract source metrics from endpoint stats
+        for (const [endpoint, stats] of this.endpointStats.entries()) {
+            if (endpoint.includes('/plex/') || endpoint.includes('plex')) {
+                if (!sources.plex) sources.plex = { count: 0, avgTime: 0, errors: 0 };
+                sources.plex.count += stats.count || 0;
+                sources.plex.avgTime = stats.count > 0 ? (stats.totalTime || 0) / stats.count : 0;
+                sources.plex.errors += stats.errors || 0;
+            }
+            if (endpoint.includes('/jellyfin/') || endpoint.includes('jellyfin')) {
+                if (!sources.jellyfin) sources.jellyfin = { count: 0, avgTime: 0, errors: 0 };
+                sources.jellyfin.count += stats.count || 0;
+                sources.jellyfin.avgTime =
+                    stats.count > 0 ? (stats.totalTime || 0) / stats.count : 0;
+                sources.jellyfin.errors += stats.errors || 0;
+            }
+            if (endpoint.includes('/tmdb/') || endpoint.includes('tmdb')) {
+                if (!sources.tmdb) sources.tmdb = { count: 0, avgTime: 0, errors: 0 };
+                sources.tmdb.count += stats.count || 0;
+                sources.tmdb.avgTime = stats.count > 0 ? (stats.totalTime || 0) / stats.count : 0;
+                sources.tmdb.errors += stats.errors || 0;
+            }
+        }
+
+        return sources;
+    }
+
     // Export metrics in different formats
     exportMetrics(format = 'json') {
         const metrics = {

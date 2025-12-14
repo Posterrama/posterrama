@@ -2434,7 +2434,14 @@
                     "system-health",
                     "recent-activity",
                     "library-stats",
-                    "active-mode"
+                    "active-mode",
+                    "offline-devices",
+                    "poster-health",
+                    "source-response",
+                    "fallback-rate",
+                    "library-freshness",
+                    "most-displayed",
+                    "error-rate"
                 ]
             },
             "minItems": 4,

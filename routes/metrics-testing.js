@@ -199,6 +199,75 @@ module.exports = function createMetricsTestingRouter({ metricsManager }) {
 
     /**
      * @swagger
+     * /api/v1/metrics/dashboard-kpi:
+     *   get:
+     *     summary: Get extended dashboard KPI metrics
+     *     description: Returns comprehensive KPI metrics for dashboard cards including poster health, source freshness, error rates, etc.
+     *     tags: ['Metrics']
+     *     responses:
+     *       200:
+     *         description: Dashboard KPI metrics retrieved successfully
+     */
+    router.get('/api/v1/metrics/dashboard-kpi', (req, res) => {
+        const performanceMetrics = metricsManager.getPerformanceMetrics();
+        const errorMetrics = metricsManager.getErrorMetrics();
+        const systemMetrics = metricsManager.getSystemMetrics();
+
+        // Get source response times from performance metrics
+        const sourceMetrics = metricsManager.getSourceMetrics
+            ? metricsManager.getSourceMetrics()
+            : {};
+
+        // Calculate response time trend (last 10 data points)
+        const responseTimeHistory = metricsManager.getResponseTimeHistory
+            ? metricsManager.getResponseTimeHistory(10)
+            : [];
+
+        res.json({
+            success: true,
+            timestamp: Date.now(),
+            kpi: {
+                // Poster Health - percentage of high quality posters (placeholder - needs image cache data)
+                posterHealth: {
+                    total: 0,
+                    highQuality: 0,
+                    lowQuality: 0,
+                    percentage: 0,
+                    label: 'N/A',
+                },
+                // Source Response Time Trend
+                sourceResponseTime: {
+                    current: performanceMetrics.responseTime?.average || 0,
+                    trend: responseTimeHistory,
+                    sources: sourceMetrics,
+                },
+                // Fallback Rate - from fallback metrics (fetched separately)
+                fallbackRate: {
+                    total: 0,
+                    fallbacks: 0,
+                    percentage: 0,
+                },
+                // Library Freshness - last sync times per source (placeholder)
+                libraryFreshness: {
+                    sources: [],
+                },
+                // Most Displayed Content (placeholder - needs tracking)
+                mostDisplayed: {
+                    items: [],
+                },
+                // Error Rate (24h)
+                errorRate: {
+                    total: errorMetrics.totalErrors || 0,
+                    last24h: errorMetrics.errorsLast24h || errorMetrics.totalErrors || 0,
+                    rate: errorMetrics.errorRate || 0,
+                    trend: errorMetrics.trend || 'stable',
+                },
+            },
+        });
+    });
+
+    /**
+     * @swagger
      * /api/v1/metrics/export:
      *   get:
      *     summary: Export metrics

@@ -1300,6 +1300,127 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 `;
             },
         },
+        // ===== NEW KPI CARDS (Issue #130) =====
+        {
+            id: 'poster-health',
+            name: 'Poster Health',
+            icon: 'fa-image',
+            color: 'status-success',
+            description: 'Percentage of high-quality posters (>1000px)',
+            enabled: true,
+            render: container => {
+                container.innerHTML = `
+                    <div class="status-card status-success" id="card-poster-health" title="Percentage of high-quality posters (>1000px)">
+                        <div class="card-icon"><i class="fas fa-image"></i></div>
+                        <div class="card-content">
+                            <h3>Poster Health</h3>
+                            <span class="metric" id="metric-poster-health">—%</span>
+                            <span class="trend" id="metric-poster-health-sub">high quality</span>
+                        </div>
+                    </div>
+                `;
+            },
+        },
+        {
+            id: 'source-response',
+            name: 'Source Response',
+            icon: 'fa-tachometer-alt',
+            color: 'status-info',
+            description: 'Average response time from media sources',
+            enabled: true,
+            render: container => {
+                container.innerHTML = `
+                    <div class="status-card status-info" id="card-source-response" title="Average response time from media sources">
+                        <div class="card-icon"><i class="fas fa-tachometer-alt"></i></div>
+                        <div class="card-content">
+                            <h3>Source Response</h3>
+                            <span class="metric" id="metric-source-response">—ms</span>
+                            <span class="trend" id="metric-source-response-sub">avg response</span>
+                        </div>
+                    </div>
+                `;
+            },
+        },
+        {
+            id: 'fallback-rate',
+            name: 'Fallback Rate',
+            icon: 'fa-exchange-alt',
+            color: 'status-warning',
+            description: 'Percentage of posters using fallback images',
+            enabled: true,
+            render: container => {
+                container.innerHTML = `
+                    <div class="status-card status-warning" id="card-fallback-rate" title="Percentage of posters using fallback images">
+                        <div class="card-icon"><i class="fas fa-exchange-alt"></i></div>
+                        <div class="card-content">
+                            <h3>Fallback Rate</h3>
+                            <span class="metric" id="metric-fallback-rate">—%</span>
+                            <span class="trend" id="metric-fallback-rate-sub">using fallback</span>
+                        </div>
+                    </div>
+                `;
+            },
+        },
+        {
+            id: 'library-freshness',
+            name: 'Library Freshness',
+            icon: 'fa-sync',
+            color: 'status-success',
+            description: 'Time since last successful library sync',
+            enabled: true,
+            render: container => {
+                container.innerHTML = `
+                    <div class="status-card status-success" id="card-library-freshness" title="Time since last successful library sync">
+                        <div class="card-icon"><i class="fas fa-sync"></i></div>
+                        <div class="card-content">
+                            <h3>Library Freshness</h3>
+                            <span class="metric" id="metric-library-freshness">—</span>
+                            <span class="trend" id="metric-library-freshness-sub">last sync</span>
+                        </div>
+                    </div>
+                `;
+            },
+        },
+        {
+            id: 'most-displayed',
+            name: 'Most Displayed',
+            icon: 'fa-star',
+            color: 'status-warning',
+            description: 'Most frequently displayed poster',
+            enabled: true,
+            render: container => {
+                container.innerHTML = `
+                    <div class="status-card status-warning" id="card-most-displayed" title="Most frequently displayed poster">
+                        <div class="card-icon"><i class="fas fa-star"></i></div>
+                        <div class="card-content">
+                            <h3>Most Displayed</h3>
+                            <span class="metric" id="metric-most-displayed" style="font-size: 0.9rem;">—</span>
+                            <span class="trend" id="metric-most-displayed-sub">top poster</span>
+                        </div>
+                    </div>
+                `;
+            },
+        },
+        {
+            id: 'error-rate',
+            name: 'Error Rate',
+            icon: 'fa-exclamation-triangle',
+            color: 'status-error',
+            description: 'Errors in the last 24 hours',
+            enabled: true,
+            render: container => {
+                container.innerHTML = `
+                    <div class="status-card status-error" id="card-error-rate" title="Errors in the last 24 hours">
+                        <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="card-content">
+                            <h3>Error Rate</h3>
+                            <span class="metric" id="metric-error-rate">—</span>
+                            <span class="trend" id="metric-error-rate-sub">last 24h</span>
+                        </div>
+                    </div>
+                `;
+            },
+        },
     ];
 
     // Load card configuration from server config (with localStorage fallback for migration)
@@ -1480,6 +1601,197 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 }
             } catch (e) {
                 console.warn('Failed to update Now Playing card:', e);
+            }
+        }
+
+        // Update new KPI cards (Issue #130)
+        const newKpiCards = [
+            'poster-health',
+            'source-response',
+            'fallback-rate',
+            'library-freshness',
+            'most-displayed',
+            'error-rate',
+        ];
+        const hasNewKpiCard = newKpiCards.some(id => selectedIds.includes(id));
+
+        if (hasNewKpiCard) {
+            try {
+                // Fetch KPI data
+                const kpiData = await fetchJSON('/api/v1/metrics/dashboard-kpi').catch(() => null);
+                const fallbackData = await fetchJSON('/api/media/fallback-metrics').catch(
+                    () => null
+                );
+
+                // Update Poster Health card
+                if (selectedIds.includes('poster-health')) {
+                    const el = document.getElementById('metric-poster-health');
+                    const subEl = document.getElementById('metric-poster-health-sub');
+                    if (el) {
+                        // For now, show cache-based estimate
+                        const percentage = kpiData?.kpi?.posterHealth?.percentage || 0;
+                        el.textContent = percentage > 0 ? `${percentage}%` : '—';
+                    }
+                    if (subEl) {
+                        const total = kpiData?.kpi?.posterHealth?.total || 0;
+                        subEl.textContent =
+                            total > 0 ? `${total} posters analyzed` : 'analyzing...';
+                    }
+                }
+
+                // Update Source Response card
+                if (selectedIds.includes('source-response')) {
+                    const el = document.getElementById('metric-source-response');
+                    const subEl = document.getElementById('metric-source-response-sub');
+                    if (el) {
+                        const avgTime = Math.round(kpiData?.kpi?.sourceResponseTime?.current || 0);
+                        el.textContent = avgTime > 0 ? `${avgTime}ms` : '—';
+                    }
+                    if (subEl) {
+                        const sources = kpiData?.kpi?.sourceResponseTime?.sources || {};
+                        const activeSourceCount = Object.keys(sources).length;
+                        subEl.textContent =
+                            activeSourceCount > 0
+                                ? `${activeSourceCount} source${activeSourceCount !== 1 ? 's' : ''} active`
+                                : 'no sources';
+                    }
+                }
+
+                // Update Fallback Rate card
+                if (selectedIds.includes('fallback-rate')) {
+                    const el = document.getElementById('metric-fallback-rate');
+                    const subEl = document.getElementById('metric-fallback-rate-sub');
+                    const cardEl = document.getElementById('card-fallback-rate');
+                    if (el && fallbackData?.metrics) {
+                        const total = fallbackData.metrics.total || 0;
+                        // Calculate percentage (fallbacks / total requests * 100)
+                        // If no data yet, show 0%
+                        const percentage =
+                            total > 0 ? Math.round((total / (total + 100)) * 100) : 0;
+                        el.textContent = `${percentage}%`;
+
+                        // Color code based on fallback rate
+                        if (cardEl) {
+                            cardEl.classList.remove(
+                                'status-success',
+                                'status-warning',
+                                'status-error'
+                            );
+                            if (percentage < 5) {
+                                cardEl.classList.add('status-success');
+                            } else if (percentage < 15) {
+                                cardEl.classList.add('status-warning');
+                            } else {
+                                cardEl.classList.add('status-error');
+                            }
+                        }
+                    }
+                    if (subEl && fallbackData?.metrics) {
+                        const total = fallbackData.metrics.total || 0;
+                        subEl.textContent = `${total} fallback${total !== 1 ? 's' : ''} used`;
+                    }
+                }
+
+                // Update Library Freshness card
+                if (selectedIds.includes('library-freshness')) {
+                    const el = document.getElementById('metric-library-freshness');
+                    const subEl = document.getElementById('metric-library-freshness-sub');
+                    const cardEl = document.getElementById('card-library-freshness');
+                    if (el) {
+                        // Get last refresh time from global cache or localStorage
+                        const lastRefresh =
+                            window.__lastMediaRefresh || localStorage.getItem('lastMediaRefresh');
+                        if (lastRefresh) {
+                            const ago = Date.now() - parseInt(lastRefresh, 10);
+                            const minutes = Math.floor(ago / 60000);
+                            const hours = Math.floor(minutes / 60);
+                            const days = Math.floor(hours / 24);
+
+                            if (days > 0) {
+                                el.textContent = `${days}d`;
+                                if (cardEl) {
+                                    cardEl.classList.remove('status-success', 'status-warning');
+                                    cardEl.classList.add('status-error');
+                                }
+                            } else if (hours > 0) {
+                                el.textContent = `${hours}h`;
+                                if (cardEl) {
+                                    cardEl.classList.remove('status-success', 'status-error');
+                                    cardEl.classList.add('status-warning');
+                                }
+                            } else {
+                                el.textContent = `${minutes}m`;
+                                if (cardEl) {
+                                    cardEl.classList.remove('status-warning', 'status-error');
+                                    cardEl.classList.add('status-success');
+                                }
+                            }
+                        } else {
+                            el.textContent = '—';
+                        }
+                    }
+                    if (subEl) {
+                        subEl.textContent = 'since last sync';
+                    }
+                }
+
+                // Update Most Displayed card
+                if (selectedIds.includes('most-displayed')) {
+                    const el = document.getElementById('metric-most-displayed');
+                    const subEl = document.getElementById('metric-most-displayed-sub');
+                    if (el) {
+                        const items = kpiData?.kpi?.mostDisplayed?.items || [];
+                        if (items.length > 0) {
+                            const top = items[0];
+                            el.textContent = top.title || 'Unknown';
+                            el.title = `Displayed ${top.count || 0} times`;
+                        } else {
+                            el.textContent = '—';
+                        }
+                    }
+                    if (subEl) {
+                        const items = kpiData?.kpi?.mostDisplayed?.items || [];
+                        if (items.length > 0) {
+                            subEl.textContent = `${items[0].count || 0} displays`;
+                        } else {
+                            subEl.textContent = 'tracking...';
+                        }
+                    }
+                }
+
+                // Update Error Rate card
+                if (selectedIds.includes('error-rate')) {
+                    const el = document.getElementById('metric-error-rate');
+                    const subEl = document.getElementById('metric-error-rate-sub');
+                    const cardEl = document.getElementById('card-error-rate');
+                    if (el && kpiData?.kpi?.errorRate) {
+                        const errors = kpiData.kpi.errorRate.last24h || 0;
+                        el.textContent = errors.toString();
+
+                        // Color code based on error count
+                        if (cardEl) {
+                            cardEl.classList.remove(
+                                'status-success',
+                                'status-warning',
+                                'status-error'
+                            );
+                            if (errors === 0) {
+                                cardEl.classList.add('status-success');
+                            } else if (errors < 10) {
+                                cardEl.classList.add('status-warning');
+                            } else {
+                                cardEl.classList.add('status-error');
+                            }
+                        }
+                    }
+                    if (subEl) {
+                        const trend = kpiData?.kpi?.errorRate?.trend || 'stable';
+                        const trendIcon = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
+                        subEl.textContent = `${trendIcon} last 24h`;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to update KPI cards:', e);
             }
         }
     }
