@@ -3173,6 +3173,67 @@
                 };
                 applyGlobalEffects();
             }
+
+            // Update timeline border in preview mode
+            if (newConfig.cinema.nowPlaying?.timelineBorder !== undefined) {
+                updateTimelineBorderPreview(newConfig.cinema.nowPlaying.timelineBorder);
+            }
+        }
+    }
+
+    /**
+     * Update timeline border for preview mode
+     * Shows a demo border at 35% progress to preview the settings
+     * @param {object} config - Timeline border configuration
+     */
+    function updateTimelineBorderPreview(config) {
+        // Check if we're in preview mode
+        const isPreview =
+            window.self !== window.top ||
+            window.location.search.includes('preview=') ||
+            window.Core?.isPreviewMode?.();
+
+        if (!isPreview && !config?.enabled) {
+            // Not in preview and disabled - destroy if exists
+            if (window.PosterramaTimelineBorder) {
+                window.PosterramaTimelineBorder.destroy();
+            }
+            return;
+        }
+
+        if (!config?.enabled) {
+            // Disabled - destroy if exists
+            if (window.PosterramaTimelineBorder) {
+                window.PosterramaTimelineBorder.destroy();
+            }
+            return;
+        }
+
+        // Load and initialize timeline border with demo progress
+        if (!window.PosterramaTimelineBorder) {
+            const script = document.createElement('script');
+            script.src = '/cinema/timeline-border.js?v=' + Date.now();
+            script.async = true;
+            script.onload = () => {
+                if (window.PosterramaTimelineBorder) {
+                    window.PosterramaTimelineBorder.init(config);
+                    // Set demo progress at 35% for preview
+                    window.PosterramaTimelineBorder.setProgress(35);
+                    window.PosterramaTimelineBorder.show();
+                    log('Timeline border preview initialized at 35%');
+                }
+            };
+            script.onerror = () => {
+                console.warn('[Cinema Display] Failed to load timeline border module');
+            };
+            document.head.appendChild(script);
+        } else {
+            // Already loaded - reinitialize with new config
+            window.PosterramaTimelineBorder.init(config);
+            // Set demo progress at 35% for preview
+            window.PosterramaTimelineBorder.setProgress(35);
+            window.PosterramaTimelineBorder.show();
+            log('Timeline border preview updated at 35%');
         }
     }
 
