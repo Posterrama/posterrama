@@ -41,7 +41,8 @@ const schemas = {
         status: Joi.string().valid('ok', 'error').required().messages({
             'any.only': 'status must be either "ok" or "error"',
         }),
-        info: Joi.object().optional(),
+        // Allow info to be any type: object, string, null, or omitted
+        info: Joi.any().optional(),
         error: Joi.string().when('status', {
             is: 'error',
             then: Joi.optional(),

@@ -20695,6 +20695,17 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     const isMaskedToken =
                         tokenRaw && (/^[•]+$/.test(tokenRaw) || tokenRaw === 'EXISTING_TOKEN');
                     const token = tokenRaw && !isMaskedToken ? tokenRaw : undefined;
+
+                    // Skip fetch if no connection details available (prevents server log spam)
+                    if (!hostname && !token) {
+                        if (!silent) {
+                            console.log(
+                                '[Plex] Skipping library fetch - no connection details configured'
+                            );
+                        }
+                        return;
+                    }
+
                     // Use dedupJSON to prevent duplicate parallel requests
                     const res = await window.dedupJSON('/api/admin/plex-libraries', {
                         method: 'POST',
@@ -22082,6 +22093,19 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         if (pillIcon) pillIcon.className = 'fas fa-check-circle';
                         if (pillText) pillText.textContent = 'OK';
                     }
+                } else if (data.error) {
+                    // Show connection error with details
+                    pill.hidden = false;
+                    pill.className = 'status-pill status-danger';
+                    const isTimeout = data.error.includes('timeout');
+                    const errorMsg = isTimeout ? 'Connection Timeout' : 'Connection Failed';
+                    const errorDetail = isTimeout
+                        ? 'Jellyfin server is slow or unreachable. Check network connectivity.'
+                        : data.error;
+                    pill.title = errorDetail;
+                    if (pillIcon) pillIcon.className = 'fas fa-exclamation-circle';
+                    if (pillText) pillText.textContent = errorMsg;
+                    console.warn('[Jellyfin] Connection issue:', data.error);
                 } else {
                     pill.hidden = true;
                 }
