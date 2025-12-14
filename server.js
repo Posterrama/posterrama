@@ -320,7 +320,9 @@ const port = env.server.port || config.serverPort || 4000;
 const isDebug = env.server.debug;
 
 // Wrapper for isAuthenticated that passes isDebug
-const isAuthenticated = createIsAuthenticated({ isDebug });
+const isAuthenticated = /** @type {import('express').RequestHandler} */ (
+    createIsAuthenticated({ isDebug })
+);
 
 // Cache the server IP address
 const serverIPAddress = getLocalIPAddress();
@@ -2407,7 +2409,9 @@ if (env.server.nodeEnv === 'test') {
     });
 }
 // Admin guard alias (module-scope so routes outside feature blocks can use it)
-const adminAuth = createAdminAuth({ isAuthenticated, logger });
+const adminAuth = /** @type {import('express').RequestHandler} */ (
+    createAdminAuth({ isAuthenticated, logger })
+);
 const adminAuthDevices = createAdminAuthDevices({ adminAuth, logger });
 
 // --- Profile Photo (Avatar) Routes ---
@@ -4307,7 +4311,8 @@ app.post(
 
         // For security, destroy the current session after a password change,
         // forcing the user to log in again with their new credentials.
-        req.session.destroy(err => {
+        const session = /** @type {any} */ (req).session;
+        session?.destroy(err => {
             if (err) {
                 if (isDebug)
                     logger.error(
@@ -4717,7 +4722,11 @@ app.get(
     isAuthenticated,
     asyncHandler(async (req, res) => {
         try {
-            const limit = Math.min(Math.max(parseInt(req.query.limit) || 5, 1), 20);
+            const limitRaw = req.query.limit;
+            const limitStr = Array.isArray(limitRaw)
+                ? String(limitRaw[0] ?? '')
+                : String(limitRaw ?? '');
+            const limit = Math.min(Math.max(parseInt(limitStr, 10) || 5, 1), 20);
             const releases = await githubService.getReleases(limit);
 
             // Return simplified release data
@@ -4893,7 +4902,7 @@ app.post(
             logger.info('Update process initiated by admin', {
                 version: requestedVersion,
                 force,
-                user: req.user?.username,
+                user: /** @type {any} */ (req).user?.username,
             });
 
             // Prepare runner details
@@ -5093,7 +5102,9 @@ app.post(
                     .json({ error: 'Cannot rollback while update is in progress' });
             }
 
-            logger.info('Rollback initiated by admin', { user: req.user?.username });
+            logger.info('Rollback initiated by admin', {
+                user: /** @type {any} */ (req).user?.username,
+            });
 
             await autoUpdater.rollback();
 
@@ -5207,7 +5218,7 @@ app.post(
 
             logger.info('Backup cleanup initiated by admin', {
                 keepCount,
-                user: req.user?.username,
+                user: /** @type {any} */ (req).user?.username,
             });
 
             const result = await autoUpdater.cleanupOldBackups(keepCount);
@@ -6284,7 +6295,9 @@ app.post(
     // @ts-ignore - Express router overload with middleware
     isAuthenticated,
     asyncHandler(async (req, res) => {
-        const { tier } = req.query;
+        const tierRaw = req.query.tier;
+        const tier = Array.isArray(tierRaw) ? tierRaw[0] : tierRaw;
+        const tierStr = tier == null ? '' : String(tier);
 
         if (isDebug) {
             logger.debug('[Admin API] Cache clear request', { tier: tier || 'all' });
@@ -6294,7 +6307,7 @@ app.post(
             let cleared = 0;
             let message = '';
 
-            if (tier) {
+            if (tierStr) {
                 // Clear specific tier
                 const validTiers = [
                     'veryShort',
@@ -6305,15 +6318,15 @@ app.post(
                     'mediaFiltered',
                     'config',
                 ];
-                if (!validTiers.includes(tier)) {
+                if (!validTiers.includes(tierStr)) {
                     throw new ApiError(
                         400,
-                        `Invalid tier '${tier}'. Valid tiers: ${validTiers.join(', ')}`
+                        `Invalid tier '${tierStr}'. Valid tiers: ${validTiers.join(', ')}`
                     );
                 }
 
                 // Count entries in this tier before clearing
-                const tierPrefix = `tier:${tier}:`;
+                const tierPrefix = `tier:${tierStr}:`;
                 for (const key of cacheManager.cache.keys()) {
                     // @ts-ignore - Cache keys are strings
                     if (String(key).startsWith(tierPrefix)) {
@@ -6322,8 +6335,8 @@ app.post(
                     }
                 }
 
-                message = `Cleared ${cleared} entries from '${tier}' tier`;
-                logger.info('[Admin API] Cache tier cleared', { tier, cleared });
+                message = `Cleared ${cleared} entries from '${tierStr}' tier`;
+                logger.info('[Admin API] Cache tier cleared', { tier: tierStr, cleared });
             } else {
                 // Clear all cache
                 cleared = cacheManager.cache.size;
@@ -7188,8 +7201,10 @@ if (require.main === module) {
 
             // Prevent unhandled 'error' events (e.g., EADDRINUSE) from crashing without context
             httpServer.on('error', err => {
-                const code = err?.code;
-                const message = err?.message;
+                /** @type {NodeJS.ErrnoException} */
+                const errnoErr = err;
+                const code = errnoErr?.code;
+                const message = errnoErr?.message;
 
                 if (code === 'EADDRINUSE') {
                     logger.error('Failed to start server: port already in use', {
@@ -7203,7 +7218,7 @@ if (require.main === module) {
                         port,
                         code,
                         message,
-                        stack: err?.stack,
+                        stack: errnoErr?.stack,
                     });
                 }
 

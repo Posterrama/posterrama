@@ -104,15 +104,7 @@ function scanFileForConfigProps(filePath) {
 // Recursively scan directory for JS files
 function scanDirectory(dir, extensions = ['.js']) {
     const allProps = new Set();
-    const excludeDirs = [
-        'node_modules',
-        '.git',
-        'coverage',
-        'cache',
-        'logs',
-        'backups',
-        'lighthouse-reports',
-    ];
+    const excludeDirs = ['node_modules', '.git', 'coverage', 'cache', 'logs', 'backups'];
 
     function scan(currentDir) {
         try {

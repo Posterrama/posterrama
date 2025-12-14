@@ -173,7 +173,6 @@ module.exports = [
             'build/',
             'coverage/lcov-report/*.js',
             'public/libs/',
-            'lighthouse-reports/',
             'docs/openapi-latest.json',
         ],
     },

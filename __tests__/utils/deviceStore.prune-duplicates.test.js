@@ -1,4 +1,5 @@
 const path = require('path');
+const os = require('os');
 const fs = require('fs');
 const { nextId } = require('../test-utils/deterministic');
 
@@ -18,11 +19,15 @@ let deviceStore;
  */
 describe('deviceStore pruneLikelyDuplicates', () => {
     let tmpStore;
+    let tmpDir;
 
     beforeEach(async () => {
-        tmpStore = path.join(__dirname, `devices.prune.${nextId('ts')}.json`);
-        process.env.DEVICES_STORE_PATH = path.relative(path.join(__dirname, '..', '..'), tmpStore);
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'posterrama-devices-prune-'));
+        tmpStore = path.join(tmpDir, `devices.prune.${nextId('ts')}.json`);
+        process.env.DEVICES_STORE_PATH = tmpStore;
+        const backupPath = `${tmpStore}.backup`;
         if (fs.existsSync(tmpStore)) fs.unlinkSync(tmpStore);
+        if (fs.existsSync(backupPath)) fs.unlinkSync(backupPath);
         jest.isolateModules(() => {
             deviceStore = require('../../utils/deviceStore');
         });
@@ -45,10 +50,21 @@ describe('deviceStore pruneLikelyDuplicates', () => {
 
     afterEach(() => {
         try {
-            if (tmpStore && fs.existsSync(tmpStore)) fs.unlinkSync(tmpStore);
+            if (tmpStore) {
+                const backupPath = `${tmpStore}.backup`;
+                if (fs.existsSync(tmpStore)) fs.unlinkSync(tmpStore);
+                if (fs.existsSync(backupPath)) fs.unlinkSync(backupPath);
+            }
+            if (tmpDir) {
+                fs.rmSync(tmpDir, { recursive: true, force: true });
+            }
         } catch (_) {
             /* ignore cleanup errors */
         }
+
+        delete process.env.DEVICES_STORE_PATH;
+        tmpStore = null;
+        tmpDir = null;
     });
 
     test('prunes some duplicates for keep device', async () => {

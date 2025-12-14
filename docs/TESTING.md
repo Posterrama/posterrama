@@ -318,7 +318,6 @@ Performance monitoring met baselines:
 
 | Command                      | Description        |
 | ---------------------------- | ------------------ |
-| `npm run perf:audit`         | Performance audit  |
 | `npm run perf:bundle-size`   | Check bundle sizes |
 | `npm run perf:largest-files` | Find largest files |
 | `npm run perf:memory`        | Memory usage test  |

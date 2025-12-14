@@ -720,7 +720,7 @@ function removeUnknownProperties(cfg, schema) {
      * Recursively clean an object against a schema definition
      * @param {object} obj - Object to clean
      * @param {object} schemaDef - Schema definition for this object
-     * @param {string} path - Current path for logging
+     * @param {string} pathStr - Current path for logging
      */
     function cleanObject(obj, schemaDef, pathStr) {
         if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return;

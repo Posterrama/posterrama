@@ -348,7 +348,7 @@ check_dependencies() {
     
     check "No unused dependencies" "deps"
     DEPS_OUTPUT=$(npm run deps:unused 2>&1)
-    if echo "$DEPS_OUTPUT" | grep -q "Result: OK"; then
+    if echo "$DEPS_OUTPUT" | grep -Eq "Result: (OK|CLEAN)"; then
         pass
     elif echo "$DEPS_OUTPUT" | grep -q "@jellyfin/sdk"; then
         pass

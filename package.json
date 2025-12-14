@@ -81,7 +81,6 @@
         "openapi:validate": "node scripts/validate-openapi.js",
         "openapi:sync": "npm run openapi:export",
         "release:summary": "node scripts/generate-release-summary.js",
-        "perf:audit": "./scripts/performance-audit.sh",
         "perf:largest-files": "find public -name '*.js' -o -name '*.css' -o -name '*.html' | xargs ls -lh | sort -k5 -h -r | head -20",
         "perf:memory": "node scripts/test-memory.js",
         "test:docs": "jest __tests__/docs/help-documentation-coverage.test.js --verbose"
@@ -143,7 +142,6 @@
         "prettier": "^3.6.2",
         "puppeteer": "^24.30.0",
         "supertest": "^7.0.0",
-        "terser": "^5.44.1",
         "typescript": "^5.9.3"
     },
     "overrides": {

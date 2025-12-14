@@ -18,7 +18,7 @@ const logger = require('../utils/logger');
 /**
  * Middleware factory to get dependencies from server.js
  * @param {Object} deps - Dependencies
- * @param {Function} deps.adminAuth - Admin authentication middleware
+ * @param {import('express').RequestHandler} deps.adminAuth - Admin authentication middleware
  * @param {Object} deps.cacheManager - Cache manager instance
  * @returns {express.Router} Configured router
  */

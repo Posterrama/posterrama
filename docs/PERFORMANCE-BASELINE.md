@@ -3,7 +3,7 @@
 **Date:** November 16, 2025
 **Version:** 2.9.8
 **Environment:** Production mode (NODE_ENV=production)
-**Measurement Tool:** Vite build output, du, Lighthouse CLI
+**Measurement Tool:** Vite build output, du
 
 ---
 
@@ -213,137 +213,31 @@ This document establishes the performance baseline **after Quick Win optimizatio
 
 ---
 
-## Loading Performance (Actual Measurements)
+## Loading Performance
 
-**Data Source:** Lighthouse audits (Nov 15, 2025)
+Automated performance audit tooling and report outputs have been removed from this repo.
 
-### Core Web Vitals Summary
+### How to Measure (Manual)
 
-| Page        | FCP (Fast) | LCP (Good) | TTI (Fast) | Status |
-| ----------- | ---------- | ---------- | ---------- | ------ |
-| Admin       | 3.6s (️)   | 4.5s (️)   | 4.5s (️)   | OK     |
-| Wallart     | 4.0s (️)   | 96.7s ()   | 96.8s ()   | POOR   |
-| Cinema      | 5.0s (️)   | 100.2s ()  | 100.2s ()  | POOR   |
-| Screensaver | 3.0s ()    | 94.3s ()   | 94.3s ()   | POOR   |
-| Login       | 3.5s ()    | 4.5s (️)   | 4.5s (️)   | OK     |
+- Use Chrome DevTools Performance to capture FCP/LCP/CLS and long tasks
+- Use Network throttling (Fast 3G / Slow 3G) to compare load and render behavior
 
-**Thresholds:** FCP < 1.8s (Good), LCP < 2.5s (Good), TTI < 3.8s (Good)
+### Performance Bottlenecks (Known)
 
-### Performance by Connection Type
+1. **Display modes: first meaningful poster render can be delayed**
 
-**Desktop (Fast 3G, ~1.6 Mbps):**
+- Poster rendering often depends on async `/get-media` fetch → JS render → image load
+- If posters are applied via CSS `background-image`, the browser has fewer prioritization controls
+- **Recommended fix:** convert the primary poster element from `background-image` to an `<img>` to enable native lazy-loading and request prioritization
+- **Alternative quick win:** server-side injection of the first poster URL (render something immediately)
 
-| Page        | Transfer Time | FCP  | LCP    | Notes                      |
-| ----------- | ------------- | ---- | ------ | -------------------------- |
-| Admin       | ~6-8s         | 3.6s | 4.5s   | admin.js (1.3MB) dominates |
-| Wallart     | ~3-4s         | 4.0s | 96.7s  | Lazy-loaded poster images  |
-| Cinema      | ~3-4s         | 5.0s | 100.2s | Lazy-loaded poster images  |
-| Screensaver | ~3-4s         | 3.0s | 94.3s  | Lazy-loaded poster images  |
-| Login       | ~2-3s         | 3.5s | 4.5s   | Smallest bundle            |
+2. **Admin initial load can be dominated by bundle size**
 
-**Mobile (Slow 3G, ~400 Kbps):**
+- `admin.js` is large and benefits from modularization and code splitting
 
-| Page        | Estimated Transfer | Estimated FCP | Status |
-| ----------- | ------------------ | ------------- | ------ |
-| Admin       | ~26s               | ~8-10s        | POOR   |
-| Wallart     | ~10-12s            | ~6-8s         | POOR   |
-| Cinema      | ~10-12s            | ~8-10s        | POOR   |
-| Screensaver | ~10-12s            | ~5-7s         | OK     |
-| Login       | ~8-10s             | ~5-6s         | OK     |
+3. **Interactivity can be delayed by “wait for all posters” flows**
 
----
-
-## Lighthouse Metrics (Actual Results)
-
-**Status:** Audits completed on Nov 15, 2025
-
-**Audit Command:** `npm run perf:audit`
-
-**Reports:** See `lighthouse-reports/*.report.html` for detailed analysis
-
-### Summary Table
-
-| Page        | Performance | Accessibility | Best Practices | SEO | FCP  | LCP    | TTI    | TBT  | CLS   |
-| ----------- | ----------- | ------------- | -------------- | --- | ---- | ------ | ------ | ---- | ----- |
-| Admin       | 76/100      | 95/100        | 93/100         | 100 | 3.6s | 4.5s   | 4.5s   | 0ms  | 0     |
-| Wallart     | 65/100      | 100/100       | 100/100        | 100 | 4.0s | 96.7s  | 96.8s  | 80ms | 0     |
-| Cinema      | 62/100      | 100/100       | 100/100        | 91  | 5.0s | 100.2s | 100.2s | 0ms  | 0.004 |
-| Screensaver | 69/100      | 100/100       | 100/100        | 91  | 3.0s | 94.3s  | 94.3s  | 0ms  | 0.002 |
-| Login       | 77/100      | 95/100        | 93/100         | 100 | 3.5s | 4.5s   | 4.5s   | 0ms  | 0     |
-
-### Key Observations
-
-**Performance (62-77/100):**
-
-- Admin and Login pages perform best (76-77/100)
-- ️ Display modes (Wallart/Cinema/Screensaver) have lower scores (62-69/100)
-- **Critical Issue:** LCP is 90-100s on display modes due to lazy-loaded poster images
-- TBT is excellent (0-80ms) - JavaScript execution is not blocking
-- CLS is excellent (0-0.004) - no layout shifts
-
-**Accessibility (95-100/100):**
-
-- Excellent scores across all pages
-- Display modes score perfect 100/100
-- Admin/Login at 95/100 (minor ARIA improvements needed)
-
-**Best Practices (93-100/100):**
-
-- Near-perfect scores
-- Display modes score 100/100
-- Admin/Login at 93/100 (likely HTTPS/CSP headers)
-
-**SEO (91-100/100):**
-
-- Excellent scores
-- Admin/Wallart/Login at 100/100
-- Cinema/Screensaver at 91/100 (meta description missing?)
-
-### Performance Bottlenecks Identified
-
-1. **LCP on Display Modes (90-100s)** **CRITICAL** - **PARTIALLY ADDRESSED**
-
-- Root Cause: Poster images use `background-image` which has low browser priority
-- Secondary Cause: Asynchronous /get-media fetch → JS render → image load pipeline
-- **Attempted Fixes (Nov 15, 2025):**
-- Gradient placeholder for instant visual feedback
-- DNS prefetch + preconnect for /image endpoint
-- JavaScript preload with fetchPriority='high'
-- ️ **Result:** LCP still ~95s (Lighthouse timeout)
-- **Root Cause Analysis:**
-- `background-image` CSS property has inherently low browser priority
-- Lighthouse measures LCP until TTI, screensaver continuous animation delays this
-- Preload hints don't affect background-images (only <img> tags)
-- **Remaining Fix Required:** Convert #poster from background-image to <img> tag
-- Benefits: Browser-native lazy loading, fetchpriority support, preload works
-- Effort: 4-6 hours (refactor screensaver.js setPoster logic + CSS)
-- Expected Improvement: LCP 95s → 5-10s, Performance score +15-20 points
-- **Alternative Quick Win:** Server-side first poster injection (2h)
-- Inject first poster URL as data-first-poster attribute in HTML
-- Render immediately without waiting for /get-media fetch
-- Expected Improvement: LCP 95s → 10-15s, Performance score +10 points
-
-2. **FCP Times (3.0-5.0s)** ️ **MEDIUM**
-
-- Root Cause: Large JavaScript bundles (admin.js 1.3MB)
-- Impact: Slower initial paint
-- Fix: Code splitting, tree shaking, async loading
-- Expected Improvement: FCP → 1.5-2.5s
-
-3. **TTI on Display Modes (94-100s)** ️ **MEDIUM**
-
-- Root Cause: Lighthouse measures TTI until page is stable (screensaver animations delay this)
-- Secondary Cause: Waiting for all visible posters to load
-- Impact: Page not fully interactive until all images complete
-- Fix: Mark page as interactive immediately after first poster loads
-- Expected Improvement: TTI → 5-10s
-
-**Action Items (Priority Order):**
-
-1. **HIGH**: Convert #poster to <img> tag (4-6h, biggest LCP impact)
-2. ️ **MEDIUM**: Server-side first poster injection (2h, quick win)
-3. ️ **MEDIUM**: Code splitting for FCP improvement (8-12h)
-4. **LOW**: TTI optimization (mark interactive earlier)
+- Prefer “interactive after first paint” and load the rest progressively
 
 ---
 
@@ -511,19 +405,6 @@ du -h dist/public/ | sort -h -r | head -20
 find public -name "*.js" -o -name "*.css" -o -name "*.html" | xargs ls -lh | sort -k5 -h -r | head -20
 ```
 
-### Lighthouse Audit
-
-```bash
-# Run full audit on all pages (admin, wallart, cinema, screensaver, login)
-npm run perf:audit
-
-# View HTML reports
-open lighthouse-reports/lighthouse-admin.report.html
-
-# Check scores with jq
-jq -r '.categories | to_entries[] | "\(.key): \(.value.score * 100)"' lighthouse-reports/lighthouse-admin.report.json
-```
-
 ### Memory Profiling (Chrome DevTools)
 
 **Manual Process:**
@@ -583,7 +464,7 @@ open coverage/frontend/index.html
 
 ## Next Steps
 
-1. **Run Lighthouse Audit** - Capture LCP, FCP, TTI, CLS metrics on live server
+1. **Measure Load & Render** - Capture FCP/LCP/CLS and long tasks on a live server
 2. **Profile Memory Usage** - Chrome DevTools heap snapshots and profiling
 3. **Measure Actual Load Times** - Network throttling tests (Fast 3G, Slow 3G)
 4. **Document Mobile Performance** - Real device testing (iOS Safari, Chrome Android)
@@ -599,7 +480,6 @@ open coverage/frontend/index.html
 - Architecture Guide: [FRONTEND-ARCHITECTURE.md](./FRONTEND-ARCHITECTURE.md)
 - Deployment Guide: [DEPLOYMENT-GUIDE.md](./DEPLOYMENT-GUIDE.md)
 - Vite Documentation: https://vitejs.dev/
-- Lighthouse: https://developer.chrome.com/docs/lighthouse/
 
 ---
 

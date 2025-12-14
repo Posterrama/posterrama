@@ -765,7 +765,7 @@ Then import where needed:
 
 - **Bundle Size:** 3.6MB unminified (admin.js 1.3MB, admin.css 460KB)
 - **Load Time:** ~3-5s TTI (Time to Interactive)
-- **Lighthouse Score:** ~60/100
+- **Performance Baseline:** (automated audit tooling removed)
 
 ### Quick Wins
 

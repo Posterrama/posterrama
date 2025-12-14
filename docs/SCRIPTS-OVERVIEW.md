@@ -90,15 +90,6 @@ Complete guide to all scripts in the `scripts/` directory, what they do, and how
 **Used by:** Fast pre-commit checks
 **Checks:** ~10 essential indicators
 
-#### `performance-audit.sh`
-
-**Purpose:** Lighthouse performance audits on key pages
-**npm command:** `npm run perf:audit`
-**Standalone:** Yes
-**Used by:** Performance monitoring
-**Requires:** Puppeteer, Lighthouse
-**Output:** `lighthouse-reports/*.html`
-
 #### `test-memory.js`
 
 **Purpose:** Automated memory profiling with Puppeteer
@@ -475,7 +466,6 @@ Can be run independently, have clear purposes:
 - cleanup-test-artifacts.sh
 - health-check.sh
 - health-check-quick.sh
-- performance-audit.sh
 - test-memory.js
 - validation/api-contract-tests.js
 - validation/performance-monitor.js

@@ -89,7 +89,7 @@ async function getById(id) {
  * Create a new profile
  * @param {Object} data - Profile data
  * @param {string} [data.id] - Optional custom ID (auto-generated if not provided)
- * @param {string} data.name - Profile name (required)
+ * @param {string} [data.name] - Profile name
  * @param {string} [data.description] - Profile description
  * @param {Object} [data.settings] - Settings object to apply when profile is active
  * @returns {Promise<Object>} Created profile

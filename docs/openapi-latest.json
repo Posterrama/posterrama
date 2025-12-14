@@ -2,7 +2,7 @@
     "openapi": "3.0.0",
     "info": {
         "title": "Posterrama API",
-        "version": "2.9.8",
+        "version": "2.9.9",
         "description": "Posterrama aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.",
         "contact": {
             "name": "Posterrama Project",
@@ -74,8 +74,8 @@
             "description": "**Device lifecycle** → Register POST /api/devices/register, pair with code POST /api/devices/pair, control via WebSocket /ws/devices. Rate limited: 5 req/min."
         },
         {
-            "name": "Groups",
-            "description": "**Device grouping** for broadcast control. Create groups POST /api/groups, assign devices, send commands to all members simultaneously."
+            "name": "Profiles",
+            "description": "**Device profiles** for display settings. Create profiles POST /api/profiles, assign to devices. All display settings are stored in profiles."
         },
         {
             "name": "Local Directory",
@@ -125,7 +125,7 @@
         },
         {
             "name": "Device Management",
-            "tags": ["Devices", "Groups"]
+            "tags": ["Devices", "Profiles"]
         },
         {
             "name": "Media Sources",
@@ -538,12 +538,10 @@
                             "type": "string"
                         }
                     },
-                    "groups": {
-                        "type": "array",
-                        "description": "Assigned group IDs",
-                        "items": {
-                            "type": "string"
-                        }
+                    "profileId": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Assigned device profile ID"
                     },
                     "installId": {
                         "type": "string",
@@ -597,14 +595,6 @@
                                 "type": "string"
                             }
                         }
-                    },
-                    "settingsOverride": {
-                        "type": "object",
-                        "description": "Per-device settings override payload"
-                    },
-                    "preset": {
-                        "type": "string",
-                        "description": "Optional preset name"
                     },
                     "currentState": {
                         "type": "object",
@@ -867,7 +857,7 @@
                     }
                 }
             },
-            "Group": {
+            "Profile": {
                 "type": "object",
                 "properties": {
                     "id": {
@@ -879,17 +869,21 @@
                     "description": {
                         "type": "string"
                     },
-                    "settingsTemplate": {
+                    "settings": {
                         "type": "object",
-                        "description": "Settings template applied to group members"
+                        "description": "Display settings for devices using this profile"
                     },
-                    "order": {
-                        "type": "integer",
-                        "description": "Sort order (ascending)"
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
                     }
                 }
             },
-            "GroupCommandResult": {
+            "ProfileCommandResult": {
                 "type": "object",
                 "properties": {
                     "deviceId": {
@@ -921,21 +915,13 @@
                             "type": "string"
                         }
                     },
-                    "groups": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "settingsOverride": {
-                        "type": "object"
-                    },
-                    "preset": {
-                        "type": "string"
+                    "profileId": {
+                        "type": "string",
+                        "nullable": true
                     }
                 }
             },
-            "GroupCreateRequest": {
+            "ProfileCreateRequest": {
                 "type": "object",
                 "properties": {
                     "id": {
@@ -947,15 +933,12 @@
                     "description": {
                         "type": "string"
                     },
-                    "settingsTemplate": {
+                    "settings": {
                         "type": "object"
-                    },
-                    "order": {
-                        "type": "integer"
                     }
                 }
             },
-            "GroupPatchRequest": {
+            "ProfilePatchRequest": {
                 "type": "object",
                 "properties": {
                     "name": {
@@ -964,11 +947,8 @@
                     "description": {
                         "type": "string"
                     },
-                    "settingsTemplate": {
+                    "settings": {
                         "type": "object"
-                    },
-                    "order": {
-                        "type": "integer"
                     }
                 }
             },
@@ -985,7 +965,7 @@
                     }
                 }
             },
-            "GroupCommandResponse": {
+            "ProfileCommandResponse": {
                 "type": "object",
                 "properties": {
                     "ok": {
@@ -1003,7 +983,7 @@
                     "results": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/GroupCommandResult"
+                            "$ref": "#/components/schemas/ProfileCommandResult"
                         }
                     }
                 }
@@ -3140,136 +3120,6 @@
                                 }
                             }
                         }
-                    }
-                }
-            }
-        },
-        "/api/admin/device-presets": {
-            "get": {
-                "summary": "Get device presets",
-                "description": "Returns the list of saved device presets for quick per-device overrides.",
-                "tags": ["Admin", "Devices"],
-                "security": [
-                    {
-                        "sessionAuth": []
-                    },
-                    {
-                        "bearerAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Array of device presets",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "key": {
-                                                "type": "string",
-                                                "description": "Preset identifier"
-                                            },
-                                            "label": {
-                                                "type": "string",
-                                                "description": "Human-friendly name"
-                                            },
-                                            "settings": {
-                                                "type": "object",
-                                                "description": "Settings override payload applied when preset is used"
-                                            }
-                                        }
-                                    }
-                                },
-                                "example": {
-                                    "ok": true,
-                                    "message": "Operation completed successfully"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "500": {
-                        "description": "Failed to read presets"
-                    }
-                }
-            },
-            "put": {
-                "summary": "Replace device presets",
-                "description": "Replaces the entire device presets list. Provide an array of presets with unique keys.",
-                "tags": ["Admin", "Devices"],
-                "security": [
-                    {
-                        "sessionAuth": []
-                    },
-                    {
-                        "bearerAuth": []
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "required": ["key"],
-                                    "properties": {
-                                        "key": {
-                                            "type": "string",
-                                            "description": "Preset identifier (must be unique)"
-                                        },
-                                        "label": {
-                                            "type": "string"
-                                        },
-                                        "settings": {
-                                            "type": "object"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Presets replaced",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/StandardOkResponse"
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "count": {
-                                                    "type": "integer"
-                                                }
-                                            }
-                                        }
-                                    ]
-                                },
-                                "example": {
-                                    "ok": true,
-                                    "message": "Operation completed successfully"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Validation error (array required or invalid entries)"
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "500": {
-                        "description": "Failed to write presets"
                     }
                 }
             }
@@ -5464,6 +5314,133 @@
                 }
             }
         },
+        "/api/admin/mqtt/test-connection": {
+            "post": {
+                "summary": "Test connection to an MQTT broker",
+                "description": "Attempts a short-lived connection to the broker using the provided settings (does not persist settings and does not require restart).",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "broker": {
+                                        "type": "object",
+                                        "properties": {
+                                            "host": {
+                                                "type": "string"
+                                            },
+                                            "port": {
+                                                "type": "integer"
+                                            },
+                                            "username": {
+                                                "type": "string"
+                                            },
+                                            "password": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Connection successful"
+                    },
+                    "400": {
+                        "description": "Invalid input"
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Unauthorized",
+                                    "message": "Authentication required to access this endpoint",
+                                    "statusCode": 401
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "Broker unreachable / connection failed"
+                    }
+                }
+            }
+        },
+        "/api/admin/mqtt/reconnect": {
+            "post": {
+                "summary": "Reconnect MQTT bridge using current config",
+                "description": "Stops and restarts the in-process MQTT bridge so config changes take effect without restarting the server.",
+                "tags": ["Admin"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reconnect scheduled"
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Unauthorized",
+                                    "message": "Authentication required to access this endpoint",
+                                    "statusCode": 401
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/mqtt/status": {
             "get": {
                 "summary": "Get MQTT bridge status and statistics",
@@ -5843,28 +5820,11 @@
             },
             "post": {
                 "summary": "Save configuration changes",
+                "description": "Updates config.json and .env with provided changes. Detects mode changes and broadcasts navigation commands to connected devices.",
                 "tags": ["Admin"],
                 "security": [
                     {
-                        "sessionAuth": [],
                         "bearerAuth": []
-                    }
-                ],
-                "x-codeSamples": [
-                    {
-                        "lang": "curl",
-                        "label": "Update Screensaver Interval",
-                        "source": "curl -X POST http://localhost:4000/api/admin/config \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Cookie: connect.sid=your-session\" \\\n  -d '{\n    \"config\": {\n      \"screensaverInterval\": 5000\n    }\n  }'\n"
-                    },
-                    {
-                        "lang": "JavaScript",
-                        "label": "Configure Plex Source",
-                        "source": "fetch('http://localhost:4000/api/admin/config', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  credentials: 'include',\n  body: JSON.stringify({\n    config: {\n      plex: {\n        enabled: true,\n        baseUrl: 'http://192.168.1.100:32400',\n        token: 'YOUR_PLEX_TOKEN',\n        libraries: ['Movies', 'TV Shows']\n      }\n    }\n  })\n});\n"
-                    },
-                    {
-                        "lang": "Python",
-                        "label": "Enable Local Directory",
-                        "source": "import requests\nsession = requests.Session()\nsession.post('http://localhost:4000/admin/login',\n             data={'username': 'admin', 'password': 'pass'})\nsession.post('http://localhost:4000/api/admin/config',\n  json={'config': {\n    'localDirectory': {\n      'enabled': True,\n      'rootPath': '/mnt/media/posterrama'\n    }\n  }})\n"
                     }
                 ],
                 "requestBody": {
@@ -5881,45 +5841,6 @@
                                     "env": {
                                         "type": "object",
                                         "description": "Environment variables to update"
-                                    }
-                                }
-                            },
-                            "examples": {
-                                "screensaver": {
-                                    "summary": "Update screensaver settings",
-                                    "value": {
-                                        "config": {
-                                            "screensaverInterval": 5000,
-                                            "transitionDuration": 2000,
-                                            "randomOrder": true
-                                        }
-                                    }
-                                },
-                                "plex": {
-                                    "summary": "Configure Plex connection",
-                                    "value": {
-                                        "config": {
-                                            "plex": {
-                                                "enabled": true,
-                                                "baseUrl": "http://192.168.1.100:32400",
-                                                "token": "YOUR_PLEX_TOKEN",
-                                                "libraries": ["Movies", "TV Shows"]
-                                            }
-                                        }
-                                    }
-                                },
-                                "jellyfin": {
-                                    "summary": "Configure Jellyfin connection",
-                                    "value": {
-                                        "config": {
-                                            "jellyfin": {
-                                                "enabled": true,
-                                                "baseUrl": "http://192.168.1.100:8096",
-                                                "apiKey": "YOUR_API_KEY",
-                                                "userId": "YOUR_USER_ID",
-                                                "libraries": ["Movies"]
-                                            }
-                                        }
                                     }
                                 }
                             }
@@ -5950,8 +5871,7 @@
                             }
                         }
                     }
-                },
-                "description": "Updates config.json and .env with provided changes. Detects mode changes and broadcasts navigation commands to connected devices."
+                }
             }
         },
         "/api/admin/source-status": {
@@ -6430,8 +6350,8 @@
         },
         "/api/plex/users": {
             "get": {
-                "summary": "Get Plex users with access to this server",
-                "description": "Returns a list of all Plex users (including owner and shared users) who have access to the server. Useful for filtering Now Playing sessions by specific users.\n",
+                "summary": "Get Plex users (admin)",
+                "description": "Returns users with access to the configured Plex server (best-effort).",
                 "tags": ["Admin", "Plex"],
                 "security": [
                     {
@@ -6440,34 +6360,71 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of Plex users",
+                        "description": "Users list"
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Unauthorized",
+                                    "message": "Authentication required to access this endpoint",
+                                    "statusCode": 401
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/jellyfin/sessions": {
+            "get": {
+                "summary": "Get current Jellyfin playback sessions",
+                "description": "Returns cached Jellyfin session data showing what is currently being played. Updated every 10 seconds via background polling.\n",
+                "tags": ["Admin", "Jellyfin"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Current Jellyfin sessions",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "object",
                                     "properties": {
-                                        "users": {
+                                        "sessions": {
                                             "type": "array",
                                             "items": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "string"
-                                                    },
-                                                    "username": {
-                                                        "type": "string"
-                                                    },
-                                                    "title": {
-                                                        "type": "string"
-                                                    },
-                                                    "email": {
-                                                        "type": "string"
-                                                    },
-                                                    "thumb": {
-                                                        "type": "string"
-                                                    }
-                                                }
+                                                "type": "object"
                                             }
+                                        },
+                                        "lastUpdate": {
+                                            "type": "number",
+                                            "description": "Timestamp of last poll (milliseconds)"
+                                        },
+                                        "isActive": {
+                                            "type": "boolean",
+                                            "description": "Whether poller is currently running"
                                         }
                                     }
                                 },
@@ -6493,11 +6450,22 @@
                             }
                         }
                     },
-                    "404": {
-                        "description": "No Plex server configured"
-                    },
                     "500": {
-                        "description": "Failed to fetch users from Plex"
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Sessions poller not initialized"
                     }
                 }
             }
@@ -6686,6 +6654,185 @@
                     },
                     "401": {
                         "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/cache/analyze": {
+            "get": {
+                "summary": "Analyze cached images for duplicates and quality distribution",
+                "description": "Performs deep analysis of cached images to find potential duplicates and quality variants",
+                "tags": ["Admin", "Cache"],
+                "security": [
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cache analysis completed successfully"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/cache/browser": {
+            "get": {
+                "summary": "Browse cached poster images",
+                "description": "Returns paginated list of cached poster images with thumbnails for visual inspection",
+                "tags": ["Admin", "Cache"],
+                "security": [
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        },
+                        "description": "Page number"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "schema": {
+                            "type": "integer",
+                            "default": 100
+                        },
+                        "description": "Items per page (max 500)"
+                    },
+                    {
+                        "in": "query",
+                        "name": "sort",
+                        "schema": {
+                            "type": "string",
+                            "enum": ["newest", "oldest", "largest", "smallest"],
+                            "default": "newest"
+                        },
+                        "description": "Sort order"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cached images retrieved successfully"
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/cache/image/{filename}": {
+            "get": {
+                "summary": "Serve a cached image",
+                "description": "Directly serves an image file from the image cache directory",
+                "tags": ["Admin", "Cache"],
+                "security": [
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "filename",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "The filename of the cached image"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Image served successfully",
+                        "content": {
+                            "image/*": {
+                                "example": "Binary data"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Image not found"
                     },
                     "500": {
                         "description": "Internal server error",
@@ -8581,7 +8728,7 @@
             },
             "post": {
                 "summary": "Create a new configuration backup",
-                "description": "Creates a new backup of whitelisted configuration files (config.json, .env, devices/groups, presets). Optionally include a label and note for documentation.",
+                "description": "Creates a new backup of whitelisted configuration files (config.json, .env, devices.json, profiles.json). Optionally include a label and note for documentation.",
                 "tags": ["Admin"],
                 "security": [
                     {
@@ -8795,9 +8942,8 @@
                                         "type": "string",
                                         "enum": [
                                             "config.json",
-                                            "device-presets.json",
+                                            "profiles.json",
                                             "devices.json",
-                                            "groups.json",
                                             ".env"
                                         ]
                                     }
@@ -10172,20 +10318,10 @@
                                         "type": "string",
                                         "description": "Device location"
                                     },
-                                    "groups": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string"
-                                        },
-                                        "description": "Array of group IDs this device belongs to"
-                                    },
-                                    "preset": {
+                                    "profileId": {
                                         "type": "string",
-                                        "description": "Preset name to apply to device"
-                                    },
-                                    "settingsOverride": {
-                                        "type": "object",
-                                        "description": "Device-specific settings overrides"
+                                        "nullable": true,
+                                        "description": "Profile ID to apply to this device"
                                     },
                                     "plexUsername": {
                                         "type": "string",
@@ -10321,7 +10457,7 @@
         "/api/devices/{id}/merge": {
             "post": {
                 "summary": "Merge source devices into target device",
-                "description": "Merge one or more source devices into a target device, combining their properties, groups, settings, and state",
+                "description": "Merge one or more source devices into a target device, combining their properties, settings, and state",
                 "tags": ["Devices"],
                 "security": [
                     {
@@ -10907,365 +11043,6 @@
                     }
                 },
                 "security": []
-            }
-        },
-        "/api/groups": {
-            "get": {
-                "summary": "List all groups",
-                "description": "Returns all device groups with their settings templates and members.\n\n**Note**: Pagination is not yet implemented. All groups are returned in a single response.\n",
-                "tags": ["Groups", "Admin"],
-                "security": [
-                    {
-                        "sessionAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Groups array",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/Group"
-                                    }
-                                },
-                                "example": [
-                                    {
-                                        "id": "lobby-displays",
-                                        "name": "Lobby Displays",
-                                        "description": "All screens in the main lobby",
-                                        "settingsTemplate": {
-                                            "transitionIntervalSeconds": 30
-                                        },
-                                        "order": 1
-                                    },
-                                    {
-                                        "id": "bedroom-displays",
-                                        "name": "Bedroom Displays",
-                                        "description": "Bedroom screens with night mode",
-                                        "settingsTemplate": {
-                                            "clockWidget": false
-                                        },
-                                        "order": 2
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "500": {
-                        "description": "Groups list failed"
-                    }
-                }
-            },
-            "post": {
-                "summary": "Create a group",
-                "tags": ["Groups", "Admin"],
-                "security": [
-                    {
-                        "sessionAuth": []
-                    }
-                ],
-                "x-codeSamples": [
-                    {
-                        "lang": "curl",
-                        "label": "Create Basic Group",
-                        "source": "curl -X POST http://localhost:4000/api/groups \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Cookie: connect.sid=your-session\" \\\n  -d '{\n    \"id\": \"lobby-displays\",\n    \"name\": \"Lobby Displays\",\n    \"description\": \"All screens in the main lobby\"\n  }'\n"
-                    },
-                    {
-                        "lang": "JavaScript",
-                        "label": "Create Group with Settings Template",
-                        "source": "fetch('http://localhost:4000/api/groups', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  credentials: 'include',\n  body: JSON.stringify({\n    id: 'kitchen-displays',\n    name: 'Kitchen Displays',\n    description: 'Kitchen area screens',\n    settingsTemplate: {\n      screensaverInterval: 8000,\n      transitionDuration: 1500\n    },\n    order: 10\n  })\n});\n"
-                    },
-                    {
-                        "lang": "Python",
-                        "label": "Create Group with Python",
-                        "source": "import requests\nsession = requests.Session()\nsession.post('http://localhost:4000/admin/login',\n             data={'username': 'admin', 'password': 'pass'})\nresponse = session.post('http://localhost:4000/api/groups',\n  json={\n    'id': 'conference-rooms',\n    'name': 'Conference Rooms',\n    'description': 'All conference room displays',\n    'settingsTemplate': {\n      'randomOrder': False,\n      'showMetadata': True\n    }\n  })\nprint(f\"Created group: {response.json()['name']}\")\n"
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/GroupCreateRequest"
-                            },
-                            "examples": {
-                                "basic": {
-                                    "summary": "Basic group",
-                                    "value": {
-                                        "id": "lobby-displays",
-                                        "name": "Lobby Displays",
-                                        "description": "All screens in the main lobby"
-                                    }
-                                },
-                                "with_settings": {
-                                    "summary": "Group with settings template",
-                                    "value": {
-                                        "id": "kitchen-displays",
-                                        "name": "Kitchen Displays",
-                                        "description": "Kitchen area screens",
-                                        "settingsTemplate": {
-                                            "screensaverInterval": 8000,
-                                            "transitionDuration": 1500,
-                                            "randomOrder": true
-                                        },
-                                        "order": 10
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                },
-                                "example": {
-                                    "ok": true,
-                                    "message": "Operation completed successfully"
-                                }
-                            }
-                        }
-                    },
-                    "201": {
-                        "description": "Created group",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Group"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request parameters",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                },
-                                "example": {
-                                    "error": "Invalid request parameters",
-                                    "statusCode": 400
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "409": {
-                        "description": "Group exists"
-                    },
-                    "500": {
-                        "description": "Group create failed"
-                    }
-                }
-            }
-        },
-        "/api/groups/{id}": {
-            "patch": {
-                "summary": "Patch a group",
-                "tags": ["Groups", "Admin"],
-                "security": [
-                    {
-                        "sessionAuth": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/GroupPatchRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Updated group",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Group"
-                                },
-                                "example": {
-                                    "ok": true,
-                                    "message": "Operation completed successfully"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request parameters",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                },
-                                "example": {
-                                    "error": "Invalid request parameters",
-                                    "statusCode": 400
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "description": "Not found"
-                    },
-                    "500": {
-                        "description": "Group patch failed"
-                    }
-                }
-            },
-            "delete": {
-                "summary": "Delete a group",
-                "tags": ["Groups", "Admin"],
-                "security": [
-                    {
-                        "sessionAuth": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Deleted"
-                    },
-                    "400": {
-                        "description": "Invalid request parameters",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                },
-                                "example": {
-                                    "error": "Invalid request parameters",
-                                    "statusCode": 400
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "description": "Not found"
-                    },
-                    "500": {
-                        "description": "Group delete failed"
-                    }
-                }
-            }
-        },
-        "/api/groups/{id}/command": {
-            "post": {
-                "summary": "Broadcast a command to group members",
-                "description": "Sends a command to all devices in the group. Use wait=true to collect per-device ACKs.",
-                "tags": ["Groups", "Admin"],
-                "security": [
-                    {
-                        "sessionAuth": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "wait",
-                        "required": false,
-                        "schema": {
-                            "type": "boolean",
-                            "default": false
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/DeviceCommandRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Broadcast result",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/GroupCommandResponse"
-                                },
-                                "example": {
-                                    "ok": true,
-                                    "message": "Operation completed successfully"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request parameters",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                },
-                                "example": {
-                                    "error": "Invalid request parameters",
-                                    "statusCode": 400
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "description": "Group not found"
-                    },
-                    "500": {
-                        "description": "Group command failed"
-                    }
-                }
             }
         },
         "/health": {
@@ -12769,6 +12546,91 @@
                 "security": []
             }
         },
+        "/api/v1/metrics/dashboard-kpi": {
+            "get": {
+                "summary": "Get extended dashboard KPI metrics",
+                "description": "Returns comprehensive KPI metrics for dashboard cards including poster health, source freshness, error rates, etc.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "Dashboard KPI metrics retrieved successfully"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "/api/v1/metrics/track-display": {
+            "post": {
+                "summary": "Track poster display",
+                "description": "Called by frontend when a poster is displayed to track most-shown content",
+                "tags": ["Metrics"],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "mediaId": {
+                                        "type": "string"
+                                    },
+                                    "title": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Display tracked"
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
         "/api/v1/metrics/export": {
             "get": {
                 "summary": "Export metrics",
@@ -13015,6 +12877,393 @@
                     },
                     "500": {
                         "description": "Failed to delete avatar"
+                    }
+                }
+            }
+        },
+        "/api/profiles": {
+            "get": {
+                "summary": "List all profiles",
+                "description": "Returns all device profiles with their settings.",
+                "tags": ["Profiles", "Admin"],
+                "security": [
+                    {
+                        "sessionAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Profiles array",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Profile"
+                                    }
+                                },
+                                "example": [
+                                    {
+                                        "id": "living-room-4k",
+                                        "name": "Living Room 4K",
+                                        "description": "Optimized for 4K TV",
+                                        "settings": {
+                                            "cinemaMode": true
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Profiles list failed"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a profile",
+                "tags": ["Profiles", "Admin"],
+                "security": [
+                    {
+                        "sessionAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProfileCreateRequest"
+                            },
+                            "examples": {
+                                "basic": {
+                                    "summary": "Basic profile",
+                                    "value": {
+                                        "name": "Living Room",
+                                        "description": "4K TV settings"
+                                    }
+                                },
+                                "with_settings": {
+                                    "summary": "Profile with settings",
+                                    "value": {
+                                        "name": "Cinema Display",
+                                        "description": "Cinema mode enabled",
+                                        "settings": {
+                                            "cinemaMode": true,
+                                            "transitionDuration": 1200
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Created profile",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Profile"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "409": {
+                        "description": "Profile exists"
+                    },
+                    "500": {
+                        "description": "Profile create failed"
+                    }
+                }
+            }
+        },
+        "/api/profiles/{id}": {
+            "get": {
+                "summary": "Get a single profile",
+                "tags": ["Profiles", "Admin"],
+                "security": [
+                    {
+                        "sessionAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Profile object",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Profile"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "summary": "Update a profile",
+                "tags": ["Profiles", "Admin"],
+                "security": [
+                    {
+                        "sessionAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProfilePatchRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated profile",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Profile"
+                                },
+                                "example": {
+                                    "ok": true,
+                                    "message": "Operation completed successfully"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "500": {
+                        "description": "Profile patch failed"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete a profile",
+                "description": "Deletes a profile and clears profileId from all devices that had it assigned.\n",
+                "tags": ["Profiles", "Admin"],
+                "security": [
+                    {
+                        "sessionAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted"
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "500": {
+                        "description": "Profile delete failed"
+                    }
+                }
+            }
+        },
+        "/api/profiles/{id}/command": {
+            "post": {
+                "summary": "Broadcast a command to all devices with this profile",
+                "description": "Sends a command to all devices assigned to this profile.",
+                "tags": ["Profiles", "Admin"],
+                "security": [
+                    {
+                        "sessionAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "wait",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DeviceCommandRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Broadcast result"
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Profile not found"
+                    },
+                    "500": {
+                        "description": "Profile command failed"
                     }
                 }
             }

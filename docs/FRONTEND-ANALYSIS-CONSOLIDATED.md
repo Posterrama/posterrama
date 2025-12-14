@@ -73,7 +73,7 @@ utils/
 
 **Objective:** Verify 20-40% FCP improvement from defer attribute
 
-**Results (Lighthouse CLI):**
+**Results:**
 2.6s (-35%)
 
 - Screensaver: 3.0s → 2.4s (-20%)
@@ -388,8 +388,7 @@ style.css (64KB)
 ### Debug Commands
 
 ```bash
-# Performance audit (Lighthouse)
-npm run perf:audit
+# Performance audit tooling removed
 
 # Memory profiling (Puppeteer)
 npm run perf:memory

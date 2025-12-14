@@ -130,13 +130,17 @@ const schemas = {
 
                 if (!urlOk || !usernameOk) {
                     return helpers.message(
-                        'RomM server is enabled and must include non-empty url and username'
+                        /** @type {any} */ (
+                            'RomM server is enabled and must include non-empty url and username'
+                        )
                     );
                 }
 
                 if (!passwordOk && !passwordEnvVarOk) {
                     return helpers.message(
-                        'RomM server is enabled and must include password or passwordEnvVar'
+                        /** @type {any} */ (
+                            'RomM server is enabled and must include password or passwordEnvVar'
+                        )
                     );
                 }
 

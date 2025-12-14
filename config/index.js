@@ -74,7 +74,10 @@ class Config {
     loadConfig() {
         const configPath = require.resolve('../config.json');
         delete require.cache[configPath];
-        this.config = require('../config.json');
+        // config.json can legitimately vary between environments; keep typing permissive.
+        /** @type {any} */
+        const loaded = require('../config.json');
+        this.config = loaded;
 
         // Validate config against schema at runtime
         this.validateConfig();
