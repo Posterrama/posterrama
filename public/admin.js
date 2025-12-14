@@ -5777,10 +5777,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         }
 
         // Collect Now Playing settings if elements exist
-        const nowPlayingEnabledEl = document.getElementById('cinemaNowPlayingEnabled');
-        if (nowPlayingEnabledEl !== null) {
+        // Check for cinemaNowPlayingInterval as the indicator (cinemaNowPlayingEnabled doesn't exist in HTML)
+        const nowPlayingIntervalEl = document.getElementById('cinemaNowPlayingInterval');
+        if (nowPlayingIntervalEl !== null) {
             cinemaUpdate.nowPlaying = {
-                enabled: val('cinemaNowPlayingEnabled'),
+                enabled: true, // Now Playing is always enabled when cinema mode is active
                 priority: val('cinemaNowPlayingPriority') || 'first',
                 filterUser: val('cinemaNowPlayingFilterUser') || '',
                 fallbackToRotation: true, // Always enabled
