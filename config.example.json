@@ -129,7 +129,14 @@
             "priority": "first",
             "filterUser": "",
             "fallbackToRotation": true,
-            "updateIntervalSeconds": 15
+            "updateIntervalSeconds": 15,
+            "timelineBorder": {
+                "enabled": false,
+                "thickness": 3,
+                "color": "#ffffff",
+                "opacity": 0.6,
+                "glowEnabled": false
+            }
         },
         "rotationIntervalMinutes": 0,
         "presets": {
@@ -268,6 +275,26 @@
     },
     "clientDebugViewer": {
         "enabled": false
+    },
+    "burnInPrevention": {
+        "enabled": false,
+        "level": "subtle",
+        "pixelShift": {
+            "enabled": true,
+            "amount": 2,
+            "intervalMs": 180000
+        },
+        "elementCycling": {
+            "enabled": true,
+            "intervalMs": 300000,
+            "fadeMs": 500
+        },
+        "screenRefresh": {
+            "enabled": false,
+            "intervalMs": 3600000,
+            "type": "blackout",
+            "durationMs": 100
+        }
     },
     "cache": {
         "maxSizeGB": 2

@@ -1237,6 +1237,47 @@
                         </label>
                         <div class="number-input-wrapper"><input type="number" min="5" max="300" step="5" id="cinemaNowPlayingInterval" placeholder="15" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
                       </div>
+                      
+                      <!-- Timeline Border Section -->
+                      <div style="grid-column: 1 / -1; margin-top: 12px; margin-bottom: 4px; padding-top: 12px; border-top: 1px solid var(--color-border); color: var(--color-text-secondary); font-size: 0.85rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fas fa-border-all" style="margin-right: 4px;"></i> Timeline Progress Border
+                      </div>
+                      
+                      <div class="form-row">
+                        <label class="checkbox" for="cinemaTimelineBorderEnabled">
+                          <input type="checkbox" id="cinemaTimelineBorderEnabled">
+                          <span class="checkmark"></span>
+                          <span>Enable <span class="help-text" style="font-weight:normal;">(show playback progress)</span></span>
+                        </label>
+                      </div>
+                      
+                      <div class="form-row" id="timelineBorderThicknessRow">
+                        <label for="cinemaTimelineBorderThickness">
+                          Thickness
+                          <span class="help-text">Border width (px)</span>
+                        </label>
+                        <div class="number-input-wrapper"><input type="number" min="1" max="10" step="1" id="cinemaTimelineBorderThickness" placeholder="3" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
+                      </div>
+                      
+                      <div class="form-row" id="timelineBorderColorRow">
+                        <div id="timeline-border-color-picker-container"></div>
+                      </div>
+                      
+                      <div class="form-row" id="timelineBorderOpacityRow">
+                        <label for="cinemaTimelineBorderOpacity">
+                          Opacity
+                          <span class="help-text">0-100%</span>
+                        </label>
+                        <div class="number-input-wrapper"><input type="number" min="10" max="100" step="10" id="cinemaTimelineBorderOpacity" placeholder="60" /><div class="number-controls" role="group"><button type="button" class="number-btn number-inc" title="Increase"><i class="fas fa-chevron-up"></i></button><button type="button" class="number-btn number-dec" title="Decrease"><i class="fas fa-chevron-down"></i></button></div></div>
+                      </div>
+                      
+                      <div class="form-row" id="timelineBorderGlowRow">
+                        <label class="checkbox" for="cinemaTimelineBorderGlow">
+                          <input type="checkbox" id="cinemaTimelineBorderGlow">
+                          <span class="checkmark"></span>
+                          <span>Glow Effect</span>
+                        </label>
+                      </div>
                     </div>
                   </div>
 
@@ -3422,6 +3463,49 @@
               <div class="card-subtext">Enable semi-transparent debug log overlay on display devices for troubleshooting.</div>
             </section>
 
+            <!-- Burn-in Prevention -->
+            <section class="perf-card" aria-label="Burn-in Prevention">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                <h3 style="margin: 0;"><i class="fas fa-tv"></i> Burn-in Prevention</h3>
+                <label class="header-toggle" for="burnInPrevention.enabled">
+                  <input type="checkbox" id="burnInPrevention.enabled" />
+                  <span class="ht-switch" aria-hidden="true"></span>
+                </label>
+              </div>
+              <div class="card-subtext">Protect OLED and plasma displays from burn-in with subtle pixel shifting and element cycling.</div>
+              
+              <div id="burnInPrevention-settings" style="display: none; margin-top: 16px;">
+                <!-- Protection Level -->
+                <div style="margin-bottom: 16px;">
+                  <label for="burnInPrevention.level" style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">Protection Level</label>
+                  <select id="burnInPrevention.level" class="entry-select" style="width: 100%;">
+                    <option value="subtle">Subtle (1px shift every 5 min)</option>
+                    <option value="moderate">Moderate (2px shift + element cycling)</option>
+                    <option value="aggressive">Aggressive (3px shift + cycling + refresh)</option>
+                  </select>
+                </div>
+                
+                <!-- Feature Toggles -->
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  <label class="checkbox" for="burnInPrevention.pixelShift.enabled">
+                    <input type="checkbox" id="burnInPrevention.pixelShift.enabled" checked />
+                    <span class="checkmark"></span>
+                    <span>Pixel Shift <span style="color: var(--text-secondary); font-size: 0.85em;">— subtle movement of all content</span></span>
+                  </label>
+                  <label class="checkbox" for="burnInPrevention.elementCycling.enabled">
+                    <input type="checkbox" id="burnInPrevention.elementCycling.enabled" />
+                    <span class="checkmark"></span>
+                    <span>Element Cycling <span style="color: var(--text-secondary); font-size: 0.85em;">— reposition clock, headers</span></span>
+                  </label>
+                  <label class="checkbox" for="burnInPrevention.screenRefresh.enabled">
+                    <input type="checkbox" id="burnInPrevention.screenRefresh.enabled" />
+                    <span class="checkmark"></span>
+                    <span>Screen Refresh <span style="color: var(--text-secondary); font-size: 0.85em;">— periodic blanking</span></span>
+                  </label>
+                </div>
+              </div>
+            </section>
+
             <!-- Entry Route (moved here to left column) -->
             <section class="perf-card entry-route-card" aria-label="Entry Route">
               <h3><i class="fas fa-signs-post"></i> Entry Route</h3>
@@ -3449,7 +3533,7 @@
                 <div class="setting-row">
                   <span class="setting-label">Bypass query flag</span>
                   <div class="setting-controls">
-                    <input id="rootRoute_bypassParam" type="text" placeholder="landing" class="input-bypass" maxlength="32" pattern="[A-Za-z][A-Za-z0-9_-]*" />
+                    <input id="rootRoute_bypassParam" type="text" placeholder="landing" class="input-bypass" maxlength="32" pattern="[A-Za-z][A-Za-z0-9_\-]*" />
                     <a id="rootRoute_bypass_open" href="/?landing" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Open /?landing</a>
                   </div>
                 </div>

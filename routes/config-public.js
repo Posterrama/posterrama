@@ -220,6 +220,8 @@ module.exports = function createConfigPublicRouter({
                           // Don't expose the rootPath for security
                       }
                     : null,
+                // Burn-in prevention settings for OLED/plasma displays
+                burnInPrevention: config.burnInPrevention || null,
             };
 
             // Try to identify device and merge settings from groups and device (Global < Group < Device)

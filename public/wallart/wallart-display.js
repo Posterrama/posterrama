@@ -2702,6 +2702,15 @@
             setTimeout(() => clearInterval(checkInterval), 5000);
         }
 
+        // Initialize burn-in prevention (loads dynamically if enabled)
+        try {
+            if (window.PosterramaCore && window.PosterramaCore.initBurnInPrevention) {
+                window.PosterramaCore.initBurnInPrevention(window.appConfig);
+            }
+        } catch (_) {
+            // Burn-in prevention is optional
+        }
+
         try {
             const debugOn =
                 (window.logger &&

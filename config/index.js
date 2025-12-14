@@ -82,6 +82,7 @@ class Config {
             this._mqtt = this.config.mqtt;
             this._clientDebugViewer = this.config.clientDebugViewer;
             this._siteServer = this.config.siteServer;
+            this._burnInPrevention = this.config.burnInPrevention;
         }
     }
 
@@ -255,6 +256,15 @@ class Config {
     set clientDebugViewer(value) {
         this._clientDebugViewer = value;
         if (this.config) this.config.clientDebugViewer = value;
+    }
+
+    // Burn-in prevention settings for OLED/Plasma displays
+    get burnInPrevention() {
+        return this._burnInPrevention || this.config?.burnInPrevention || null;
+    }
+    set burnInPrevention(value) {
+        this._burnInPrevention = value;
+        if (this.config) this.config.burnInPrevention = value;
     }
 
     // Security settings

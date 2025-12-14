@@ -448,6 +448,54 @@
         Core.setupPreviewListener();
     }
 
+    /**
+     * Initialize burn-in prevention for OLED/Plasma displays
+     * Dynamically loads the burn-in prevention module only when enabled
+     * @param {object} config - Application config object (or will fetch if not provided)
+     */
+    Core.initBurnInPrevention = async function initBurnInPrevention(config) {
+        try {
+            // Get config if not provided
+            const cfg = config || window.appConfig || (await Core.fetchConfig());
+            const burnInConfig = cfg?.burnInPrevention;
+
+            // Skip if not enabled
+            if (!burnInConfig?.enabled) {
+                return;
+            }
+
+            // Check if already loaded
+            if (window.PosterramaBurnInPrevention) {
+                window.PosterramaBurnInPrevention.init(burnInConfig);
+                return;
+            }
+
+            // Dynamically load the burn-in prevention script
+            const script = document.createElement('script');
+            script.src = '/burn-in-prevention.js?v=' + Date.now();
+            script.async = true;
+
+            script.onload = () => {
+                try {
+                    if (window.PosterramaBurnInPrevention) {
+                        window.PosterramaBurnInPrevention.init(burnInConfig);
+                        console.log('[Core] Burn-in prevention initialized');
+                    }
+                } catch (e) {
+                    console.warn('[Core] Burn-in prevention init failed:', e);
+                }
+            };
+
+            script.onerror = () => {
+                console.warn('[Core] Failed to load burn-in prevention module');
+            };
+
+            document.head.appendChild(script);
+        } catch (e) {
+            console.warn('[Core] Burn-in prevention setup failed:', e);
+        }
+    };
+
     // Expose
     window.PosterramaCore = Core;
 

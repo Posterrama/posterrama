@@ -949,6 +949,49 @@
                             "maximum": 300,
                             "default": 15,
                             "description": "How often to check for session updates (5-300 seconds)"
+                        },
+                        "timelineBorder": {
+                            "type": "object",
+                            "description": "Timeline progress border around screen edge showing playback progress",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Enable timeline border progress indicator"
+                                },
+                                "thickness": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 10,
+                                    "default": 3,
+                                    "description": "Border thickness in pixels"
+                                },
+                                "color": {
+                                    "type": "string",
+                                    "default": "#ffffff",
+                                    "description": "Border color (hex)"
+                                },
+                                "opacity": {
+                                    "type": "number",
+                                    "minimum": 0.1,
+                                    "maximum": 1,
+                                    "default": 0.6,
+                                    "description": "Border opacity (0.1-1)"
+                                },
+                                "glowEnabled": {
+                                    "type": "boolean",
+                                    "default": false,
+                                    "description": "Enable glow effect on border"
+                                }
+                            },
+                            "additionalProperties": false,
+                            "default": {
+                                "enabled": false,
+                                "thickness": 3,
+                                "color": "#ffffff",
+                                "opacity": 0.6,
+                                "glowEnabled": false
+                            }
                         }
                     },
                     "additionalProperties": false,
@@ -957,7 +1000,14 @@
                         "priority": "first",
                         "filterUser": "",
                         "fallbackToRotation": true,
-                        "updateIntervalSeconds": 15
+                        "updateIntervalSeconds": 15,
+                        "timelineBorder": {
+                            "enabled": false,
+                            "thickness": 3,
+                            "color": "#ffffff",
+                            "opacity": 0.6,
+                            "glowEnabled": false
+                        }
                     }
                 },
                 "rotationIntervalMinutes": {
@@ -1818,6 +1868,144 @@
             "additionalProperties": false,
             "default": {
                 "enabled": false
+            }
+        },
+        "burnInPrevention": {
+            "description": "Screen burn-in prevention for OLED and plasma displays. Protects static UI elements through subtle pixel shifting and element cycling.",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable burn-in prevention features"
+                },
+                "level": {
+                    "type": "string",
+                    "enum": ["subtle", "moderate", "aggressive"],
+                    "default": "subtle",
+                    "description": "Protection level preset: subtle (1px shift every 5min), moderate (2px shift every 3min + element cycling), aggressive (3px shift every 1min + element cycling + screen refresh)"
+                },
+                "pixelShift": {
+                    "type": "object",
+                    "description": "Subtle pixel shifting of all content to prevent burn-in",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Enable pixel shifting"
+                        },
+                        "amount": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 10,
+                            "default": 2,
+                            "description": "Maximum pixels to shift in any direction (1-10)"
+                        },
+                        "intervalMs": {
+                            "type": "integer",
+                            "minimum": 10000,
+                            "maximum": 3600000,
+                            "default": 180000,
+                            "description": "Milliseconds between pixel shifts (10s - 1h, default 3min)"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "enabled": true,
+                        "amount": 2,
+                        "intervalMs": 180000
+                    }
+                },
+                "elementCycling": {
+                    "type": "object",
+                    "description": "Periodic repositioning of static UI elements (clock, logos, headers)",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Enable element cycling"
+                        },
+                        "intervalMs": {
+                            "type": "integer",
+                            "minimum": 30000,
+                            "maximum": 3600000,
+                            "default": 300000,
+                            "description": "Milliseconds between element position changes (30s - 1h, default 5min)"
+                        },
+                        "fadeMs": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2000,
+                            "default": 500,
+                            "description": "Fade transition duration in milliseconds"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "enabled": true,
+                        "intervalMs": 300000,
+                        "fadeMs": 500
+                    }
+                },
+                "screenRefresh": {
+                    "type": "object",
+                    "description": "Optional periodic screen blanking to refresh all pixels (for aggressive protection)",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Enable periodic screen refresh"
+                        },
+                        "intervalMs": {
+                            "type": "integer",
+                            "minimum": 60000,
+                            "maximum": 86400000,
+                            "default": 3600000,
+                            "description": "Milliseconds between screen refreshes (1min - 24h, default 1h)"
+                        },
+                        "type": {
+                            "type": "string",
+                            "enum": ["blackout", "colorWipe"],
+                            "default": "blackout",
+                            "description": "Refresh type: blackout (quick black flash) or colorWipe (RGB color cycle)"
+                        },
+                        "durationMs": {
+                            "type": "integer",
+                            "minimum": 50,
+                            "maximum": 2000,
+                            "default": 100,
+                            "description": "Duration of the refresh effect in milliseconds"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                        "enabled": false,
+                        "intervalMs": 3600000,
+                        "type": "blackout",
+                        "durationMs": 100
+                    }
+                }
+            },
+            "additionalProperties": false,
+            "default": {
+                "enabled": false,
+                "level": "subtle",
+                "pixelShift": {
+                    "enabled": true,
+                    "amount": 2,
+                    "intervalMs": 180000
+                },
+                "elementCycling": {
+                    "enabled": true,
+                    "intervalMs": 300000,
+                    "fadeMs": 500
+                },
+                "screenRefresh": {
+                    "enabled": false,
+                    "intervalMs": 3600000,
+                    "type": "blackout",
+                    "durationMs": 100
+                }
             }
         },
         "mqtt": {

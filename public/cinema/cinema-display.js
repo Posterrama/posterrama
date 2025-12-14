@@ -3614,6 +3614,10 @@
                 // Stop poster rotation when we have active sessions
                 if (!nowPlayingActive) {
                     stopRotation();
+                    // Show timeline border when Now Playing becomes active
+                    if (window.PosterramaTimelineBorder) {
+                        window.PosterramaTimelineBorder.show();
+                    }
                 }
 
                 nowPlayingActive = true;
@@ -3633,12 +3637,22 @@
                             lastSessionId =
                                 filteredSessions[0].ratingKey || filteredSessions[0].key;
                         }
+                        // Update timeline border with first session
+                        updateTimelineBorderProgress(filteredSessions[0]);
                         startNowPlayingRotation();
+                    } else {
+                        // Update timeline border with current session in rotation
+                        const currentSession =
+                            filteredSessions[currentSessionIndex] || filteredSessions[0];
+                        updateTimelineBorderProgress(currentSession);
                     }
                 } else {
                     // Single stream or no rotation - show first/selected session
                     const selectedSession = selectSession(filteredSessions);
                     const sessionId = selectedSession.ratingKey || selectedSession.key;
+
+                    // Update timeline border with current session progress
+                    updateTimelineBorderProgress(selectedSession);
 
                     // Only update if session changed
                     if (sessionId !== lastSessionId) {
@@ -3663,6 +3677,11 @@
                 nowPlayingActive = false;
                 nowPlayingSessions = [];
                 stopNowPlayingRotation();
+
+                // Hide timeline border when no active session
+                if (window.PosterramaTimelineBorder) {
+                    window.PosterramaTimelineBorder.hide();
+                }
 
                 // Apply fallback behavior if:
                 // 1. Was previously showing Now Playing and sessions ended, OR
@@ -3822,6 +3841,9 @@
 
             log('Starting Now Playing polling', { intervalSeconds });
 
+            // Initialize Timeline Border if enabled
+            initTimelineBorder(nowPlayingConfig.timelineBorder);
+
             // Initialize device data first, then start checking
             initNowPlayingDeviceData().then(() => {
                 // Initial check
@@ -3837,6 +3859,59 @@
         }
     }
 
+    /**
+     * Initialize Timeline Border component
+     * @param {object} config - Timeline border configuration
+     */
+    function initTimelineBorder(config) {
+        if (!config?.enabled) {
+            // Destroy if exists but now disabled
+            if (window.PosterramaTimelineBorder) {
+                window.PosterramaTimelineBorder.destroy();
+            }
+            return;
+        }
+
+        // Dynamically load the timeline border script if not loaded
+        if (!window.PosterramaTimelineBorder) {
+            const script = document.createElement('script');
+            script.src = '/cinema/timeline-border.js?v=' + Date.now();
+            script.async = true;
+            script.onload = () => {
+                if (window.PosterramaTimelineBorder) {
+                    window.PosterramaTimelineBorder.init(config);
+                    log('Timeline border initialized');
+                }
+            };
+            script.onerror = () => {
+                console.warn('[Cinema Display] Failed to load timeline border module');
+            };
+            document.head.appendChild(script);
+        } else {
+            // Already loaded, just init/update
+            window.PosterramaTimelineBorder.init(config);
+        }
+    }
+
+    /**
+     * Update Timeline Border with session progress
+     * @param {object} session - Plex session with viewOffset and duration
+     */
+    function updateTimelineBorderProgress(session) {
+        if (!window.PosterramaTimelineBorder) return;
+
+        if (!session || !session.duration) {
+            window.PosterramaTimelineBorder.setProgress(0);
+            return;
+        }
+
+        const viewOffset = session.viewOffset || 0;
+        const duration = session.duration;
+        const percent = (viewOffset / duration) * 100;
+
+        window.PosterramaTimelineBorder.setProgress(percent);
+    }
+
     function stopNowPlaying() {
         if (nowPlayingTimer) {
             clearInterval(nowPlayingTimer);
@@ -3844,6 +3919,10 @@
             lastSessionId = null;
             nowPlayingActive = false;
             log('Now Playing stopped');
+        }
+        // Destroy timeline border when Now Playing is stopped
+        if (window.PosterramaTimelineBorder) {
+            window.PosterramaTimelineBorder.destroy();
         }
     }
 
@@ -3869,6 +3948,18 @@
             console.log('[Cinema Display] Auto-init starting...');
             const config = await loadCinemaConfig();
             console.log('[Cinema Display] Config loaded:', config);
+
+            // Initialize burn-in prevention (loads dynamically if enabled)
+            // Note: burn-in prevention needs the full app config, not just cinema config
+            try {
+                if (window.PosterramaCore && window.PosterramaCore.initBurnInPrevention) {
+                    // initBurnInPrevention will fetch full config internally if needed
+                    await window.PosterramaCore.initBurnInPrevention();
+                }
+            } catch (_) {
+                // Burn-in prevention is optional
+            }
+
             console.log('[Cinema Display] Calling initCinemaMode...');
             try {
                 initCinemaMode(config);

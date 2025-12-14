@@ -32,3 +32,51 @@ export function startAutoExitPoll(currentMode, intervalMs = 15000) {
         console.warn('[Display Mode] Auto-exit poll failed:', e);
     }
 }
+
+/**
+ * Initialize burn-in prevention for OLED/Plasma displays
+ * Dynamically loads the burn-in prevention module only when enabled
+ * @param {object} config - Application config object (or will fetch if not provided)
+ */
+export async function initBurnInPrevention(config) {
+    try {
+        // Get config if not provided
+        const cfg = config || window.appConfig || (await window.PosterramaCore?.fetchConfig());
+        const burnInConfig = cfg?.burnInPrevention;
+
+        // Skip if not enabled
+        if (!burnInConfig?.enabled) {
+            return;
+        }
+
+        // Check if already loaded
+        if (window.PosterramaBurnInPrevention) {
+            window.PosterramaBurnInPrevention.init(burnInConfig);
+            return;
+        }
+
+        // Dynamically load the burn-in prevention script
+        const script = document.createElement('script');
+        script.src = '/burn-in-prevention.js?v=' + Date.now();
+        script.async = true;
+
+        script.onload = () => {
+            try {
+                if (window.PosterramaBurnInPrevention) {
+                    window.PosterramaBurnInPrevention.init(burnInConfig);
+                    console.log('[Display Mode] Burn-in prevention initialized');
+                }
+            } catch (e) {
+                console.warn('[Display Mode] Burn-in prevention init failed:', e);
+            }
+        };
+
+        script.onerror = () => {
+            console.warn('[Display Mode] Failed to load burn-in prevention module');
+        };
+
+        document.head.appendChild(script);
+    } catch (e) {
+        console.warn('[Display Mode] Burn-in prevention setup failed:', e);
+    }
+}

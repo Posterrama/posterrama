@@ -4089,6 +4089,83 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         setIf('cinemaNowPlayingPriority', c.cinema?.nowPlaying?.priority || 'first');
         setIf('cinemaNowPlayingInterval', c.cinema?.nowPlaying?.updateIntervalSeconds || 15);
 
+        // Timeline Border settings (part of Now Playing)
+        setIf(
+            'cinemaTimelineBorderEnabled',
+            c.cinema?.nowPlaying?.timelineBorder?.enabled || false,
+            'checkbox'
+        );
+        setIf(
+            'cinemaTimelineBorderThickness',
+            c.cinema?.nowPlaying?.timelineBorder?.thickness || 3
+        );
+        setIf(
+            'cinemaTimelineBorderOpacity',
+            (c.cinema?.nowPlaying?.timelineBorder?.opacity || 0.6) * 100
+        );
+        setIf(
+            'cinemaTimelineBorderGlow',
+            c.cinema?.nowPlaying?.timelineBorder?.glowEnabled || false,
+            'checkbox'
+        );
+
+        // Timeline Border Color Picker
+        const timelineBorderColorContainer = document.getElementById(
+            'timeline-border-color-picker-container'
+        );
+        if (timelineBorderColorContainer) {
+            const savedColor = c.cinema?.nowPlaying?.timelineBorder?.color || '#ffffff';
+
+            // Create hidden input for form submission
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'cinemaTimelineBorderColor';
+            hiddenInput.value = savedColor;
+
+            const timelineBorderPicker = createColorPicker({
+                label: 'Border Color',
+                color: savedColor,
+                defaultColor: '#ffffff',
+                presets: [
+                    '#ffffff',
+                    '#ff0000',
+                    '#00ff00',
+                    '#0066ff',
+                    '#ffcc00',
+                    '#ff00ff',
+                    '#00ffff',
+                    '#ff6600',
+                ],
+                onColorChange: color => {
+                    hiddenInput.value = color;
+                },
+                refreshIframe: false,
+            });
+
+            timelineBorderColorContainer.innerHTML = '';
+            timelineBorderColorContainer.appendChild(hiddenInput);
+            timelineBorderColorContainer.appendChild(timelineBorderPicker);
+        }
+
+        // Show/hide timeline border options based on enabled state
+        const timelineBorderEnabled = document.getElementById('cinemaTimelineBorderEnabled');
+        if (timelineBorderEnabled) {
+            const updateTimelineBorderVisibility = () => {
+                const show = timelineBorderEnabled.checked;
+                [
+                    'timelineBorderThicknessRow',
+                    'timelineBorderColorRow',
+                    'timelineBorderOpacityRow',
+                    'timelineBorderGlowRow',
+                ].forEach(id => {
+                    const row = document.getElementById(id);
+                    if (row) row.style.display = show ? '' : 'none';
+                });
+            };
+            updateTimelineBorderVisibility();
+            timelineBorderEnabled.addEventListener('change', updateTimelineBorderVisibility);
+        }
+
         // Load Plex users for filterUser dropdown (only if Plex is enabled)
         const filterUserSelect = document.getElementById('cinemaNowPlayingFilterUser');
         if (filterUserSelect) {
@@ -5674,6 +5751,19 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 fallbackToRotation: true, // Always enabled
                 updateIntervalSeconds: val('cinemaNowPlayingInterval') || 15,
             };
+
+            // Timeline Border settings (part of Now Playing)
+            const timelineBorderEnabledEl = document.getElementById('cinemaTimelineBorderEnabled');
+            if (timelineBorderEnabledEl !== null) {
+                const opacityPercent = val('cinemaTimelineBorderOpacity') || 60;
+                cinemaUpdate.nowPlaying.timelineBorder = {
+                    enabled: val('cinemaTimelineBorderEnabled'),
+                    thickness: val('cinemaTimelineBorderThickness') || 3,
+                    color: val('cinemaTimelineBorderColor') || '#ffffff',
+                    opacity: opacityPercent / 100,
+                    glowEnabled: val('cinemaTimelineBorderGlow') || false,
+                };
+            }
         }
 
         return Object.keys(cinemaUpdate).length > 0 ? cinemaUpdate : undefined;
@@ -23714,6 +23804,21 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     'clientDebugViewer.enabled'
                 )?.checked;
 
+                // Collect Burn-in Prevention
+                const burnInEnabled = !!document.getElementById('burnInPrevention.enabled')
+                    ?.checked;
+                const burnInLevel =
+                    document.getElementById('burnInPrevention.level')?.value || 'subtle';
+                const burnInPixelShiftEnabled = !!document.getElementById(
+                    'burnInPrevention.pixelShift.enabled'
+                )?.checked;
+                const burnInElementCyclingEnabled = !!document.getElementById(
+                    'burnInPrevention.elementCycling.enabled'
+                )?.checked;
+                const burnInScreenRefreshEnabled = !!document.getElementById(
+                    'burnInPrevention.screenRefresh.enabled'
+                )?.checked;
+
                 if (!btn.querySelector('.spinner')) {
                     const sp = document.createElement('span');
                     sp.className = 'spinner';
@@ -23804,6 +23909,19 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         baseUrl,
                         clientDebugViewer: {
                             enabled: clientDebugViewerEnabled,
+                        },
+                        burnInPrevention: {
+                            enabled: burnInEnabled,
+                            level: burnInLevel,
+                            pixelShift: {
+                                enabled: burnInPixelShiftEnabled,
+                            },
+                            elementCycling: {
+                                enabled: burnInElementCyclingEnabled,
+                            },
+                            screenRefresh: {
+                                enabled: burnInScreenRefreshEnabled,
+                            },
                         },
                         mqtt: {
                             enabled: mqttEnabled,
@@ -23995,6 +24113,66 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             const debugViewerEl = document.getElementById('clientDebugViewer.enabled');
             if (debugViewerEl) {
                 debugViewerEl.checked = !!cfg?.clientDebugViewer?.enabled;
+            }
+
+            // Burn-in Prevention
+            const burnInEnabledEl = document.getElementById('burnInPrevention.enabled');
+            const burnInSettingsGroup = document.getElementById('burnInPrevention-settings');
+            const burnInLevelEl = document.getElementById('burnInPrevention.level');
+            const burnInPixelShiftEl = document.getElementById(
+                'burnInPrevention.pixelShift.enabled'
+            );
+            const burnInElementCyclingEl = document.getElementById(
+                'burnInPrevention.elementCycling.enabled'
+            );
+            const burnInScreenRefreshEl = document.getElementById(
+                'burnInPrevention.screenRefresh.enabled'
+            );
+
+            if (burnInEnabledEl) {
+                burnInEnabledEl.checked = !!cfg?.burnInPrevention?.enabled;
+                // Show/hide settings based on enabled state
+                if (burnInSettingsGroup) {
+                    burnInSettingsGroup.style.display = cfg?.burnInPrevention?.enabled
+                        ? 'block'
+                        : 'none';
+                }
+                // Add change listener for toggle
+                burnInEnabledEl.addEventListener('change', function () {
+                    if (burnInSettingsGroup) {
+                        burnInSettingsGroup.style.display = this.checked ? 'block' : 'none';
+                    }
+                });
+            }
+            if (burnInLevelEl) {
+                burnInLevelEl.value = cfg?.burnInPrevention?.level || 'subtle';
+                // Update checkboxes when level changes
+                burnInLevelEl.addEventListener('change', function () {
+                    const level = this.value;
+                    // Apply level presets
+                    if (level === 'subtle') {
+                        if (burnInPixelShiftEl) burnInPixelShiftEl.checked = true;
+                        if (burnInElementCyclingEl) burnInElementCyclingEl.checked = false;
+                        if (burnInScreenRefreshEl) burnInScreenRefreshEl.checked = false;
+                    } else if (level === 'moderate') {
+                        if (burnInPixelShiftEl) burnInPixelShiftEl.checked = true;
+                        if (burnInElementCyclingEl) burnInElementCyclingEl.checked = true;
+                        if (burnInScreenRefreshEl) burnInScreenRefreshEl.checked = false;
+                    } else if (level === 'aggressive') {
+                        if (burnInPixelShiftEl) burnInPixelShiftEl.checked = true;
+                        if (burnInElementCyclingEl) burnInElementCyclingEl.checked = true;
+                        if (burnInScreenRefreshEl) burnInScreenRefreshEl.checked = true;
+                    }
+                });
+            }
+            if (burnInPixelShiftEl) {
+                burnInPixelShiftEl.checked = cfg?.burnInPrevention?.pixelShift?.enabled !== false;
+            }
+            if (burnInElementCyclingEl) {
+                burnInElementCyclingEl.checked = !!cfg?.burnInPrevention?.elementCycling?.enabled;
+            }
+            if (burnInScreenRefreshEl) {
+                burnInScreenRefreshEl.checked = !!cfg?.burnInPrevention?.screenRefresh?.enabled;
             }
 
             // Promobox

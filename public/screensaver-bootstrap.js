@@ -221,6 +221,14 @@ export async function startScreensaver() {
             // Preload is optional performance optimization
         }
 
+        // Initialize burn-in prevention (loads dynamically if enabled)
+        try {
+            const { initBurnInPrevention } = await import('./display-mode-init.js');
+            await initBurnInPrevention(window.appConfig);
+        } catch (_) {
+            // Burn-in prevention is optional
+        }
+
         // Debug log
         try {
             if (window.logger && window.logger.debug) {

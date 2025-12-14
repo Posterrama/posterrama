@@ -62,6 +62,26 @@ const schemas = {
                 }).default({ recent: 20, popular: 30, random: 50 }),
             }).optional(),
         }).optional(),
+        burnInPrevention: Joi.object({
+            enabled: Joi.boolean().default(false),
+            level: Joi.string().valid('subtle', 'moderate', 'aggressive').default('subtle'),
+            pixelShift: Joi.object({
+                enabled: Joi.boolean().default(true),
+                amount: Joi.number().integer().min(1).max(10).default(2),
+                intervalMs: Joi.number().integer().min(10000).max(3600000).default(180000),
+            }).default({ enabled: true, amount: 2, intervalMs: 180000 }),
+            elementCycling: Joi.object({
+                enabled: Joi.boolean().default(true),
+                intervalMs: Joi.number().integer().min(30000).max(3600000).default(300000),
+                fadeMs: Joi.number().integer().min(0).max(2000).default(500),
+            }).default({ enabled: true, intervalMs: 300000, fadeMs: 500 }),
+            screenRefresh: Joi.object({
+                enabled: Joi.boolean().default(false),
+                intervalMs: Joi.number().integer().min(60000).max(86400000).default(3600000),
+                type: Joi.string().valid('blackout', 'colorWipe').default('blackout'),
+                durationMs: Joi.number().integer().min(50).max(2000).default(100),
+            }).default({ enabled: false, intervalMs: 3600000, type: 'blackout', durationMs: 100 }),
+        }).optional(),
         mediaServers: Joi.array().items(
             Joi.object({
                 name: Joi.string().required(),
