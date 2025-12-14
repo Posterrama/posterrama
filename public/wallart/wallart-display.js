@@ -1089,8 +1089,11 @@
                                 align-items: center;
                                 gap: 1rem;
                                 padding: 2rem 3rem;
-                                background: rgba(0, 0, 0, 0.85);
-                                border-radius: 1rem;
+                                background: rgba(0, 0, 0, 0.3);
+                                backdrop-filter: blur(10px);
+                                -webkit-backdrop-filter: blur(10px);
+                                border-radius: 50px;
+                                border: 1px solid rgba(255, 255, 255, 0.1);
                                 opacity: 0;
                                 visibility: hidden;
                                 transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
