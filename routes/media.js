@@ -540,12 +540,9 @@ module.exports = function createMediaRouter({
                         return res.json([]);
                     }
 
-                    // Get music library names from server config
+                    // Get music library names from server config.
+                    // UX rule: if none configured, treat as "all music libraries".
                     const musicLibraries = plexServer.musicLibraryNames || [];
-                    if (musicLibraries.length === 0) {
-                        logger.warn('Music mode enabled but no music libraries configured');
-                        return res.json([]);
-                    }
 
                     // Get music filters from server config
                     const musicFilters = plexServer.musicFilters || {};
@@ -565,7 +562,7 @@ module.exports = function createMediaRouter({
                     const count = parseInt(req.query?.count, 10) || 50;
 
                     logger.info(
-                        `[Music Mode] Fetching ${count} albums from libraries: ${musicLibraries.join(', ')}`
+                        `[Music Mode] Fetching ${count} albums from libraries: ${musicLibraries.length ? musicLibraries.join(', ') : '(all)'}`
                     );
 
                     const musicAlbums = await plexSource.fetchMusic(

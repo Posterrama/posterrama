@@ -130,6 +130,8 @@ describe('GET /get-media - Music Mode', () => {
             },
         ];
 
+        PlexSource.prototype.fetchMusic = jest.fn().mockResolvedValue([]);
+
         const response = await request(app).get('/get-media?musicMode=1').expect(200);
 
         expect(response.body).toEqual([]);

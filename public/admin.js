@@ -669,7 +669,28 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             const helpers = window.__adminHelpers;
             if (!helpers || !helpers.getMultiSelectValues) return;
 
-            const selectedLibraries = helpers.getMultiSelectValues('plex.music');
+            let selectedLibraries = helpers.getMultiSelectValues('plex.music');
+
+            // UX rule: an empty selection means "all music libraries".
+            if (selectedLibraries.length === 0) {
+                try {
+                    const all = Array.from(musicSelect.options)
+                        .map(o => o.value)
+                        .filter(Boolean);
+                    if (all.length > 0) {
+                        Array.from(musicSelect.options).forEach(o => {
+                            o.selected = true;
+                        });
+                        selectedLibraries = all;
+                        if (helpers.rebuildMsForSelect) {
+                            helpers.rebuildMsForSelect('plex-ms-music', 'plex.music');
+                        }
+                    }
+                } catch (_) {
+                    /* auto-select all music libraries failed (non-fatal) */
+                }
+            }
+
             if (selectedLibraries.length > 0) {
                 const libraryKey = window.__plexLibraryNameToId?.get(selectedLibraries[0]);
                 if (libraryKey) {
@@ -21189,12 +21210,28 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     const domMusic = getMultiSelectValues('plex.music');
                     const prevMovies = new Set(domMovies.length > 0 ? domMovies : configMovies);
                     const prevShows = new Set(domShows.length > 0 ? domShows : configShows);
-                    const prevMusic = new Set(domMusic.length > 0 ? domMusic : configMusic);
+                    // UX rule: an empty music selection means "all music libraries"
+                    const desiredMusic =
+                        domMusic.length > 0
+                            ? domMusic
+                            : configMusic.length > 0
+                              ? configMusic
+                              : music.map(m => m.value);
+                    const prevMusic = new Set(desiredMusic);
 
-                    // Always respect the config/current selection - no auto-select all
+                    // Always respect the config/current selection for movies/shows
                     setMultiSelect('plex.movies', movies, Array.from(prevMovies));
                     setMultiSelect('plex.shows', shows, Array.from(prevShows));
                     setMultiSelect('plex.music', music, Array.from(prevMusic));
+
+                    // Persist the derived "all music" selection so future refreshes keep it stable
+                    try {
+                        if (Array.isArray(window.__plexConfigSelection?.music)) {
+                            window.__plexConfigSelection.music = Array.from(prevMusic);
+                        }
+                    } catch (_) {
+                        /* config selection sync optional */
+                    }
 
                     // Ensure multiselects are wired and rebuild with counts
                     if (document.getElementById('plex-ms-movies')?.dataset?.msWired !== 'true') {
@@ -23142,6 +23179,20 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 plex.movieLibraryNames = getMultiSelectValues('plex.movies');
                 plex.showLibraryNames = getMultiSelectValues('plex.shows');
                 plex.musicLibraryNames = getMultiSelectValues('plex.music');
+                // UX rule: empty means "all music libraries"
+                if (!plex.musicLibraryNames.length) {
+                    try {
+                        const el = getInput('plex.music');
+                        const all = el
+                            ? Array.from(el.options)
+                                  .map(o => o.value)
+                                  .filter(Boolean)
+                            : [];
+                        if (all.length) plex.musicLibraryNames = all;
+                    } catch (_) {
+                        /* keep empty if options unavailable */
+                    }
+                }
                 // Music filters
                 plex.musicFilters = {
                     genres: getMultiSelectValues('plex.musicGenres'),

@@ -35,8 +35,8 @@ describe('PlexSource - Music Support', () => {
         mockProcessPlexItem = jest.fn().mockImplementation(item => Promise.resolve(item));
         mockGetPlexLibraries = jest.fn().mockResolvedValue(
             new Map([
-                ['Music', { key: '1', title: 'Music' }],
-                ['Classical', { key: '2', title: 'Classical' }],
+                ['Music', { key: '1', title: 'Music', type: 'artist' }],
+                ['Classical', { key: '2', title: 'Classical', type: 'artist' }],
             ])
         );
         mockShuffleArray = jest.fn().mockImplementation(arr => arr);
@@ -100,10 +100,23 @@ describe('PlexSource - Music Support', () => {
             });
         });
 
-        test('returns empty array for empty library names', async () => {
+        test('defaults to all music libraries when selection is empty', async () => {
+            mockPlexClient.query.mockResolvedValue({
+                MediaContainer: {
+                    Metadata: [],
+                },
+            });
+
             const result = await plexSource.fetchMusic([], 10);
+
             expect(result).toEqual([]);
-            expect(mockPlexClient.query).not.toHaveBeenCalled();
+            // Should attempt to query albums for each discovered music library
+            expect(mockPlexClient.query).toHaveBeenCalledWith(
+                '/library/sections/1/albums?X-Plex-Container-Size=1000'
+            );
+            expect(mockPlexClient.query).toHaveBeenCalledWith(
+                '/library/sections/2/albums?X-Plex-Container-Size=1000'
+            );
         });
 
         test('returns empty array for count = 0', async () => {

@@ -385,9 +385,7 @@ class PlexSource {
      * @returns {Promise<object[]>} A promise that resolves to an array of processed album items.
      */
     async fetchMusic(libraryNames, count, filters = {}) {
-        if (!libraryNames || libraryNames.length === 0 || count === 0) {
-            return [];
-        }
+        if (count === 0) return [];
 
         // Ensure Plex client is initialized
         await this.ensurePlexClient();
@@ -410,9 +408,29 @@ class PlexSource {
                 operation: 'getPlexLibraries',
                 params: { serverName: this.server.name },
             });
+
+            const requestedLibraryNames = Array.isArray(libraryNames)
+                ? libraryNames
+                      .map(String)
+                      .map(s => s.trim())
+                      .filter(Boolean)
+                : [];
+
+            // UX rule: if no libraries are explicitly selected, use ALL Plex music libraries.
+            // Plex reports music sections with type === 'artist'.
+            const effectiveLibraryNames =
+                requestedLibraryNames.length > 0
+                    ? requestedLibraryNames
+                    : Array.from(allLibraries.entries())
+                          .filter(([, lib]) => lib && lib.type === 'artist')
+                          .map(([title]) => title);
+
+            if (effectiveLibraryNames.length === 0) {
+                return [];
+            }
             let allAlbums = [];
 
-            for (const name of libraryNames) {
+            for (const name of effectiveLibraryNames) {
                 const library = allLibraries.get(name);
                 if (!library) {
                     logger.warn(

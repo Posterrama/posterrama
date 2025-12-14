@@ -370,12 +370,22 @@
 
                     const wallartMode = window.__serverConfig?.wallartMode || {};
                     const isGamesOnly = wallartMode.gamesOnly === true;
+                    const isMusicMode = wallartMode.musicMode && wallartMode.musicMode.enabled === true;
+                    const musicDisplayStyle = wallartMode.musicMode && wallartMode.musicMode.displayStyle;
 
-                    let url = '/get-media?count=1';
-                    if (isGamesOnly) {
-                        url += '&gamesOnly=true';
+                    let url;
+                    if (isMusicMode && musicDisplayStyle === 'artist-cards') {
+                        url = '/get-music-artists?count=1';
                     } else {
-                        url += '&excludeGames=1';
+                        url = '/get-media?count=1';
+                        if (isGamesOnly) {
+                            url += '&gamesOnly=true';
+                        } else {
+                            url += '&excludeGames=1';
+                        }
+                        if (isMusicMode) {
+                            url += '&musicMode=true';
+                        }
                     }
 
                     const response = await fetch(url, {
