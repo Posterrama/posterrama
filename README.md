@@ -1,10 +1,9 @@
-<div style="display: flex; align-items: center; gap: 14px;">
-  <img src="./public/logo.png" alt="Posterrama Logo" width="56">
-  <div>
-    <img src="./public/readme-wordmark.svg" alt="posterrama" height="42">
-    <br>
-    <span style="font-size: 16px;"><em>Transform any screen into your personal gallery</em></span>
-  </div>
+<div align="center">
+  <img src="./public/logo.png" alt="Posterrama Logo" width="120">
+  
+  <h1 style="margin-bottom: 5px;">posterrama</h1>
+  <p style="margin-top: 0;"><em>Transform any screen into your personal gallery</em></p>
+  <br>
 </div>
 
 <div align="center">
