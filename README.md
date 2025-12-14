@@ -330,8 +330,3 @@ Everything is managed through a clear dashboard—no coding required.
 GPL-3.0-or-later – See [LICENSE](LICENSE) for details.
 
 ---
-
-## Development vs production
-
-- Static frontend assets are always served from `public/`.
-- Use `NODE_ENV=production` (default) for production behavior; set `NODE_ENV=development` (for example in `.env`) during development.
