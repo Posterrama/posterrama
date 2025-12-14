@@ -1340,3 +1340,32 @@
 .ctx-reset-priority i {
     font-size: 10px;
 }
+
+@media (max-width: 640px) {
+    /* Admin: Context Headers can overflow on small phones when selects size to long option text */
+    #cinema-header-card .ctx-sortable,
+    #cinema-header-card .ctx-default-row {
+        flex-wrap: wrap;
+        align-items: flex-start !important;
+    }
+
+    #cinema-header-card .ctx-sortable .ctx-label-wrap,
+    #cinema-header-card .ctx-default-row .ctx-label-wrap {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    #cinema-header-card .ctx-sortable .ctx-select-wrap,
+    #cinema-header-card .ctx-default-row .ctx-select-wrap {
+        flex: 1 1 100%;
+        width: 100%;
+        margin-left: 0;
+    }
+
+    #cinema-header-card .ctx-sortable .ctx-select-wrap select,
+    #cinema-header-card .ctx-default-row .ctx-select-wrap select {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+}

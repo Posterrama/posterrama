@@ -9903,7 +9903,9 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         if (r.status === 200) {
                             const blob = await r.blob();
                             const url = URL.createObjectURL(blob);
-                            const icon = btn.querySelector('i.fas.fa-user-circle');
+                            const icon =
+                                btn.querySelector('i.fas.fa-circle-user') ||
+                                btn.querySelector('i.fas.fa-user-circle');
                             const existingInitials = btn.querySelector('.avatar-initials');
                             if (icon || existingInitials) {
                                 const img = document.createElement('img');
@@ -9923,7 +9925,9 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         parts.length >= 2
                             ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
                             : (label.slice(0, 2) || 'AD').toUpperCase();
-                    const icon = btn.querySelector('i.fas.fa-user-circle');
+                    const icon =
+                        btn.querySelector('i.fas.fa-circle-user') ||
+                        btn.querySelector('i.fas.fa-user-circle');
                     if (icon && !btn.querySelector('.avatar-initials')) {
                         const av = document.createElement('span');
                         av.className = 'avatar-initials';
@@ -10157,6 +10161,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             imgExisting.src = url;
                         } else if (navBtn) {
                             const icon =
+                                navBtn.querySelector('i.fas.fa-circle-user') ||
                                 navBtn.querySelector('i.fas.fa-user-circle') ||
                                 navBtn.querySelector('.avatar-initials');
                             const img = document.createElement('img');
@@ -18585,6 +18590,255 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
     // exportMetrics removed with header Export button
 
+    // ---------------- Navbar layout debug (opt-in) ----------------
+    const __isNavbarDebugEnabled = (() => {
+        try {
+            const qs = String(window.location?.search || '');
+            if (qs.includes('debugNavbar=1')) return true;
+            return String(window.localStorage?.getItem('posterrama.debugNavbar') || '') === '1';
+        } catch (_) {
+            return false;
+        }
+    })();
+
+    function __logNavbarLayout(phase) {
+        if (!__isNavbarDebugEnabled) return;
+        try {
+            const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+            const navbar = document.querySelector('.navbar');
+            const actions = document.querySelector('.nav-actions');
+            const brand = document.querySelector('.nav-brand');
+            const search = document.getElementById('doc-search-inline');
+            const userBtn = document.getElementById('user-btn');
+            const versionEl = document.getElementById('app-version');
+            const updatePill = document.getElementById('update-available-pill');
+
+            const rect = el =>
+                el && typeof el.getBoundingClientRect === 'function'
+                    ? el.getBoundingClientRect()
+                    : null;
+
+            const rNav = rect(navbar);
+            const rActions = rect(actions);
+            const rBrand = rect(brand);
+            const rSearch = rect(search);
+            const rUser = rect(userBtn);
+
+            const isUserVisible = !!rUser && rUser.right <= vw;
+
+            const describeEl = el => {
+                if (!el) return null;
+                const tag = el.tagName ? el.tagName.toLowerCase() : 'unknown';
+                const id = el.id ? `#${el.id}` : '';
+                const cls =
+                    el.classList && el.classList.length
+                        ? `.${Array.from(el.classList).slice(0, 4).join('.')}`
+                        : '';
+                return `${tag}${id}${cls}`;
+            };
+
+            const hitTest = (() => {
+                try {
+                    if (!rUser) return null;
+                    const vh = Math.max(
+                        document.documentElement.clientHeight,
+                        window.innerHeight || 0
+                    );
+                    const x = Math.min(vw - 1, Math.max(0, rUser.left + rUser.width / 2));
+                    const y = Math.min(vh - 1, Math.max(0, rUser.top + rUser.height / 2));
+                    const topEl = document.elementFromPoint(x, y);
+                    const isTopUser = !!topEl && (topEl === userBtn || userBtn.contains(topEl));
+                    const isTopInUserDropdown =
+                        !!topEl && !!document.getElementById('user-dropdown')?.contains?.(topEl);
+                    return {
+                        point: { x: Math.round(x), y: Math.round(y) },
+                        top: describeEl(topEl),
+                        topIsUserBtn: isTopUser,
+                        topIsInUserDropdown: isTopInUserDropdown,
+                    };
+                } catch (_) {
+                    return null;
+                }
+            })();
+
+            const actionsChildren = [];
+            try {
+                const children = Array.from(actions?.children || []);
+                for (const el of children) {
+                    const r = rect(el);
+                    const id = el && el.id ? `#${el.id}` : '';
+                    const cls =
+                        el && el.classList && el.classList.length
+                            ? `.${Array.from(el.classList).join('.')}`
+                            : '';
+                    const tag = el?.tagName ? el.tagName.toLowerCase() : 'unknown';
+                    const cs = el ? window.getComputedStyle(el) : null;
+                    actionsChildren.push({
+                        el: `${tag}${id}${cls}`,
+                        display: cs?.display || null,
+                        flex: cs?.flex || null,
+                        width: r ? Math.round(r.width) : null,
+                        left: r ? Math.round(r.left) : null,
+                        right: r ? Math.round(r.right) : null,
+                    });
+                }
+            } catch (_) {
+                /* ignore */
+            }
+
+            const csSearch = search ? window.getComputedStyle(search) : null;
+            const csUser = userBtn ? window.getComputedStyle(userBtn) : null;
+            const payload = {
+                phase,
+                vw,
+                docElClientWidth: document.documentElement.clientWidth,
+                bodyScrollWidth: document.body?.scrollWidth,
+                navbarScrollWidth: navbar?.scrollWidth,
+                actionsScrollWidth: actions?.scrollWidth,
+                brandText: brand?.innerText?.trim?.() || null,
+                versionText: versionEl?.textContent || null,
+                updateHidden: updatePill ? !!updatePill.hidden : null,
+                updateText: updatePill?.textContent || null,
+                computed: {
+                    searchDisplay: csSearch?.display || null,
+                    searchMaxWidth: csSearch?.maxWidth || null,
+                    userDisplay: csUser?.display || null,
+                },
+                rects: {
+                    navbar: rNav && {
+                        left: Math.round(rNav.left),
+                        right: Math.round(rNav.right),
+                        width: Math.round(rNav.width),
+                    },
+                    brand: rBrand && {
+                        left: Math.round(rBrand.left),
+                        right: Math.round(rBrand.right),
+                        width: Math.round(rBrand.width),
+                    },
+                    actions: rActions && {
+                        left: Math.round(rActions.left),
+                        right: Math.round(rActions.right),
+                        width: Math.round(rActions.width),
+                    },
+                    search: rSearch && {
+                        left: Math.round(rSearch.left),
+                        right: Math.round(rSearch.right),
+                        width: Math.round(rSearch.width),
+                    },
+                    userBtn: rUser && {
+                        left: Math.round(rUser.left),
+                        right: Math.round(rUser.right),
+                        width: Math.round(rUser.width),
+                    },
+                },
+                navActionsChildren: actionsChildren,
+                userBtnFullyVisible: isUserVisible,
+                hitTest,
+            };
+
+            // Intentionally avoid console.log; use console.info for structured debugging.
+            console.info('[NavbarDebug]', payload);
+
+            try {
+                const userRight = rUser ? Math.round(rUser.right) : null;
+                const actionsW = rActions ? Math.round(rActions.width) : null;
+                const searchW = rSearch ? Math.round(rSearch.width) : null;
+                console.info(
+                    `[NavbarDebug] summary phase=${phase} vw=${vw} userRight=${userRight} ` +
+                        `actionsW=${actionsW} searchW=${searchW} userVisible=${isUserVisible}`
+                );
+            } catch (_) {
+                /* ignore */
+            }
+        } catch (e) {
+            try {
+                console.warn('[NavbarDebug] logging failed', e);
+            } catch (_) {
+                /* ignore */
+            }
+        }
+    }
+
+    function __ensureNavbarFits(phase) {
+        try {
+            const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+            const navbar = document.querySelector('.navbar');
+            const actions = document.querySelector('.nav-actions');
+            const userBtn = document.getElementById('user-btn');
+            if (!navbar || !actions || !userBtn) return;
+
+            const rUser = userBtn.getBoundingClientRect();
+            const isUserVisible = rUser.right <= vw - 4;
+            const isOverflowing = (navbar.scrollWidth || vw) > vw + 1;
+            if (isUserVisible && !isOverflowing) return;
+
+            // Step 1: hide doc search (biggest width consumer)
+            const search = document.getElementById('doc-search-inline');
+            if (search && search.style.display !== 'none') {
+                search.style.display = 'none';
+                if (__isNavbarDebugEnabled)
+                    console.info('[NavbarDebug] auto-compact: hid doc search', { phase });
+            }
+
+            // Step 2: hide update pill if it’s visible
+            const pill = document.getElementById('update-available-pill');
+            if (pill && !pill.hidden) {
+                pill.hidden = true;
+                if (__isNavbarDebugEnabled)
+                    console.info('[NavbarDebug] auto-compact: hid update pill', { phase });
+            }
+
+            // Step 3: tighten gaps a bit (inline style wins over CSS)
+            try {
+                actions.style.gap = '2px';
+            } catch (_) {
+                /* ignore */
+            }
+
+            // Final: log what we ended up with
+            try {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        __logNavbarLayout && __logNavbarLayout(`auto-compact:after:${phase}`);
+                    });
+                });
+            } catch (_) {
+                /* ignore */
+            }
+        } catch (_) {
+            /* ignore */
+        }
+    }
+
+    // Log once on first paint and after load/layout settles.
+    try {
+        __logNavbarLayout('startup');
+        __ensureNavbarFits && __ensureNavbarFits('startup');
+        requestAnimationFrame(() => __logNavbarLayout('startup-raf1'));
+        requestAnimationFrame(() => requestAnimationFrame(() => __logNavbarLayout('startup-raf2')));
+        window.addEventListener('load', () => {
+            setTimeout(() => __logNavbarLayout('load+250ms'), 250);
+            setTimeout(() => __ensureNavbarFits && __ensureNavbarFits('load+250ms'), 260);
+        });
+    } catch (_) {
+        /* ignore */
+    }
+
+    // Debounced resize logging.
+    try {
+        let t;
+        window.addEventListener('resize', () => {
+            if (!__isNavbarDebugEnabled) return;
+            clearTimeout(t);
+            t = setTimeout(() => {
+                __logNavbarLayout('resize+150ms');
+                __ensureNavbarFits && __ensureNavbarFits('resize+150ms');
+            }, 150);
+        });
+    } catch (_) {
+        /* ignore */
+    }
+
     async function refreshAll() {
         await Promise.all([refreshDevices(), refreshPerfDashboard(), refreshVersionAndUpdate()]);
         await refreshCacheStatsV2();
@@ -25855,6 +26109,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
     // Version + update pill
     async function refreshVersionAndUpdate() {
         try {
+            __logNavbarLayout && __logNavbarLayout('version-update:before');
             // Get current version
             const v = await fetchJSON('/api/admin/version').catch(() => null);
             const version = v?.version || 'Unknown';
@@ -25874,6 +26129,18 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 } else {
                     pill.hidden = true;
                 }
+            }
+
+            try {
+                // Let layout settle after text changes
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        __logNavbarLayout && __logNavbarLayout('version-update:after');
+                        __ensureNavbarFits && __ensureNavbarFits('version-update:after');
+                    });
+                });
+            } catch (_) {
+                /* ignore */
             }
 
             // Also reflect availability in the Automatic Updates card (idle pill)

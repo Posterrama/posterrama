@@ -1383,7 +1383,8 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 0 var(--space-lg);
-    z-index: 1000;
+    /* Keep above floating preview (z-index ~9999) but below modals (14000+) */
+    z-index: 11000;
     box-shadow: var(--shadow-md);
     backdrop-filter: blur(10px);
 }
@@ -4085,6 +4086,30 @@ input[type='range']::-moz-range-thumb {
     }
 }
 
+/* Navbar compaction: prevent async version/update text from pushing actions off-screen */
+@media (max-width: 900px) {
+    .nav-brand .version {
+        display: none;
+    }
+
+    .nav-brand .nav-badge {
+        display: none;
+    }
+
+    .nav-actions {
+        gap: var(--space-sm);
+    }
+
+    #user-btn > span:not(.avatar-initials) {
+        display: none;
+    }
+
+    .doc-search-inline {
+        flex: 1 1 160px;
+        max-width: 160px;
+    }
+}
+
 @media (max-width: 640px) {
     .navbar {
         padding: 0 var(--space-md);
@@ -4099,12 +4124,37 @@ input[type='range']::-moz-range-thumb {
         display: none;
     }
 
+    /* On very small screens the update badge can push actions off-screen */
+    .nav-brand .nav-badge {
+        display: none;
+    }
+
     .nav-actions {
+        flex: 1 1 auto;
+        justify-content: flex-end;
         gap: var(--space-sm);
     }
 
-    .nav-user span {
+    #user-btn > span:not(.avatar-initials) {
         display: none;
+    }
+
+    /* Keep the right-side actions visible by shrinking the inline doc search */
+    .doc-search-inline {
+        flex: 1 1 150px;
+        max-width: 150px;
+    }
+
+    /* Display Settings (Wallart/Cinema/etc): prevent long select option text from forcing horizontal scroll */
+    #section-display .select-wrap.has-caret {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    #section-display .select-wrap.has-caret select {
+        width: 100%;
+        max-width: 100%;
     }
 
     /* Page header with activity pill on mobile */
@@ -4303,6 +4353,22 @@ input[type='range']::-moz-range-thumb {
     }
     .panel-actions .search-box {
         flex: 1 1 100%;
+    }
+}
+
+/* Phones: keep doc search visible but compact */
+@media (max-width: 520px) {
+    .doc-search-inline {
+        flex: 1 1 170px;
+        max-width: 170px;
+    }
+}
+
+/* Extra small phones: keep doc search visible but smaller */
+@media (max-width: 420px) {
+    .doc-search-inline {
+        flex: 1 1 150px;
+        max-width: 150px;
     }
 }
 
@@ -18573,7 +18639,8 @@ select.input-error:focus {
 
     /* Smaller search field on mobile */
     .doc-search-inline {
-        max-width: 140px;
+        flex: 1 1 170px;
+        max-width: 170px;
     }
 
     /* Full-width search dropdown on mobile */
@@ -18589,7 +18656,8 @@ select.input-error:focus {
 
 @media (max-width: 420px) {
     .doc-search-inline {
-        max-width: 120px;
+        flex: 1 1 150px;
+        max-width: 150px;
     }
 }
 
