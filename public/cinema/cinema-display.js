@@ -2540,7 +2540,13 @@
             'cinema-anim-fade',
             'cinema-anim-zoomIn',
             'cinema-anim-slideUp',
-            'cinema-anim-cinematic'
+            'cinema-anim-cinematic',
+            'cinema-anim-lightFlare',
+            'cinema-anim-shatter',
+            'cinema-anim-spotlight',
+            'cinema-anim-unfold',
+            'cinema-anim-swing',
+            'cinema-anim-ripple'
         );
         document.body.classList.add(`cinema-anim-${poster.animation}`);
 

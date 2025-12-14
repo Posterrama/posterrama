@@ -1126,7 +1126,18 @@
                         },
                         "animation": {
                             "type": "string",
-                            "enum": ["fade", "zoomIn", "slideUp", "cinematic"],
+                            "enum": [
+                                "fade",
+                                "zoomIn",
+                                "slideUp",
+                                "cinematic",
+                                "lightFlare",
+                                "shatter",
+                                "spotlight",
+                                "unfold",
+                                "swing",
+                                "ripple"
+                            ],
                             "default": "fade",
                             "description": "Poster transition animation"
                         },
