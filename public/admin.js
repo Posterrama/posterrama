@@ -1363,19 +1363,19 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         },
         {
             id: 'library-freshness',
-            name: 'Server Uptime',
+            name: 'Library Freshness',
             icon: 'fa-sync',
             color: 'status-success',
-            description: 'How long the server has been running',
+            description: 'Time since last library sync',
             enabled: true,
             render: container => {
                 container.innerHTML = `
-                    <div class="status-card status-success" id="card-library-freshness" title="How long the server has been running">
+                    <div class="status-card status-success" id="card-library-freshness" title="Time since last library sync">
                         <div class="card-icon"><i class="fas fa-sync"></i></div>
                         <div class="card-content">
-                            <h3>SERVER UPTIME</h3>
+                            <h3>LIBRARY FRESHNESS</h3>
                             <span class="metric" id="metric-library-freshness">—</span>
-                            <span class="trend" id="metric-library-freshness-sub">uptime</span>
+                            <span class="trend" id="metric-library-freshness-sub">last sync</span>
                         </div>
                     </div>
                 `;
@@ -1383,19 +1383,19 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         },
         {
             id: 'most-displayed',
-            name: 'Cache Hit Rate',
-            icon: 'fa-bolt',
+            name: 'Most Displayed',
+            icon: 'fa-star',
             color: 'status-warning',
-            description: 'Percentage of requests served from cache',
+            description: 'Total poster displays tracked',
             enabled: true,
             render: container => {
                 container.innerHTML = `
-                    <div class="status-card status-warning" id="card-most-displayed" title="Percentage of requests served from cache">
-                        <div class="card-icon"><i class="fas fa-bolt"></i></div>
+                    <div class="status-card status-warning" id="card-most-displayed" title="Total poster displays tracked">
+                        <div class="card-icon"><i class="fas fa-star"></i></div>
                         <div class="card-content">
-                            <h3>CACHE HIT RATE</h3>
+                            <h3>MOST DISPLAYED</h3>
                             <span class="metric" id="metric-most-displayed">—</span>
-                            <span class="trend" id="metric-most-displayed-sub">hit rate</span>
+                            <span class="trend" id="metric-most-displayed-sub">displays</span>
                         </div>
                     </div>
                 `;
