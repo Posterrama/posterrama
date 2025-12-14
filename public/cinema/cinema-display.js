@@ -617,6 +617,21 @@
         // Clear existing content
         footerEl.innerHTML = '';
 
+        // Helper to calculate marquee duration based on text length
+        // Target: ~60 pixels per second for consistent reading speed
+        const calculateMarqueeDuration = textEl => {
+            // Wait for element to be in DOM to measure
+            requestAnimationFrame(() => {
+                const textWidth = textEl.scrollWidth;
+                const viewportWidth = window.innerWidth;
+                // Total distance = text width + viewport width (start off-screen, end off-screen)
+                const totalDistance = textWidth + viewportWidth;
+                // Speed: 60 pixels per second, minimum 10s, maximum 40s
+                const duration = Math.max(10, Math.min(40, totalDistance / 60));
+                textEl.style.animationDuration = `${duration}s`;
+            });
+        };
+
         if (cinemaConfig.footer.type === 'marquee') {
             // Marquee footer
             const marqueeDiv = document.createElement('div');
@@ -628,6 +643,9 @@
 
             marqueeDiv.appendChild(marqueeText);
             footerEl.appendChild(marqueeDiv);
+
+            // Calculate dynamic duration
+            calculateMarqueeDuration(marqueeText);
 
             log('Cinema footer marquee created', {
                 text: cinemaConfig.footer.marqueeText,
@@ -962,6 +980,9 @@
 
                 marqueeDiv.appendChild(marqueeContent);
                 footerEl.appendChild(marqueeDiv);
+
+                // Calculate dynamic duration based on text length
+                calculateMarqueeDuration(marqueeContent);
 
                 log('Cinema footer tagline marquee created', {
                     tagline: displayText,
