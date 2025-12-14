@@ -1472,6 +1472,10 @@ body.cinema-poster-floating #poster {
 }
 
 /* Polaroid - white frame with larger bottom for caption area */
+body.cinema-poster-polaroid #poster-wrapper {
+    /* Keep the polaroid tilt regardless of poster animation transforms */
+    transform: rotate(-1deg);
+}
 body.cinema-poster-polaroid #poster {
     width: calc(75vh * (2 / 3)) !important;
     height: 75vh !important;
@@ -1484,13 +1488,13 @@ body.cinema-poster-polaroid #poster {
         0 0.25rem 0.375rem rgba(0, 0, 0, 0.1),
         0 0.625rem 1.875rem rgba(0, 0, 0, 0.2),
         0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.08);
-    transform: rotate(-1deg);
 }
 
 /* Shadow Box - deep 3D shadow effect */
 body.cinema-poster-shadowBox #poster-wrapper {
     /* Shift poster up slightly to account for shadow */
-    transform: translateY(-1vh);
+    /* Put transform on wrapper so poster animations don't override the 3D tilt */
+    transform: translateY(-1vh) perspective(1000px) rotateX(2deg);
 }
 body.cinema-poster-shadowBox #poster {
     width: calc(85vh * (2 / 3)) !important;
@@ -1504,7 +1508,6 @@ body.cinema-poster-shadowBox #poster {
         0 1.5625rem 3.125rem -0.75rem rgba(0, 0, 0, 0.5),
         0 3.125rem 6.25rem -1.25rem rgba(0, 0, 0, 0.4),
         inset 0 0 5rem rgba(0, 0, 0, 0.1);
-    transform: perspective(1000px) rotateX(2deg);
 }
 
 /* Neon Glow - glowing border effect */
