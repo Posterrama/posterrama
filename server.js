@@ -17,12 +17,7 @@ const {
     writeConfig,
     isAdminSetup,
 } = require('./lib/config-helpers');
-const {
-    sseDbg,
-    getLocalIPAddress,
-    getAvatarPath,
-    isDeviceMgmtEnabled,
-} = require('./lib/utils-helpers');
+const { sseDbg, getLocalIPAddress, getAvatarPath } = require('./lib/utils-helpers');
 const { cleanup: cleanupHelper } = require('./lib/server-helpers');
 const { initializeWebSocketServer, initializeSSEServer } = require('./lib/realtime-server');
 const {
@@ -3227,40 +3222,38 @@ app.use('/admin', authRouter);
 app.use('/', authRouter);
 
 // Device management routes (modularized, feature-flagged)
-if (isDeviceMgmtEnabled(__dirname)) {
-    // Test session shim now imported from middleware/
+// Device management is always enabled.
+// Bypass behavior is handled separately via IP allow list and client-side skip flows.
+const deviceRegisterLimiter = createRateLimiter(
+    60 * 1000,
+    10,
+    'Too many device registrations from this IP, please try again later.'
+);
+const devicePairClaimLimiter = createRateLimiter(
+    60 * 1000,
+    10,
+    'Too many pairing attempts from this IP, please try again later.'
+);
 
-    const deviceRegisterLimiter = createRateLimiter(
-        60 * 1000,
-        10,
-        'Too many device registrations from this IP, please try again later.'
-    );
-    const devicePairClaimLimiter = createRateLimiter(
-        60 * 1000,
-        10,
-        'Too many pairing attempts from this IP, please try again later.'
-    );
-
-    const createDevicesRouter = require('./routes/devices');
-    app.use(
-        '/api/devices',
-        createDevicesRouter({
-            deviceStore,
-            wsHub,
-            adminAuth,
-            adminAuthDevices,
-            testSessionShim,
-            deviceBypassMiddleware,
-            deviceRegisterLimiter,
-            devicePairClaimLimiter,
-            asyncHandler,
-            ApiError,
-            logger,
-            isDebug,
-            config,
-        })
-    );
-}
+const createDevicesRouter = require('./routes/devices');
+app.use(
+    '/api/devices',
+    createDevicesRouter({
+        deviceStore,
+        wsHub,
+        adminAuth,
+        adminAuthDevices,
+        testSessionShim,
+        deviceBypassMiddleware,
+        deviceRegisterLimiter,
+        devicePairClaimLimiter,
+        asyncHandler,
+        ApiError,
+        logger,
+        isDebug,
+        config,
+    })
+);
 
 // Media routes (modularized)
 const createMediaRouter = require('./routes/media');

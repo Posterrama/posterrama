@@ -303,7 +303,7 @@ const logging = {
 
 const features = {
     /** Enable device management features */
-    deviceManagement: getBoolean('DEVICE_MGMT_ENABLED'),
+    deviceManagement: true,
 
     /** Device store path */
     devicesStorePath: getString('DEVICES_STORE_PATH', 'devices.json'),

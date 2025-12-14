@@ -2013,9 +2013,9 @@
             "type": "object",
             "properties": {
                 "enabled": {
-                    "type": "boolean",
+                    "const": true,
                     "default": true,
-                    "description": "Enable device management features"
+                    "description": "Device management is always enabled (kept for backwards compatibility; must be true if present)."
                 },
                 "bypass": {
                     "description": "Optional bypass configuration. When a client IP matches ipAllowList, the frontend will skip device management (no registration, no heartbeats, no websocket). Useful for kiosk screens or trusted internal dashboards.",

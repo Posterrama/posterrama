@@ -4,7 +4,7 @@
  * - Registers when missing
  * - Sends heartbeat every 20s and on visibility change
  * - Executes queued core mgmt commands: reload, swUnregister, clearCache
- * - Feature-flag aware via appConfig.deviceMgmt?.enabled; falls back to probing endpoints
+ * - Always enabled (bypass handled via IP allow list + client-side skip flows)
  */
 
 (function () {
@@ -2486,9 +2486,8 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
         state.installId = getInstallId();
         const hasIdentity = !!(id && secret);
 
-        // Enable if flag is set OR if we already have an identity (optimistic mode)
-        state.enabled = !!(appConfig && appConfig.deviceMgmt && appConfig.deviceMgmt.enabled);
-        if (!state.enabled && hasIdentity) state.enabled = true;
+        // Device management is always enabled (unless promo site explicitly disables it above).
+        state.enabled = true;
 
         // If URL contains a reset hint, force identity reset and re-register.
         try {

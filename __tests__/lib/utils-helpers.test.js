@@ -200,72 +200,21 @@ describe('Utils Helpers', () => {
             }
         });
 
-        test('returns false when config file does not exist', () => {
-            const result = isDeviceMgmtEnabled(testDir);
-            expect(result).toBe(false);
-        });
+        test('always returns true (device management cannot be disabled)', () => {
+            expect(isDeviceMgmtEnabled(testDir)).toBe(true);
 
-        test('returns false when config has no deviceMgmt section', () => {
             const configPath = path.join(testDir, 'config.json');
             fs.writeFileSync(configPath, JSON.stringify({}));
+            expect(isDeviceMgmtEnabled(testDir)).toBe(true);
 
-            const result = isDeviceMgmtEnabled(testDir);
-            expect(result).toBe(false);
-        });
-
-        test('returns false when deviceMgmt.enabled is false', () => {
-            const configPath = path.join(testDir, 'config.json');
             fs.writeFileSync(configPath, JSON.stringify({ deviceMgmt: { enabled: false } }));
+            expect(isDeviceMgmtEnabled(testDir)).toBe(true);
 
-            const result = isDeviceMgmtEnabled(testDir);
-            expect(result).toBe(false);
-        });
-
-        test('returns true when deviceMgmt.enabled is true in config', () => {
-            const configPath = path.join(testDir, 'config.json');
-            fs.writeFileSync(configPath, JSON.stringify({ deviceMgmt: { enabled: true } }));
-
-            const result = isDeviceMgmtEnabled(testDir);
-            expect(result).toBe(true);
-        });
-
-        test('returns true when DEVICE_MGMT_ENABLED env is "1"', () => {
-            process.env.DEVICE_MGMT_ENABLED = '1';
-
-            const result = isDeviceMgmtEnabled(testDir);
-            expect(result).toBe(true);
-        });
-
-        test('returns true when DEVICE_MGMT_ENABLED env is "true"', () => {
-            process.env.DEVICE_MGMT_ENABLED = 'true';
-
-            const result = isDeviceMgmtEnabled(testDir);
-            expect(result).toBe(true);
-        });
-
-        test('returns false when DEVICE_MGMT_ENABLED env is "false"', () => {
-            process.env.DEVICE_MGMT_ENABLED = 'false';
-
-            const result = isDeviceMgmtEnabled(testDir);
-            expect(result).toBe(false);
-        });
-
-        test('prefers config.json over env when config is true', () => {
-            process.env.DEVICE_MGMT_ENABLED = 'false';
-
-            const configPath = path.join(testDir, 'config.json');
-            fs.writeFileSync(configPath, JSON.stringify({ deviceMgmt: { enabled: true } }));
-
-            const result = isDeviceMgmtEnabled(testDir);
-            expect(result).toBe(true);
-        });
-
-        test('handles invalid JSON in config file', () => {
-            const configPath = path.join(testDir, 'config.json');
             fs.writeFileSync(configPath, 'invalid json');
+            expect(isDeviceMgmtEnabled(testDir)).toBe(true);
 
-            const result = isDeviceMgmtEnabled(testDir);
-            expect(result).toBe(false);
+            process.env.DEVICE_MGMT_ENABLED = 'false';
+            expect(isDeviceMgmtEnabled(testDir)).toBe(true);
         });
     });
 });

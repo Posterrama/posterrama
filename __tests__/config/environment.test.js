@@ -276,7 +276,6 @@ describe('Environment Configuration Module', () => {
 
     describe('Features Configuration', () => {
         test('should parse feature flags', () => {
-            process.env.DEVICE_MGMT_ENABLED = 'true';
             process.env.DEVICES_STORE_PATH = 'custom-devices.json';
 
             const env = require('../../config/environment');
@@ -286,12 +285,11 @@ describe('Environment Configuration Module', () => {
         });
 
         test('should use feature defaults', () => {
-            delete process.env.DEVICE_MGMT_ENABLED;
             delete process.env.DEVICES_STORE_PATH;
 
             const env = require('../../config/environment');
 
-            expect(env.features.deviceManagement).toBe(false);
+            expect(env.features.deviceManagement).toBe(true);
             expect(env.features.devicesStorePath).toBe('devices.json');
         });
     });
@@ -383,7 +381,6 @@ describe('Environment Configuration Module', () => {
             process.env.API_ACCESS_TOKEN = 'api-token';
             process.env.PLEX_HOSTNAME = 'plex.local';
             process.env.PLEX_TOKEN = 'plex-token';
-            process.env.DEVICE_MGMT_ENABLED = 'true';
             process.env.PM2_HOME = '/pm2';
 
             const env = require('../../config/environment');
