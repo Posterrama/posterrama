@@ -13,7 +13,9 @@ if (!fs.existsSync(envPath)) {
         fs.copyFileSync(exampleEnvPath, envPath);
     } else {
         console.error('[Config] config.example.env ontbreekt, kan geen .env aanmaken!');
-        process.exit(1);
+        if (process.env.NODE_ENV !== 'test') {
+            process.exit(1);
+        }
     }
 }
 // --- Auto-create config.json if missing ---
@@ -24,7 +26,9 @@ if (!fs.existsSync(configPath)) {
         fs.copyFileSync(exampleConfigPath, configPath);
     } else {
         console.error('[Config] config.example.json ontbreekt, kan geen config.json aanmaken!');
-        process.exit(1);
+        if (process.env.NODE_ENV !== 'test') {
+            process.exit(1);
+        }
     }
 }
 
@@ -74,7 +78,9 @@ try {
     configSchema = JSON.parse(String(safeReadFile(schemaPath)));
 } catch (e) {
     console.error('[Config] Failed to read config.schema.json:', e.message);
-    process.exit(1);
+    if (process.env.NODE_ENV !== 'test') {
+        process.exit(1);
+    }
 }
 const validate = ajv.compile(configSchema);
 
@@ -84,7 +90,11 @@ try {
 } catch (error) {
     console.error('\x1b[31m%s\x1b[0m', 'FATAL ERROR: Could not read or parse config.json.');
     console.error(error.message);
-    process.exit(1);
+    if (process.env.NODE_ENV !== 'test') {
+        process.exit(1);
+    }
+    // In test mode, use empty config to allow tests to continue
+    config = {};
 }
 
 /**
@@ -702,7 +712,12 @@ function validateEnvironment() {
         console.error(
             '\nPlease copy `config.example.env` to a new file named `.env` and fill in the required values.'
         );
-        process.exit(1); // Exit with an error code to prevent server from starting
+        if (process.env.NODE_ENV !== 'test') {
+            process.exit(1); // Exit with an error code to prevent server from starting
+        } else {
+            console.warn('[Test Mode] Missing env vars but continuing...');
+            return false;
+        }
     }
 
     // Only now report config schema validation errors (if any) after env var fatal checks

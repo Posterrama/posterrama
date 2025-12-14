@@ -12,11 +12,15 @@ const projectRoot = path.resolve(__dirname, '..');
 const ALLOW_UNUSED = new Set([
     // Tools invoked only in shell scripts or via npx patterns
     'audit-ci',
+    // Used by eslint flat config system (indirect import via @eslint/js)
+    '@eslint/eslintrc',
 ]);
 
-// Packages whose missing usage we want to suppress (dynamic / optional)
+// Packages whose missing usage we want to suppress (dynamic / optional / vendor)
 const IGNORE_MISSING = new Set([
-    '@jellyfin/sdk', // optional scripts only
+    'chart.js', // Loaded via CDN or vendor files in public/vendor/
+    'luxon', // Loaded via CDN or vendor files in public/vendor/
+    'winston-transport', // Transient dependency of winston, not directly required
 ]);
 
 const options = {

@@ -133,7 +133,22 @@ module.exports = [
                     caughtErrorsIgnorePattern: '^_|^e\\d?$|^err$|^error$|Error$',
                 },
             ],
-            'no-console': ['warn', { allow: ['warn', 'error', 'log', 'info', 'debug', 'table'] }],
+            'no-console': [
+                'warn',
+                {
+                    allow: [
+                        'warn',
+                        'error',
+                        'log',
+                        'info',
+                        'debug',
+                        'table',
+                        'group',
+                        'groupEnd',
+                        'groupCollapsed',
+                    ],
+                },
+            ],
             'prefer-const': 'error',
         },
     },
