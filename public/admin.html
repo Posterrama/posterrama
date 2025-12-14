@@ -4550,9 +4550,6 @@
               <option value="power.off">power.off</option>
               <option value="power.toggle">power.toggle</option>
             </optgroup>
-            <optgroup label="Source">
-              <option value="source.switch">source.switch (plex|jellyfin|tmdb|all)</option>
-            </optgroup>
             <optgroup label="Management">
               <option value="core.mgmt.reload">core.mgmt.reload</option>
               <option value="core.mgmt.reset">core.mgmt.reset</option>
@@ -4564,18 +4561,7 @@
           <span class="select-caret" aria-hidden="true">▾</span>
           </div>
         </div>
-        <div class="form-group" id="sendcmd-param-source" style="margin-top:10px; display:none;">
-          <label for="sendcmd-source">Source key</label>
-          <div class="select-wrap has-caret">
-          <select id="sendcmd-source">
-            <option value="plex" selected>plex</option>
-            <option value="jellyfin">jellyfin</option>
-            <option value="tmdb">tmdb</option>
-            <option value="all">all</option>
-          </select>
-          <span class="select-caret" aria-hidden="true">▾</span>
-          </div>
-        </div>
+
         <div class="form-group" style="margin-top:10px;">
           <label for="sendcmd-type">Type</label>
           <input id="sendcmd-type" type="text" placeholder="e.g. playback.toggle" />

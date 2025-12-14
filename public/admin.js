@@ -14467,8 +14467,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 const typeEl = document.getElementById('sendcmd-type');
                 const payloadEl = document.getElementById('sendcmd-payload');
                 const selectEl = document.getElementById('sendcmd-select');
-                const srcWrap = document.getElementById('sendcmd-param-source');
-                const srcEl = document.getElementById('sendcmd-source');
                 const applyBtn = document.getElementById('btn-sendcmd-apply');
                 if (selectEl) {
                     const newSel = selectEl.cloneNode(true);
@@ -14479,7 +14477,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         if (v === '__custom') {
                             typeEl.value = '';
                             if (payloadEl) payloadEl.value = '';
-                            if (srcWrap) srcWrap.style.display = 'none';
                             return;
                         }
                         typeEl.value = v;
@@ -14490,9 +14487,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                 case 'remote.key':
                                     tpl = '{\n  "key": "up"\n}';
                                     break;
-                                case 'source.switch':
-                                    tpl = '{\n  "source": "' + (srcEl?.value || 'plex') + '"\n}';
-                                    break;
                                 case 'playback.pinPoster':
                                     tpl = '{\n  "id": "<posterId>"\n}';
                                     break;
@@ -14500,19 +14494,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                     tpl = '';
                             }
                             payloadEl.value = tpl;
-                        }
-                        if (srcWrap) srcWrap.style.display = v === 'source.switch' ? '' : 'none';
-                    });
-                }
-                if (srcEl) {
-                    const newSrc = srcEl.cloneNode(true);
-                    srcEl.parentNode.replaceChild(newSrc, srcEl);
-                    newSrc.addEventListener('change', () => {
-                        // If source.switch is selected, keep payload in sync
-                        const v = document.getElementById('sendcmd-select')?.value;
-                        if (v === 'source.switch' && payloadEl) {
-                            payloadEl.value =
-                                '{\n  "source": "' + (newSrc.value || 'plex') + '"\n}';
                         }
                     });
                 }

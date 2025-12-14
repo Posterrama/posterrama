@@ -1637,13 +1637,6 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                     return void sendAck('ok');
                                 }
                             }
-                            if (t === 'source.switch' && api.switchSource) {
-                                liveDbg('[Live] invoking source.switch', {
-                                    sourceKey: msg.payload?.sourceKey,
-                                });
-                                api.switchSource(msg.payload?.sourceKey);
-                                return void sendAck('ok');
-                            }
                             if (t === 'power.off') {
                                 if (api.powerOff) {
                                     liveDbg('[Live] invoking power.off');
@@ -2030,21 +2023,6 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         } catch (_) {
                             return void api.pinPoster(payload);
                         }
-                    }
-                } catch (_) {
-                    // ignore unsupported API or runtime
-                }
-                break;
-            }
-            case 'source.switch': {
-                try {
-                    const api =
-                        (typeof window !== 'undefined' && window.__posterramaPlayback) || {};
-                    if (api.switchSource) {
-                        liveDbg('[Live] invoking source.switch (queued)', {
-                            sourceKey: payload && payload.sourceKey,
-                        });
-                        return void api.switchSource(payload && payload.sourceKey);
                     }
                 } catch (_) {
                     // ignore unsupported API or runtime
