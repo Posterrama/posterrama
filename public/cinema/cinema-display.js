@@ -21,7 +21,7 @@
         /* ignore */
     }
 
-    console.log('[Cinema] cinema-display.js loaded');
+    // (debug logging available via window.logger)
 
     // Track effective background color for ton-sur-ton calculation
     let effectiveBgColor = '#000000';
@@ -163,7 +163,11 @@
             document.documentElement.style.setProperty('--poster-width', posterWidth + 'px');
             document.documentElement.style.setProperty('--poster-height', posterHeight + 'px');
         } catch (e) {
-            console.warn('updatePosterLayout error', e);
+            if (window.logger && window.logger.warn) {
+                window.logger.warn('[Cinema Display] updatePosterLayout error', {
+                    message: e?.message,
+                });
+            }
         }
     }
 
@@ -171,8 +175,20 @@
     function log(message, data) {
         if (window.logger && window.logger.info) {
             window.logger.info(`[Cinema Display] ${message}`, data);
-        } else {
-            console.log(`[Cinema Display] ${message}`, data || '');
+        }
+    }
+
+    function debug(message, data) {
+        if (window.logger && window.logger.debug) {
+            window.logger.debug(`[Cinema Display] ${message}`, data);
+        }
+    }
+
+    function warn(message, data) {
+        if (window.logger && window.logger.warn) {
+            window.logger.warn(`[Cinema Display] ${message}`, data);
+        } else if (window.logger && window.logger.info) {
+            window.logger.info(`[Cinema Display] WARN: ${message}`, data);
         }
     }
 
@@ -181,8 +197,6 @@
     function error(message, data) {
         if (window.logger && window.logger.error) {
             window.logger.error(`[Cinema] ${message}`, data);
-        } else {
-            console.error(`[Cinema] ${message}`, data || '');
         }
     }
 
@@ -252,69 +266,16 @@
         const hour = now.getHours();
         const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
 
-        // Debug: Log all context values for current media
-        console.group('🎬 Context Header Detection');
-        console.log(
-            'Current time:',
-            now.toLocaleString(),
-            `(hour: ${hour}, dayOfWeek: ${dayOfWeek})`
-        );
-        console.log('nowPlayingActive:', nowPlayingActive);
-        console.log('Media object:', media);
-        if (media) {
-            const resolution =
-                media.videoResolution ||
-                media.resolution ||
-                media.qualityLabel ||
-                media.quality ||
-                '';
-            const rtScore =
-                media.rottenTomatoesScore ||
-                media.audienceRating ||
-                media.rottenTomatoes?.score ||
-                0;
-            const releaseDate = media.releaseDate || media.originallyAvailableAt;
-            const addedAt = media.addedAt || media.addedAtMs || media.dateAdded;
-            const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-
-            // Normalize addedAt to Date if it's a timestamp in ms
-            const addedAtDate = addedAt
-                ? typeof addedAt === 'number'
-                    ? new Date(addedAt)
-                    : new Date(addedAt)
-                : null;
-
-            console.table({
-                'Now Playing': { value: nowPlayingActive, matches: nowPlayingActive === true },
-                '4K Ultra HD': {
-                    value: `resolution="${resolution}", width=${media.width}, qualityLabel=${media.qualityLabel}`,
-                    matches:
-                        resolution === '4k' ||
-                        resolution === '4K' ||
-                        resolution === '2160' ||
-                        resolution === '2160p' ||
-                        (media.width && media.width >= 3840) ||
-                        media.Media?.[0]?.videoResolution === '4k',
-                },
-                'Certified Fresh': { value: `RT score: ${rtScore}`, matches: rtScore >= 90 },
-                'Coming Soon': {
-                    value: `releaseDate: ${releaseDate}`,
-                    matches: releaseDate && new Date(releaseDate) > now,
-                },
-                'New Arrival': {
-                    value: `addedAt: ${addedAt}, fourteenDaysAgo: ${fourteenDaysAgo.toISOString()}`,
-                    matches: addedAtDate && addedAtDate > fourteenDaysAgo,
-                },
-                'Late Night': { value: `hour: ${hour}`, matches: hour >= 23 || hour < 6 },
-                Weekend: {
-                    value: `dayOfWeek: ${dayOfWeek}, hour: ${hour}`,
-                    matches: (dayOfWeek === 0 || dayOfWeek === 6) && hour >= 6 && hour < 23,
-                },
-            });
-        }
-        console.log('Priority order:', ctx.priorityOrder || 'default');
-        console.log('Context config:', ctx);
-        console.groupEnd();
+        // Debug info (kept behind logger.debug)
+        debug('Context header detection', {
+            now: now.toISOString(),
+            hour,
+            dayOfWeek,
+            nowPlayingActive,
+            priorityOrder: ctx.priorityOrder || 'default',
+            contextConfig: ctx,
+            mediaPresent: !!media,
+        });
 
         // Helper to get context text or inherit from default
         const getText = key => {
@@ -629,24 +590,32 @@
         // Clear existing content
         footerEl.innerHTML = '';
 
-        // Helper to calculate marquee duration and start animation
-        // Target: ~60 pixels per second for consistent reading speed
-        const startMarquee = textEl => {
-            // Wait for element to be in DOM to measure
+        // Helper to calculate marquee duration and start animation.
+        // Requirement: appears at 5% from the right edge, disappears at 5% from the left edge.
+        // Target speed: ~60 pixels/sec for consistent reading speed.
+        const startMarquee = (textEl, containerEl = null) => {
             requestAnimationFrame(() => {
+                const container = containerEl || textEl.parentElement;
+                if (!container) return;
+
                 const textWidth = textEl.scrollWidth;
-                const viewportWidth = window.innerWidth;
-                // Total distance = text exits right edge + travels full viewport + text width
-                const totalDistance = textWidth + viewportWidth;
-                // Speed: 60 pixels per second, minimum 10s, maximum 40s
+                const containerWidth = container.clientWidth;
+
+                // Start: left edge at 95% of container width (5% inset from right)
+                const startX = containerWidth * 0.95;
+                // End: right edge at 5% of container width (5% inset from left)
+                const endX = containerWidth * 0.05 - textWidth;
+
+                textEl.style.setProperty('--marquee-start-x', `${startX}px`);
+                textEl.style.setProperty('--marquee-end-x', `${endX}px`);
+
+                const totalDistance = Math.abs(startX - endX);
                 const duration = Math.max(10, Math.min(40, totalDistance / 60));
                 textEl.style.animationDuration = `${duration}s`;
 
                 // Reset animation to start fresh
                 textEl.classList.remove('running');
-                // Force reflow to reset animation
                 void textEl.offsetWidth;
-                // Start the animation
                 textEl.classList.add('running');
             });
         };
@@ -664,7 +633,7 @@
             footerEl.appendChild(marqueeDiv);
 
             // Calculate duration and start animation
-            startMarquee(marqueeText);
+            startMarquee(marqueeText, marqueeDiv);
 
             log('Cinema footer marquee created', {
                 text: cinemaConfig.footer.marqueeText,
@@ -961,8 +930,8 @@
                 footerEl.appendChild(specsDiv);
             }
 
-            // Debug: Log all available tech specs data
-            console.log('🎬 TECH SPECS DEBUG:', {
+            // Debug: Log all available tech specs data (only when logger.debug is enabled)
+            debug('TECH SPECS', {
                 title: currentMedia.title,
                 resolution: currentMedia.resolution,
                 audioCodec: currentMedia.audioCodec,
@@ -1001,7 +970,7 @@
                 footerEl.appendChild(marqueeDiv);
 
                 // Calculate duration and start animation
-                startMarquee(marqueeContent);
+                startMarquee(marqueeContent, marqueeDiv);
 
                 log('Cinema footer tagline marquee created', {
                     tagline: displayText,
@@ -1455,7 +1424,7 @@
             // Load YouTube API if needed
             await loadYouTubeAPI();
 
-            console.log('[Trailer DEBUG] Before removeTrailerOverlay - DOM state:', {
+            debug('Trailer DOM state (before remove)', {
                 trailerElsInDom: document.querySelectorAll('.cinema-trailer-overlay').length,
                 ytPlayerDivsInDom: document.querySelectorAll('[id^="yt-trailer-player"]').length,
             });
@@ -1463,7 +1432,7 @@
             // Remove existing trailer - must be synchronous to avoid duplicate player IDs
             removeTrailerOverlaySync();
 
-            console.log('[Trailer DEBUG] After removeTrailerOverlay - creating new trailer for:', {
+            debug('Trailer creating new trailer (after remove)', {
                 title: media.title,
                 trailerKey,
                 trailerElsInDom: document.querySelectorAll('.cinema-trailer-overlay').length,
@@ -1522,7 +1491,7 @@
             trailerEl.appendChild(playerDiv);
             document.body.appendChild(trailerEl);
 
-            console.log('[Trailer DEBUG] trailerEl + playerDiv appended to DOM:', {
+            debug('Trailer appended to DOM', {
                 playerId,
                 trailerElsInDom: document.querySelectorAll('.cinema-trailer-overlay').length,
                 ytPlayerDivsInDom: document.querySelectorAll('[id^="yt-trailer-player"]').length,
@@ -1555,7 +1524,7 @@
 
             // Create YouTube player using the API with unique player ID
             // Note: Autoplay with sound requires browser flag: chrome://flags/#autoplay-policy → "No user gesture is required"
-            console.log('[Trailer DEBUG] Creating YouTube player with id:', playerId);
+            debug('Trailer creating YouTube player', { playerId });
             ytPlayer = new window.YT.Player(playerId, {
                 videoId: data.trailer.key,
                 playerVars: {
@@ -1573,7 +1542,7 @@
                 },
                 events: {
                     onReady: event => {
-                        console.log('[Trailer DEBUG] YouTube onReady fired', {
+                        debug('Trailer YouTube onReady', {
                             playerState: event.target.getPlayerState?.(),
                             videoUrl: event.target.getVideoUrl?.(),
                             trailerElExists: !!trailerEl,
@@ -1596,7 +1565,7 @@
                         if (trailerEl) {
                             // Small delay to ensure video frame is rendered
                             setTimeout(() => {
-                                console.log('[Trailer DEBUG] Adding visible class to trailerEl', {
+                                debug('Trailer adding visible class', {
                                     trailerElExists: !!trailerEl,
                                     trailerElsInDom:
                                         document.querySelectorAll('.cinema-trailer-overlay').length,
@@ -1604,7 +1573,7 @@
                                 trailerEl.classList.add('visible');
                             }, 100);
                         } else {
-                            console.warn('[Trailer DEBUG] trailerEl is NULL in onReady callback!');
+                            warn('Trailer trailerEl is NULL in onReady callback');
                         }
                         // Setup time-based autohide timer
                         setupAutohideTimer(trailerConfig);
@@ -1633,7 +1602,7 @@
                             [3]: 'BUFFERING',
                             [5]: 'CUED',
                         };
-                        console.log('[Trailer DEBUG] YouTube onStateChange:', {
+                        debug('Trailer YouTube onStateChange', {
                             state: event.data,
                             stateName: stateNames[event.data] || 'UNKNOWN',
                             trailerElExists: !!trailerEl,
@@ -1670,7 +1639,7 @@
     }
 
     function removeTrailerOverlay() {
-        console.log('[Trailer DEBUG] removeTrailerOverlay called', {
+        debug('Trailer removeTrailerOverlay called', {
             hasTrailerEl: !!trailerEl,
             hasYtPlayer: !!ytPlayer,
             currentTrailerKey,
@@ -1695,10 +1664,10 @@
         // Destroy YouTube player if exists
         if (ytPlayer) {
             try {
-                console.log('[Trailer DEBUG] Destroying YouTube player');
+                debug('Trailer destroying YouTube player');
                 ytPlayer.destroy();
             } catch (e) {
-                console.log('[Trailer DEBUG] Error destroying YouTube player:', e.message);
+                warn('Trailer error destroying YouTube player', { message: e?.message });
             }
             ytPlayer = null;
         }
@@ -1709,9 +1678,9 @@
             trailerEl = null;
             currentTrailerKey = null;
             // Remove after fade-out transition completes
-            console.log('[Trailer DEBUG] Scheduling trailerEl removal in 800ms');
+            debug('Trailer scheduling trailerEl removal', { delayMs: 800 });
             setTimeout(() => {
-                console.log('[Trailer DEBUG] Removing old trailerEl from DOM', {
+                debug('Trailer removing old trailerEl from DOM', {
                     elStillExists: document.body.contains(el),
                     trailerElsInDom: document.querySelectorAll('.cinema-trailer-overlay').length,
                 });
@@ -1726,7 +1695,7 @@
 
     // Synchronous version that removes immediately (used when creating new trailer)
     function removeTrailerOverlaySync() {
-        console.log('[Trailer DEBUG] removeTrailerOverlaySync called', {
+        debug('Trailer removeTrailerOverlaySync called', {
             hasTrailerEl: !!trailerEl,
             hasYtPlayer: !!ytPlayer,
             currentTrailerKey,
@@ -1750,17 +1719,17 @@
         // Destroy YouTube player if exists
         if (ytPlayer) {
             try {
-                console.log('[Trailer DEBUG] Destroying YouTube player (sync)');
+                debug('Trailer destroying YouTube player (sync)');
                 ytPlayer.destroy();
             } catch (e) {
-                console.log('[Trailer DEBUG] Error destroying YouTube player:', e.message);
+                warn('Trailer error destroying YouTube player (sync)', { message: e?.message });
             }
             ytPlayer = null;
         }
 
         // Remove element IMMEDIATELY (no fade-out delay) to prevent duplicate IDs
         if (trailerEl) {
-            console.log('[Trailer DEBUG] Removing trailerEl from DOM immediately');
+            debug('Trailer removing trailerEl from DOM immediately');
             trailerEl.remove();
             trailerEl = null;
             currentTrailerKey = null;
@@ -1768,7 +1737,7 @@
 
         // Also clean up any orphaned trailer overlays (safety net)
         document.querySelectorAll('.cinema-trailer-overlay').forEach(el => {
-            console.log('[Trailer DEBUG] Cleaning up orphaned trailer overlay');
+            debug('Trailer cleaning up orphaned trailer overlay');
             el.remove();
         });
 
@@ -2861,9 +2830,9 @@
         // Always fetch media queue for fallback scenarios
         // Even when Now Playing is enabled, we need the queue for when sessions end
         const queuePromise = (async () => {
-            console.log('[Cinema Display] Fetching media queue...');
+            debug('Fetching media queue');
             mediaQueue = await fetchMediaQueue();
-            console.log('[Cinema Display] Media queue loaded:', mediaQueue.length, 'items');
+            debug('Media queue loaded', { count: mediaQueue.length });
             if (mediaQueue.length > 0) {
                 log('Media queue loaded', { count: mediaQueue.length });
 
@@ -2884,38 +2853,38 @@
         })();
 
         // Initialize Now Playing if enabled (takes priority over rotation)
-        console.log('[Cinema Display] Now Playing check:', {
+        debug('Now Playing check', {
             nowPlayingEnabled: cinemaConfig.nowPlaying?.enabled,
             rotationInterval: cinemaConfig.rotationIntervalMinutes,
         });
 
         if (cinemaConfig.nowPlaying?.enabled) {
-            console.log('[Cinema Display] Starting Now Playing mode');
+            debug('Starting Now Playing mode');
             startNowPlaying();
         } else {
-            console.log('[Cinema Display] Now Playing disabled, setting up rotation');
+            debug('Now Playing disabled, setting up rotation');
             log('Now Playing disabled, checking rotation', {
                 rotationInterval: cinemaConfig.rotationIntervalMinutes,
                 nowPlayingEnabled: cinemaConfig.nowPlaying?.enabled,
             });
             // Start rotation if enabled and Now Playing is disabled
             if (cinemaConfig.rotationIntervalMinutes > 0) {
-                console.log('[Cinema Display] Rotation enabled, waiting for queue...');
+                debug('Rotation enabled, waiting for queue');
                 // Wait for queue to actually load before starting rotation
                 queuePromise.then(queue => {
-                    console.log('[Cinema Display] Queue ready, length:', queue.length);
+                    debug('Queue ready', { length: queue.length });
                     if (queue.length > 0) {
                         // Show first random poster immediately
-                        console.log('[Cinema Display] Showing first poster and starting rotation');
+                        debug('Showing first poster and starting rotation');
                         showNextPoster();
                         // Then start rotation timer
                         startRotation();
                     } else {
-                        console.log('[Cinema Display] Queue empty, cannot start rotation');
+                        warn('Queue empty, cannot start rotation');
                     }
                 });
             } else {
-                console.log('[Cinema Display] Rotation disabled (interval = 0)');
+                debug('Rotation disabled (interval = 0)');
                 // No rotation, but still show a random poster
                 queuePromise.then(queue => {
                     if (queue.length > 0) {
@@ -2949,32 +2918,24 @@
             })
             .join(' → ');
 
-        console.log(
-            `%c[Cinema Update #${updateId}] 📺 UPDATE CALLED`,
-            'background: #2196F3; color: white; padding: 2px 6px; border-radius: 3px;',
-            {
-                title: media?.title,
-                key: media?.key,
-                timestamp: new Date().toISOString(),
-                timeSinceLastUpdateMs: timeSinceLastUpdate,
-                isUpdateInProgress,
-                hasPendingUpdate: !!pendingUpdate,
-                cinemaInitialized,
-                nowPlayingActive,
-                callSource,
-            }
-        );
+        debug(`Cinema Update #${updateId} UPDATE CALLED`, {
+            title: media?.title,
+            key: media?.key,
+            timestamp: new Date().toISOString(),
+            timeSinceLastUpdateMs: timeSinceLastUpdate,
+            isUpdateInProgress,
+            hasPendingUpdate: !!pendingUpdate,
+            cinemaInitialized,
+            nowPlayingActive,
+            callSource,
+        });
 
         // Prevent concurrent updates - if an update is in progress, queue this one
         if (isUpdateInProgress) {
-            console.log(
-                `%c[Cinema Update #${updateId}] ⏳ QUEUED (update in progress)`,
-                'background: #FF9800; color: white; padding: 2px 6px; border-radius: 3px;',
-                {
-                    queuedTitle: media?.title,
-                    currentlyUpdating: currentMedia?.title,
-                }
-            );
+            debug(`Cinema Update #${updateId} QUEUED (update in progress)`, {
+                queuedTitle: media?.title,
+                currentlyUpdating: currentMedia?.title,
+            });
             pendingUpdate = media;
             return;
         }
@@ -2993,14 +2954,10 @@
             if (pendingUpdate) {
                 const nextMedia = pendingUpdate;
                 pendingUpdate = null;
-                console.log(
-                    `%c[Cinema Update #${updateId}] 🔄 PROCESSING QUEUED UPDATE`,
-                    'background: #9C27B0; color: white; padding: 2px 6px; border-radius: 3px;',
-                    {
-                        nextTitle: nextMedia?.title,
-                        delayMs: 50,
-                    }
-                );
+                debug(`Cinema Update #${updateId} PROCESSING QUEUED UPDATE`, {
+                    nextTitle: nextMedia?.title,
+                    delayMs: 50,
+                });
                 // Use setTimeout to avoid deep call stacks
                 setTimeout(() => updateCinemaDisplay(nextMedia), 50);
             }
@@ -3008,14 +2965,10 @@
     }
 
     async function performCinemaDisplayUpdate(media, updateId = 0) {
-        console.log(
-            `%c[Cinema Update #${updateId}] 🎬 PERFORMING UPDATE`,
-            'background: #4CAF50; color: white; padding: 2px 6px; border-radius: 3px;',
-            {
-                title: media?.title,
-                key: media?.key,
-            }
-        );
+        debug(`Cinema Update #${updateId} PERFORMING UPDATE`, {
+            title: media?.title,
+            key: media?.key,
+        });
 
         log('Updating cinema display', media);
 
@@ -3023,7 +2976,7 @@
         // This prevents bootstrap's mediaUpdated event from causing duplicate displays
         if (!cinemaInitialized) {
             cinemaInitialized = true;
-            console.log('[Cinema Display] First display update, initialization complete');
+            debug('First display update, initialization complete');
         }
 
         // Store current media for live config updates
@@ -3074,16 +3027,12 @@
             void posterEl.offsetWidth;
             document.body.classList.add(animClass);
 
-            console.log(
-                `%c[Cinema Update #${updateId}] 🎭 TRANSITION: ${selectedTransition}`,
-                'background: #E91E63; color: white; padding: 2px 6px; border-radius: 3px;',
-                {
-                    title: media.title,
-                    transition: selectedTransition,
-                    mode: cinemaConfig.poster?.cinematicTransitions?.selectionMode,
-                    timestamp: new Date().toISOString(),
-                }
-            );
+            debug(`Cinema Update #${updateId} TRANSITION`, {
+                title: media.title,
+                transition: selectedTransition,
+                mode: cinemaConfig.poster?.cinematicTransitions?.selectionMode,
+                timestamp: new Date().toISOString(),
+            });
 
             log('Applied cinematic transition', {
                 selectedTransition,
@@ -3095,7 +3044,7 @@
                 ? `${url}&quality=30&width=400`
                 : `${url}?quality=30&width=400`;
 
-            console.log(`[Cinema Update #${updateId}] 🖼️ THUMBNAIL loading:`, {
+            debug(`Cinema Update #${updateId} THUMBNAIL loading`, {
                 url: thumbUrl,
                 expectedSize: '400x600',
                 title: media.title,
@@ -3114,7 +3063,7 @@
                 posterEl.style.backgroundImage = `url('${url}')`;
                 posterEl.style.filter = 'none';
 
-                console.log('[Cinema Display] 🎬 ORIGINAL POSTER loaded:', {
+                debug('ORIGINAL POSTER loaded', {
                     url: url,
                     resolution: `${fullImg.naturalWidth}x${fullImg.naturalHeight}`,
                     loadTimeMs: loadTime,
@@ -3130,9 +3079,9 @@
                 }
             };
             fullImg.onerror = err => {
-                console.error('[Cinema Display] ❌ ORIGINAL POSTER failed to load:', {
+                error('ORIGINAL POSTER failed to load', {
                     url: url,
-                    error: err,
+                    error: err?.message || err,
                     title: media.title,
                 });
                 // Keep thumbnail, just remove blur
@@ -3411,10 +3360,7 @@
 
             // Apply orientation if changed
             if (newConfig.cinema.orientation && newConfig.cinema.orientation !== oldOrientation) {
-                console.log(
-                    '[Cinema] Orientation changed, applying:',
-                    newConfig.cinema.orientation
-                );
+                log('Orientation changed, applying', { orientation: newConfig.cinema.orientation });
                 applyCinemaOrientation(newConfig.cinema.orientation);
                 updatePosterLayout();
             }
@@ -3570,7 +3516,7 @@
                 }
             };
             script.onerror = () => {
-                console.warn('[Cinema Display] Failed to load timeline border module');
+                warn('Failed to load timeline border module');
             };
             document.head.appendChild(script);
         } else {
@@ -3786,11 +3732,10 @@
 
             rotationTimer = setInterval(() => {
                 if (!isPinned && !nowPlayingActive) {
-                    console.log(
-                        '%c⏱️ ROTATION TIMER TICK',
-                        'background: #607D8B; color: white; padding: 2px 6px; border-radius: 4px;',
-                        { intervalMs, timestamp: new Date().toISOString() }
-                    );
+                    debug('ROTATION TIMER TICK', {
+                        intervalMs,
+                        timestamp: new Date().toISOString(),
+                    });
                     showNextPoster();
                 }
             }, intervalMs);
@@ -3830,13 +3775,13 @@
                 url += '&excludeGames=1';
             }
 
-            console.log('[Cinema Display] Fetching media from:', url);
+            debug('Fetching media', { url });
             const res = await fetch(url, {
                 cache: 'no-cache',
                 headers: { 'Cache-Control': 'no-cache' },
             });
             if (!res.ok) {
-                console.error('[Cinema Display] Media fetch failed:', res.status, res.statusText);
+                error('Media fetch failed', { status: res.status, statusText: res.statusText });
                 return [];
             }
             const data = await res.json();
@@ -3846,7 +3791,7 @@
                   ? data.results
                   : [];
 
-            console.log('[Cinema Display] Media fetch result:', items.length, 'items');
+            debug('Media fetch result', { count: items.length });
 
             // Shuffle the queue for random order on each page load
             // Fisher-Yates shuffle algorithm
@@ -3862,7 +3807,6 @@
             });
             return items;
         } catch (e) {
-            console.error('[Cinema Display] fetchMediaQueue error:', e);
             error('Failed to fetch media queue', e);
             return [];
         }
@@ -3891,17 +3835,12 @@
             }
             const nextMedia = mediaQueue[currentMediaIndex];
 
-            console.log(
-                '%c[Cinema] 🔄 showNextPoster CALLED',
-                'background: #00BCD4; color: white; padding: 2px 6px; border-radius: 3px;',
-                {
-                    source: 'showNextPoster',
-                    index: currentMediaIndex,
-                    title: nextMedia?.title,
-                    queueLength: mediaQueue.length,
-                    timestamp: new Date().toISOString(),
-                }
-            );
+            debug('showNextPoster called', {
+                index: currentMediaIndex,
+                title: nextMedia?.title,
+                queueLength: mediaQueue.length,
+                timestamp: new Date().toISOString(),
+            });
 
             log('Showing next poster', { index: currentMediaIndex, title: nextMedia?.title });
             updateCinemaDisplay(nextMedia);
@@ -3922,17 +3861,12 @@
             currentMediaIndex = (currentMediaIndex - 1 + mediaQueue.length) % mediaQueue.length;
             const prevMedia = mediaQueue[currentMediaIndex];
 
-            console.log(
-                '%c[Cinema] ⬅️ showPreviousPoster CALLED',
-                'background: #00BCD4; color: white; padding: 2px 6px; border-radius: 3px;',
-                {
-                    source: 'showPreviousPoster',
-                    index: currentMediaIndex,
-                    title: prevMedia?.title,
-                    queueLength: mediaQueue.length,
-                    timestamp: new Date().toISOString(),
-                }
-            );
+            debug('showPreviousPoster called', {
+                index: currentMediaIndex,
+                title: prevMedia?.title,
+                queueLength: mediaQueue.length,
+                timestamp: new Date().toISOString(),
+            });
 
             log('Showing previous poster', { index: currentMediaIndex, title: prevMedia?.title });
             updateCinemaDisplay(prevMedia);
@@ -4090,7 +4024,7 @@
     function convertSessionToMedia(session) {
         try {
             // Debug: log full session data to see what's available
-            console.log('[Cinema] Raw Plex session data:', session);
+            debug('Raw Plex session data', session);
 
             // Determine which thumb to use (movie vs episode)
             let thumbPath = session.thumb;
@@ -4184,7 +4118,7 @@
             // Filter sessions based on config (user filter, device username)
             const filteredSessions = filterSessions(sessions);
 
-            console.log('[Cinema Display] checkNowPlaying:', {
+            debug('checkNowPlaying', {
                 sessionCount: filteredSessions?.length || 0,
                 nowPlayingActive,
                 initialCheckDone: initialNowPlayingCheckDone,
@@ -4213,16 +4147,12 @@
                         currentSessionIndex = 0;
                         const media = convertSessionToMedia(filteredSessions[0]);
                         if (media) {
-                            console.log(
-                                '%c[Cinema] 📺 NOW PLAYING: First multi-stream session',
-                                'background: #FF5722; color: white; padding: 2px 6px; border-radius: 3px;',
-                                {
-                                    source: 'checkNowPlaying (multi-stream first)',
-                                    title: media.title,
-                                    sessionCount: filteredSessions.length,
-                                    timestamp: new Date().toISOString(),
-                                }
-                            );
+                            log('NOW PLAYING: First multi-stream session', {
+                                source: 'checkNowPlaying (multi-stream first)',
+                                title: media.title,
+                                sessionCount: filteredSessions.length,
+                                timestamp: new Date().toISOString(),
+                            });
                             updateCinemaDisplay(media);
                             lastSessionId =
                                 filteredSessions[0].ratingKey || filteredSessions[0].key;
@@ -4254,16 +4184,12 @@
 
                         const media = convertSessionToMedia(selectedSession);
                         if (media) {
-                            console.log(
-                                '%c[Cinema] 📺 NOW PLAYING: Session changed',
-                                'background: #FF5722; color: white; padding: 2px 6px; border-radius: 3px;',
-                                {
-                                    source: 'checkNowPlaying (session changed)',
-                                    title: media.title,
-                                    sessionId,
-                                    timestamp: new Date().toISOString(),
-                                }
-                            );
+                            log('NOW PLAYING: Session changed', {
+                                source: 'checkNowPlaying (session changed)',
+                                title: media.title,
+                                sessionId,
+                                timestamp: new Date().toISOString(),
+                            });
                             updateCinemaDisplay(media);
                         }
                     }
@@ -4287,67 +4213,51 @@
                 // 1. Was previously showing Now Playing and sessions ended, OR
                 // 2. This is the first check and there are no sessions (initial fallback)
                 if ((wasActive || isFirstCheck) && nowPlayingConfig.fallbackToRotation !== false) {
-                    console.log(
-                        '%c[Cinema] ⬇️ FALLBACK TO ROTATION',
-                        'background: #795548; color: white; padding: 2px 6px; border-radius: 3px;',
-                        {
-                            source: 'checkNowPlaying fallback',
-                            wasActive,
-                            isFirstCheck,
-                            fallbackToRotation: nowPlayingConfig.fallbackToRotation,
-                            queueLength: mediaQueue.length,
-                            timestamp: new Date().toISOString(),
-                        }
-                    );
+                    log('FALLBACK TO ROTATION', {
+                        source: 'checkNowPlaying fallback',
+                        wasActive,
+                        isFirstCheck,
+                        fallbackToRotation: nowPlayingConfig.fallbackToRotation,
+                        queueLength: mediaQueue.length,
+                        timestamp: new Date().toISOString(),
+                    });
                     log('No active sessions, applying fallback behavior');
 
                     // Wait for media queue if this is the first check and queue is empty
                     if (isFirstCheck && mediaQueue.length === 0) {
-                        console.log('[Cinema Display] Waiting for media queue to load...');
+                        debug('Waiting for media queue to load...');
                         // Poll for queue to be loaded (max 5 seconds)
                         for (let i = 0; i < 50 && mediaQueue.length === 0; i++) {
                             await new Promise(resolve => setTimeout(resolve, 100));
                         }
-                        console.log(
-                            '[Cinema Display] Queue after waiting:',
-                            mediaQueue.length,
-                            'items'
-                        );
+                        debug('Queue after waiting', { queueLength: mediaQueue.length });
                     }
 
                     // If still empty, try fetching again with increasing delays
                     if (mediaQueue.length === 0) {
-                        console.log('[Cinema Display] Queue still empty, retrying fetch...');
+                        debug('Queue still empty, retrying fetch...');
                         // Retry up to 7 times with increasing delays (1s, 2s, 3s, etc.)
                         for (let retry = 1; retry <= 7 && mediaQueue.length === 0; retry++) {
                             await new Promise(resolve => setTimeout(resolve, 100));
-                            console.log(`[Cinema Display] Retry ${retry}/7...`);
+                            debug('Retrying queue fetch', { retry, maxRetries: 7 });
                             mediaQueue = await fetchMediaQueue();
-                            console.log(
-                                '[Cinema Display] Retry fetch result:',
-                                mediaQueue.length,
-                                'items'
-                            );
+                            debug('Retry fetch result', { queueLength: mediaQueue.length });
                         }
                     }
 
                     // Return to rotation mode
                     if (mediaQueue.length > 0) {
-                        console.log(
-                            '%c[Cinema] 🔄 STARTING ROTATION FROM FALLBACK',
-                            'background: #607D8B; color: white; padding: 2px 6px; border-radius: 3px;',
-                            {
-                                source: 'checkNowPlaying fallback → showNextPoster',
-                                queueLength: mediaQueue.length,
-                                timestamp: new Date().toISOString(),
-                            }
-                        );
+                        log('STARTING ROTATION FROM FALLBACK', {
+                            source: 'checkNowPlaying fallback → showNextPoster',
+                            queueLength: mediaQueue.length,
+                            timestamp: new Date().toISOString(),
+                        });
                         showNextPoster();
                         if (cinemaConfig.rotationIntervalMinutes > 0) {
                             startRotation();
                         }
                     } else {
-                        console.log('[Cinema Display] Queue still empty, cannot start rotation');
+                        warn('Queue still empty, cannot start rotation');
                     }
                 }
             }
@@ -4416,12 +4326,10 @@
                 index: currentSessionIndex,
                 title: session.title,
             });
-            console.log(
-                '%c🔄 NowPlayingRotation',
-                'background: #9c27b0; color: white; padding: 2px 6px; border-radius: 4px;',
-                'Rotating to next stream, calling updateCinemaDisplay',
-                { sessionIndex: currentSessionIndex, title: session.title }
-            );
+            debug('NowPlayingRotation: rotating to next stream', {
+                sessionIndex: currentSessionIndex,
+                title: session.title,
+            });
 
             const media = convertSessionToMedia(session);
             if (media) {
@@ -4463,20 +4371,15 @@
             // Initialize device data first, then start checking
             initNowPlayingDeviceData().then(() => {
                 // Initial check
-                console.log(
-                    '%c🎬 NOW PLAYING: Initial check',
-                    'background: #E91E63; color: white; padding: 2px 6px; border-radius: 4px;',
-                    { timestamp: new Date().toISOString() }
-                );
+                debug('NOW PLAYING: Initial check', { timestamp: new Date().toISOString() });
                 checkNowPlaying();
 
                 // Set up polling interval
                 nowPlayingTimer = setInterval(() => {
-                    console.log(
-                        '%c🎬 NOW PLAYING: Poll tick',
-                        'background: #E91E63; color: white; padding: 2px 6px; border-radius: 4px;',
-                        { intervalSeconds, timestamp: new Date().toISOString() }
-                    );
+                    debug('NOW PLAYING: Poll tick', {
+                        intervalSeconds,
+                        timestamp: new Date().toISOString(),
+                    });
                     checkNowPlaying();
                 }, intervalMs);
             });
@@ -4510,7 +4413,7 @@
                 }
             };
             script.onerror = () => {
-                console.warn('[Cinema Display] Failed to load timeline border module');
+                warn('Failed to load timeline border module');
             };
             document.head.appendChild(script);
         } else {
@@ -4576,9 +4479,9 @@
     // ===== Auto-Initialize on DOM Ready =====
     async function autoInit() {
         try {
-            console.log('[Cinema Display] Auto-init starting...');
+            debug('Auto-init starting...');
             const config = await loadCinemaConfig();
-            console.log('[Cinema Display] Config loaded:', config);
+            debug('Config loaded', config);
 
             // Initialize burn-in prevention (loads dynamically if enabled)
             // Note: burn-in prevention needs the full app config, not just cinema config
@@ -4591,25 +4494,30 @@
                 // Burn-in prevention is optional
             }
 
-            console.log('[Cinema Display] Calling initCinemaMode...');
+            debug('Calling initCinemaMode...');
             try {
                 initCinemaMode(config);
-                console.log('[Cinema Display] initCinemaMode completed successfully');
+                log('initCinemaMode completed successfully');
             } catch (initError) {
-                console.error('[Cinema Display] initCinemaMode CRASHED:', initError);
-                console.error('[Cinema Display] Stack:', initError.stack);
+                error('initCinemaMode crashed', {
+                    message: initError?.message,
+                    stack: initError?.stack,
+                });
             }
         } catch (e) {
-            console.error('[Cinema Display] Auto-init failed:', e);
+            error('Auto-init failed', {
+                message: e?.message,
+                stack: e?.stack,
+            });
         }
     }
 
     if (document.readyState === 'loading') {
-        console.log('[Cinema Display] DOM loading, adding DOMContentLoaded listener');
+        debug('DOM loading, adding DOMContentLoaded listener');
         document.addEventListener('DOMContentLoaded', autoInit);
     } else {
         // DOM already loaded
-        console.log('[Cinema Display] DOM already ready, calling autoInit');
+        debug('DOM already ready, calling autoInit');
         autoInit();
     }
 
@@ -4643,7 +4551,10 @@
                 handleConfigUpdate(settings);
             }
         } catch (e) {
-            console.error('[Cinema] Failed to handle settingsUpdated:', e);
+            error('Failed to handle settingsUpdated', {
+                message: e?.message,
+                stack: e?.stack,
+            });
         }
     });
 

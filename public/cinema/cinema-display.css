@@ -581,7 +581,8 @@ body[data-orientation='portrait-flipped'] #poster {
 .cinema-footer-marquee {
     position: static; /* inside .cinema-footer band */
     overflow: hidden;
-    padding: 0 5%; /* 5% padding on sides */
+    width: 100%;
+    padding: 0;
     background: none;
 }
 
@@ -590,10 +591,12 @@ body[data-orientation='portrait-flipped'] #poster {
     white-space: nowrap;
     animation: marquee 20s linear infinite;
     animation-play-state: paused; /* Start paused, JS will trigger */
+    transform: translateX(var(--marquee-start-x, 0px));
     font-size: 2rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.2em;
+    will-change: transform;
 }
 
 .cinema-footer-marquee-content.running {
@@ -602,12 +605,10 @@ body[data-orientation='portrait-flipped'] #poster {
 
 @keyframes marquee {
     0% {
-        transform: translateX(
-            calc(100vw - 10%)
-        ); /* Start just outside right edge (accounting for 5% padding) */
+        transform: translateX(var(--marquee-start-x, 0px));
     }
     100% {
-        transform: translateX(-100%); /* End when text fully exits left */
+        transform: translateX(var(--marquee-end-x, -100%));
     }
 }
 
