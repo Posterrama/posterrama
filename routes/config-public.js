@@ -37,6 +37,18 @@ module.exports = function createConfigPublicRouter({
 }) {
     const router = express.Router();
 
+    // Throttle high-frequency logs (e.g. /get-config polling) to avoid PM2 log flooding.
+    // Keyed by a stable identifier to allow per-device/IP suppression windows.
+    const throttledLogState = new Map();
+    const logThrottled = (level, key, message, meta, windowMs) => {
+        const now = Date.now();
+        const last = throttledLogState.get(key) || 0;
+        if (now - last < windowMs) return;
+        throttledLogState.set(key, now);
+        const fn = logger[level] || logger.info;
+        fn.call(logger, message, meta);
+    };
+
     /**
      * @swagger
      * /get-config:
@@ -223,12 +235,28 @@ module.exports = function createConfigPublicRouter({
                 const installId = req.get('X-Install-Id') || req.query.installId;
                 const hardwareId = req.get('X-Hardware-Id') || req.query.hardwareId;
 
-                logger.info('[get-config] Device identification attempt', {
-                    deviceId: deviceId || null,
-                    installId: installId || null,
-                    hardwareId: hardwareId || null,
-                    hasAnyId: !!(deviceId || installId || hardwareId),
-                });
+                const hasAnyId = !!(deviceId || installId || hardwareId);
+                const deviceLogKey = [
+                    req.ip || 'unknown-ip',
+                    deviceId || '',
+                    installId || '',
+                    hardwareId || '',
+                ].join('|');
+
+                if (isDebug) {
+                    logThrottled(
+                        'debug',
+                        `get-config:ident:${deviceLogKey}`,
+                        '[get-config] Device identification attempt',
+                        {
+                            deviceId: deviceId || null,
+                            installId: installId || null,
+                            hardwareId: hardwareId || null,
+                            hasAnyId,
+                        },
+                        60_000
+                    );
+                }
 
                 let device = null;
                 if (deviceId) {
@@ -241,30 +269,57 @@ module.exports = function createConfigPublicRouter({
                     device = await deviceStore.findByHardwareId(hardwareId);
                 }
 
-                logger.info('[get-config] Device lookup result', {
-                    deviceFound: !!device,
-                    deviceId: device?.id || null,
-                    profileId: device?.profileId || null,
-                });
+                if (!device && hasAnyId) {
+                    // Unknown device is worth surfacing, but keep it throttled.
+                    logThrottled(
+                        'warn',
+                        `get-config:not-found:${deviceLogKey}`,
+                        '[get-config] Device lookup result',
+                        {
+                            deviceFound: false,
+                            deviceId: null,
+                            profileId: null,
+                            installId: installId || null,
+                            hardwareId: hardwareId || null,
+                        },
+                        300_000
+                    );
+                } else if (isDebug) {
+                    logThrottled(
+                        'debug',
+                        `get-config:found:${deviceLogKey}:${device?.id || 'none'}`,
+                        '[get-config] Device lookup result',
+                        {
+                            deviceFound: !!device,
+                            deviceId: device?.id || null,
+                            profileId: device?.profileId || null,
+                        },
+                        60_000
+                    );
+                }
 
                 // Apply profile settings if device has profileId
                 let fromProfile = {};
                 try {
                     if (device && device.profileId && profilesStore) {
                         const profile = await profilesStore.getById(device.profileId);
-                        logger.info('[get-config] Profile lookup', {
-                            profileId: device.profileId,
-                            profileFound: !!profile,
-                            hasSettings: !!profile?.settings,
-                            cinemaMode: profile?.settings?.cinemaMode,
-                            wallartEnabled: profile?.settings?.wallartMode?.enabled,
-                        });
+                        if (isDebug) {
+                            logger.debug('[get-config] Profile lookup', {
+                                profileId: device.profileId,
+                                profileFound: !!profile,
+                                hasSettings: !!profile?.settings,
+                                cinemaMode: profile?.settings?.cinemaMode,
+                                wallartEnabled: profile?.settings?.wallartMode?.enabled,
+                            });
+                        }
                         if (profile && profile.settings && typeof profile.settings === 'object') {
                             fromProfile = profile.settings;
-                            logger.info('[get-config] Applied profile settings', {
-                                deviceId: device.id,
-                                profileId: device.profileId,
-                            });
+                            if (isDebug) {
+                                logger.debug('[get-config] Applied profile settings', {
+                                    deviceId: device.id,
+                                    profileId: device.profileId,
+                                });
+                            }
                         }
                     }
                 } catch (pe) {
