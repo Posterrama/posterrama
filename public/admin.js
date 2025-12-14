@@ -12302,27 +12302,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 const mode = deriveDeviceMode(d);
                 const room = roomLabel(d);
                 const meta = versionMeta(d);
-                // Filter orphan group IDs (those not in state.groups) at render time
-                let validGroups = [];
-                try {
-                    if (Array.isArray(d.groups) && Array.isArray(state.groups)) {
-                        const validSet = new Set(state.groups.map(g => g.id));
-                        validGroups = d.groups.filter(g => validSet.has(g));
-                    }
-                } catch (_) {
-                    /* intersection observer wrap trigger failed (other triggers remain) */
-                }
-                // Build group pills HTML only when needed
-                let groupsHtml = '';
-                if (validGroups.length > 0) {
-                    groupsHtml = `<div class="dev-groups">${validGroups
-                        .map(gid => {
-                            const g = state.groups.find(x => x.id === gid);
-                            const label = escapeHtml(g?.name || gid);
-                            return `<span class="group-pill" title="Group: ${label}">${label}</span>`;
-                        })
-                        .join('')}</div>`;
-                }
                 const disabledPower = status === 'offline' ? ' disabled' : '';
                 const isPoweredOff = d?.currentState?.poweredOff === true;
                 const poweredOff = isPoweredOff ? ' title="Currently powered off"' : '';
@@ -12356,22 +12335,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     const safeIds = listIds.join(',').replace(/"/g, '&quot;');
                     return `<span class="status-pill sp-dupes js-dupes-hover" title="${safeTitle}" data-dupes-ids="${safeIds}" data-dupes-title="${safeTitle}"><i class="fas fa-clone"></i> Dupes: ${dupeList.length}</span>`;
                 })();
-                // Map preset and groups to human-readable labels (DEPRECATED - kept for migration)
-                const presetKey = (d && typeof d.preset === 'string' ? d.preset : '').trim();
-                const _presetName = presetKey
-                    ? state.presets.find(p => p.key === presetKey)?.name || presetKey
-                    : '';
-                const _groupNames = Array.isArray(d?.groups)
-                    ? d.groups
-                          .map(gid => {
-                              const g = (state.groups || []).find(
-                                  x => x.id === gid || x.key === gid
-                              );
-                              return g?.name || gid;
-                          })
-                          .filter(Boolean)
-                    : [];
-                // NEW: Get profile name for device
+                // Get profile name for device
                 const profileId = d?.profileId || '';
                 const profileName = profileId
                     ? (state.profiles || []).find(p => p.id === profileId)?.name || profileId
@@ -12492,7 +12456,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                             ${profileName ? `<span class="status-pill sp-profile" title="Profile"><i class="fas fa-id-card"></i> ${escapeHtml(profileName)}</span>` : ''}
                                         </div>
                                     </div>
-                                    ${groupsHtml}
                                 </div>`;
             }
             function escapeHtml(s) {
@@ -13146,22 +13109,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         const meta = (overrides && overrides[id]) || {};
                         const location =
                             meta.location != null ? meta.location : dev?.location || '';
-                        const groupIds = Array.isArray(meta.groups)
-                            ? meta.groups
-                            : Array.isArray(dev?.groups)
-                              ? dev.groups
-                              : [];
-                        // Map group ids to names using state.groups
-                        const groups = Array.isArray(groupIds)
-                            ? groupIds
-                                  .map(gid => {
-                                      const g = (state.groups || []).find(
-                                          x => String(x.id) === String(gid)
-                                      );
-                                      return g ? g.name || g.id : gid;
-                                  })
-                                  .filter(Boolean)
-                            : [];
                         // Determine a safe origin for Claim URL. Prefer current window.origin when location is not an absolute URL
                         let baseOrigin = '';
                         try {
@@ -13188,12 +13135,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         const tagHtml = `
                             <div class="pairing-tags" aria-label="Device attributes">
                                 ${location ? `<span class="pill" title="Location"><i class="fas fa-location-dot"></i> ${escapeHtml(String(location))}</span>` : ''}
-                                ${groups
-                                    .map(
-                                        g =>
-                                            `<span class="pill" title="Group"><i class="fas fa-layer-group"></i> ${escapeHtml(String(g))}</span>`
-                                    )
-                                    .join(' ')}
                             </div>`;
                         const html = `
                             <div class="pairing-item" data-expires-at="${String(expAt)}">
@@ -14848,16 +14789,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 if (e.key === 'Enter') btnLocationApply?.click();
             });
 
-            async function loadPresets() {
-                try {
-                    const list = await fetchJSON('/api/admin/device-presets').catch(() => []);
-                    state.presets = Array.isArray(list) ? list : [];
-                } catch (_) {
-                    state.presets = [];
-                }
-                // presets dropdown removed; presets available via modal
-            }
-
             async function loadDevices() {
                 try {
                     const list = await fetchJSON('/api/devices');
@@ -14873,14 +14804,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     state.all = [];
                     buildFilterMenu();
                     renderPage();
-                }
-            }
-            async function loadGroupsForCards() {
-                try {
-                    const list = await fetchJSON('/api/groups');
-                    state.groups = Array.isArray(list) ? list : [];
-                } catch (_) {
-                    state.groups = [];
                 }
             }
 
@@ -15355,8 +15278,8 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     renderPage();
                 }
             });
-            // Load groups first (for name mapping), then devices
-            loadGroupsForCards().finally(loadDevices);
+            // Load devices
+            loadDevices();
 
             // Hovercards (status, dupes)
             function createHovercard(id, html) {
@@ -15713,21 +15636,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         };
                         if (nameEl) nameEl.value = suggestName();
 
-                        // Populate groups selector alphabetically
-                        if (groupsSel) {
-                            const gs = Array.isArray(state.groups) ? state.groups.slice() : [];
-                            gs.sort((a, b) =>
-                                (a?.name || '').localeCompare(b?.name || '', undefined, {
-                                    sensitivity: 'base',
-                                })
-                            );
-                            groupsSel.innerHTML = gs
-                                .map(
-                                    g =>
-                                        `<option value="${String(g.id)}">${escapeHtml(g.name || g.id)}</option>`
-                                )
-                                .join('');
-                        }
                         if (overlay) {
                             __showOverlay(overlay, 'modal-create-device');
                             try {
@@ -15884,34 +15792,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             return;
                         }
                         openAssignProfileModal();
-                    } else if (act === 'groups') {
-                        // DEPRECATED: Groups modal - kept for migration
-                        const selected = Array.from(
-                            document.querySelectorAll('#device-grid .device-card.selected')
-                        );
-                        if (!selected.length) {
-                            window.notify?.toast({
-                                type: 'info',
-                                title: 'No devices selected',
-                                message: 'Select one or more devices first',
-                            });
-                            return;
-                        }
-                        openGroupModal();
-                    } else if (act === 'presets') {
-                        // DEPRECATED: Presets modal - kept for migration
-                        const selected = Array.from(
-                            document.querySelectorAll('#device-grid .device-card.selected')
-                        );
-                        if (!selected.length) {
-                            window.notify?.toast({
-                                type: 'info',
-                                title: 'No devices selected',
-                                message: 'Select one or more devices first',
-                            });
-                            return;
-                        }
-                        openAssignPresetModal();
                     } else if (act === 'merge') {
                         const selected = Array.from(
                             document.querySelectorAll('#device-grid .device-card.selected')
@@ -15934,20 +15814,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                             if (srcId && srcId !== tgt) mergeSource.value = srcId;
                         }
                         document.getElementById('modal-merge')?.classList.add('open');
-                    } else if (act === 'preset') {
-                        // Deprecated singular action id; treat like 'presets'
-                        const selected = Array.from(
-                            document.querySelectorAll('#device-grid .device-card.selected')
-                        );
-                        if (!selected.length) {
-                            window.notify?.toast({
-                                type: 'info',
-                                title: 'No devices selected',
-                                message: 'Select one or more devices first',
-                            });
-                            return;
-                        }
-                        openAssignPresetModal();
                     } else if (act === 'delete') {
                         const selectedCards = Array.from(
                             document.querySelectorAll('#device-grid .device-card.selected')
@@ -16078,7 +15944,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             // Initial menu builds (populate immediately, even before loadDevices)
             buildActionsMenu();
             buildFilterMenu();
-            loadPresets();
             // Mark as initialized only after core menus are present
             try {
                 section.dataset.inited = '1';
@@ -16243,30 +16108,19 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                 modePill.remove();
                             }
 
-                            // Update meta-pills (location, preset, groups)
+                            // Update meta-pills (location, profile)
                             const metaPills = card.querySelector('.meta-pills');
                             if (metaPills) {
                                 const location = d.location || 'Unassigned';
-                                const presetName =
-                                    d.preset && state.presets
-                                        ? state.presets.find(p => p.key === d.preset)?.name ||
-                                          d.preset
-                                        : '';
-                                const groupNames =
-                                    Array.isArray(d.groups) && Array.isArray(state.groups)
-                                        ? d.groups
-                                              .map(
-                                                  gid =>
-                                                      state.groups.find(g => g.id === gid)?.name ||
-                                                      gid
-                                              )
-                                              .filter(Boolean)
-                                        : [];
+                                const profileId = d?.profileId || '';
+                                const profileName = profileId
+                                    ? (state.profiles || []).find(p => p.id === profileId)?.name ||
+                                      profileId
+                                    : '';
 
                                 metaPills.innerHTML = `
                                     <span class="status-pill" title="Location"><i class="fas fa-location-dot"></i> ${escapeHtml(location)}</span>
-                                    ${presetName ? `<span class="status-pill" title="Preset"><i class="fas fa-star"></i> ${escapeHtml(presetName)}</span>` : ''}
-                                    ${groupNames.length ? `<span class="status-pill" title="Groups"><i class="fas fa-layer-group"></i> ${escapeHtml(groupNames.join(', '))}</span>` : ''}
+                                    ${profileName ? `<span class="status-pill sp-profile" title="Profile"><i class="fas fa-id-card"></i> ${escapeHtml(profileName)}</span>` : ''}
                                 `;
                             }
 
@@ -16896,285 +16750,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             updateBulkUI();
 
             // Modal open buttons in device cards will be bound per-card after render
-
-            // Group modal logic
-            const groupSelect = document.getElementById('group-select');
-            const btnAssign = document.getElementById('btn-group-assign');
-            const btnRemove = document.getElementById('btn-group-remove');
-            const btnCreateAssign = document.getElementById('btn-group-create-assign');
-            const newGroupInput = document.getElementById('new-group-name');
-            let __groupsLoading = false;
-            async function loadGroups() {
-                if (!groupSelect) return;
-                if (__groupsLoading) return; // prevent concurrent stacking
-                __groupsLoading = true;
-                try {
-                    // Accessible loading placeholder (will be replaced)
-                    groupSelect.innerHTML =
-                        '<option value="" disabled selected>Loading groups...</option>';
-                    let list = await fetchJSON('/api/groups');
-                    if (!Array.isArray(list)) list = [];
-                    // Fallback: if empty, attempt to refresh config (in case groups created recently)
-                    if (list.length === 0) {
-                        try {
-                            await fetchJSON('/get-config');
-                            const retry = await fetchJSON('/api/groups');
-                            if (Array.isArray(retry)) list = retry;
-                        } catch (_) {
-                            /* ignore fallback errors */
-                        }
-                    }
-                    const seen = new Set();
-                    const options = [];
-                    for (const g of list) {
-                        const id = g && g.id;
-                        if (!id || seen.has(id)) continue;
-                        seen.add(id);
-                        const label = escapeHtml(g.name || id);
-                        options.push(`<option value="${id}">${label}</option>`);
-                    }
-                    if (options.length === 0) {
-                        groupSelect.innerHTML =
-                            '<option value="" disabled selected>(No groups defined)</option>';
-                    } else {
-                        groupSelect.innerHTML = options.join('');
-                    }
-                } catch (_) {
-                    groupSelect.innerHTML =
-                        '<option value="" disabled selected>(Failed to load groups)</option>';
-                } finally {
-                    __groupsLoading = false;
-                }
-            }
-            function openGroupModal() {
-                loadGroups();
-                const overlay = document.getElementById('modal-group-assign');
-                if (!overlay) return;
-                __showOverlay(overlay, 'modal-group-assign');
-                try {
-                    if (window.__uiDebug)
-                        console.info(
-                            '[ModalDebug] group-assign rect',
-                            overlay.getBoundingClientRect().toJSON()
-                        );
-                } catch (_) {
-                    /* plex days checkbox toggle wire failed (user can toggle manually) */
-                }
-            }
-            async function patchDeviceGroups(deviceId, mutate) {
-                try {
-                    const dev = state.all.find(d => d.id === deviceId);
-                    const current = Array.isArray(dev?.groups) ? dev.groups.slice() : [];
-                    const next = mutate(current);
-                    await fetchJSON(`/api/devices/${encodeURIComponent(deviceId)}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ groups: next }),
-                    });
-                    return true;
-                } catch (_) {
-                    return false;
-                }
-            }
-            btnAssign?.addEventListener('click', async () => {
-                const gid = groupSelect?.value;
-                if (!gid) return;
-                const selected = Array.from(
-                    document.querySelectorAll('#device-grid .device-card.selected')
-                ).map(c => c.getAttribute('data-id'));
-                let ok = 0;
-                for (const id of selected) {
-                    // add if missing
-                    const res = await patchDeviceGroups(id, arr =>
-                        arr.includes(gid) ? arr : [...arr, gid]
-                    );
-                    if (res) ok++;
-                }
-                window.notify?.toast({
-                    type: 'success',
-                    title: 'Group updated',
-                    message: `${ok}/${selected.length} devices updated`,
-                });
-                document.getElementById('modal-group-assign')?.classList.remove('open');
-                await loadDevices();
-            });
-            btnRemove?.addEventListener('click', async () => {
-                const gid = groupSelect?.value;
-                if (!gid) return;
-                const selected = Array.from(
-                    document.querySelectorAll('#device-grid .device-card.selected')
-                ).map(c => c.getAttribute('data-id'));
-                let ok = 0;
-                for (const id of selected) {
-                    const res = await patchDeviceGroups(id, arr => arr.filter(x => x !== gid));
-                    if (res) ok++;
-                }
-                window.notify?.toast({
-                    type: 'success',
-                    title: 'Removed from group',
-                    message: `${ok}/${selected.length} devices updated`,
-                });
-                document.getElementById('modal-group-assign')?.classList.remove('open');
-                await loadDevices();
-            });
-            // Assign Preset modal logic
-            const presetSelect = document.getElementById('preset-select');
-            const btnPresetApply = document.getElementById('btn-preset-apply');
-            const btnPresetClear = document.getElementById('btn-preset-clear');
-            function openAssignPresetModal() {
-                // Populate from state.presets
-                const list = Array.isArray(state.presets) ? state.presets : [];
-                if (presetSelect) {
-                    if (!list.length) {
-                        presetSelect.innerHTML =
-                            '<option value="" disabled selected>No presets defined</option>';
-                    } else {
-                        presetSelect.innerHTML = list
-                            .map(
-                                p =>
-                                    `<option value="${(p.key || '').replace(/"/g, '&quot;')}">${(p.name || p.key || '').replace(/</g, '&lt;')}</option>`
-                            )
-                            .join('');
-                    }
-                }
-                const overlay = document.getElementById('modal-assign-preset');
-                if (!overlay) return;
-                __showOverlay(overlay, 'modal-assign-preset');
-                try {
-                    if (window.__uiDebug)
-                        console.info(
-                            '[ModalDebug] assign-preset rect',
-                            overlay.getBoundingClientRect().toJSON()
-                        );
-                } catch (_) {
-                    /* jellyfin days checkbox toggle wire failed (user can toggle manually) */
-                }
-            }
-            btnPresetApply?.addEventListener('click', async () => {
-                const preset = presetSelect?.value || '';
-                if (!preset) return;
-                const ids = Array.from(
-                    document.querySelectorAll('#device-grid .device-card.selected')
-                ).map(c => c.getAttribute('data-id'));
-                if (!ids.length) {
-                    window.notify?.toast({
-                        type: 'info',
-                        title: 'No devices selected',
-                        message: 'Select one or more devices first',
-                    });
-                    return;
-                }
-                let ok = 0;
-                for (const id of ids) {
-                    try {
-                        await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ preset }),
-                        });
-                        ok++;
-                    } catch (_) {
-                        /* preset apply API failed for device (continue others) */
-                    }
-                }
-                window.notify?.toast({
-                    type: 'success',
-                    title: 'Preset applied',
-                    message: `Applied to ${ok}/${ids.length} device${ids.length !== 1 ? 's' : ''}`,
-                });
-                document.getElementById('modal-assign-preset')?.classList.remove('open');
-                await loadDevices();
-            });
-            btnPresetClear?.addEventListener('click', async () => {
-                const ids = Array.from(
-                    document.querySelectorAll('#device-grid .device-card.selected')
-                ).map(c => c.getAttribute('data-id'));
-                if (!ids.length) {
-                    window.notify?.toast({
-                        type: 'info',
-                        title: 'No devices selected',
-                        message: 'Select one or more devices first',
-                    });
-                    return;
-                }
-                let ok = 0;
-                for (const id of ids) {
-                    try {
-                        await fetchJSON(`/api/devices/${encodeURIComponent(id)}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ preset: null }),
-                        });
-                        ok++;
-                    } catch (_) {
-                        /* preset clear API failed for device (continue others) */
-                    }
-                }
-                window.notify?.toast({
-                    type: 'success',
-                    title: 'Preset cleared',
-                    message: `Cleared on ${ok}/${ids.length}`,
-                });
-                document.getElementById('modal-assign-preset')?.classList.remove('open');
-                await loadDevices();
-            });
-            // Enter key triggers Create & assign
-            newGroupInput?.addEventListener('keydown', e => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    btnCreateAssign?.click();
-                }
-            });
-            // Create a new group and assign selected devices
-            btnCreateAssign?.addEventListener('click', async () => {
-                const name = (newGroupInput?.value || '').trim();
-                if (!name) {
-                    window.notify?.toast({ type: 'info', title: 'Group name required' });
-                    return;
-                }
-                try {
-                    const created = await fetchJSON('/api/groups', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name }),
-                    });
-                    const gid = created?.id || created?.name || name;
-                    await loadGroups();
-                    if (groupSelect && gid) groupSelect.value = gid;
-                    const selected = Array.from(
-                        document.querySelectorAll('#device-grid .device-card.selected')
-                    ).map(c => c.getAttribute('data-id'));
-                    let ok = 0;
-                    for (const id of selected) {
-                        const res = await patchDeviceGroups(id, arr =>
-                            arr.includes(gid) ? arr : [...arr, gid]
-                        );
-                        if (res) ok++;
-                    }
-                    window.notify?.toast({
-                        type: 'success',
-                        title: 'Group created',
-                        message: `Assigned ${ok}/${selected.length} devices to ${gid}`,
-                    });
-                    document.getElementById('modal-group-assign')?.classList.remove('open');
-                    await loadDevices();
-                } catch (e) {
-                    const msg = e?.message || '';
-                    if (/exists|409/i.test(msg)) {
-                        window.notify?.toast({
-                            type: 'warning',
-                            title: 'Group already exists',
-                            message: name,
-                        });
-                    } else {
-                        window.notify?.toast({
-                            type: 'error',
-                            title: 'Create group failed',
-                            message: msg || 'Unknown error',
-                        });
-                    }
-                }
-            });
         };
 
         // 2FA disable flow

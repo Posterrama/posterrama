@@ -24,8 +24,7 @@ const deepMerge = require('../utils/deep-merge');
  * @param {Function} deps.cacheMiddleware - Cache middleware factory
  * @param {boolean} deps.isDebug - Debug mode flag
  * @param {Object} deps.deviceStore - Device storage
- * @param {Object} deps.groupsStore - Groups storage (deprecated, kept for compatibility)
- * @param {Object} [deps.profilesStore] - Profiles storage (new system)
+ * @param {Object} [deps.profilesStore] - Profiles storage
  * @returns {express.Router} Configured router
  */
 module.exports = function createConfigPublicRouter({
@@ -34,7 +33,6 @@ module.exports = function createConfigPublicRouter({
     cacheMiddleware,
     isDebug,
     deviceStore,
-    groupsStore,
     profilesStore,
 }) {
     const router = express.Router();
@@ -45,7 +43,7 @@ module.exports = function createConfigPublicRouter({
      *   get:
      *     summary: Retrieve the public application configuration (legacy)
      *     description: |
-     *       **Legacy endpoint** - Use `/api/v1/config` instead.
+     *       **Legacy endpoint** - Use \`/api/v1/config\` instead.
      *
      *       Fetches the non-sensitive configuration needed by the frontend for display logic.
      *       This endpoint is maintained for backwards compatibility.
@@ -74,13 +72,13 @@ module.exports = function createConfigPublicRouter({
      *         content:
      *           application/json:
      *             schema:
-     *               $ref: '#/components/schemas/Config'
+     *               \$ref: '#/components/schemas/Config'
      *       500:
      *         description: Internal server error
      *         content:
      *           application/json:
      *             schema:
-     *               $ref: '#/components/schemas/StandardErrorResponse'
+     *               \$ref: '#/components/schemas/StandardErrorResponse'
      *             example:
      *               error: 'Internal server error'
      *               message: 'Failed to retrieve configuration'
@@ -156,15 +154,11 @@ module.exports = function createConfigPublicRouter({
             }
 
             // Base public config
-            // Ensure wallartMode has required defaults even if config.wallartMode exists without them
-            // Note: Config class now proxies all config.json properties directly via getters
             const wallartDefaults = {
                 enabled: false,
-                // legacy list/grid parameters
                 itemsPerScreen: 30,
                 columns: 6,
                 transitionInterval: 30,
-                // new wallart UX parameters with safe defaults
                 density: 'medium',
                 refreshRate: 6,
                 randomness: 3,
@@ -189,11 +183,8 @@ module.exports = function createConfigPublicRouter({
                     ? Number(config.syncAlignMaxDelayMs)
                     : 1200,
                 cinemaMode: config.cinemaMode || false,
-                // Legacy: keep for backward compatibility but prefer cinema.orientation
                 cinemaOrientation: config.cinema?.orientation || config.cinemaOrientation || 'auto',
-                // Include full cinema configuration object
                 cinema: config.cinema || {},
-                // Include screensaver mode configuration
                 screensaverMode: config.screensaverMode || { orientation: 'auto' },
                 wallartMode: { ...wallartDefaults, ...(config.wallartMode || {}) },
                 transitionIntervalSeconds: config.transitionIntervalSeconds || 15,
@@ -214,17 +205,13 @@ module.exports = function createConfigPublicRouter({
                     clock: 100,
                     global: 100,
                 },
-                // Include source configuration so client knows which sources are enabled
                 mediaServers: config.mediaServers || null,
                 localDirectory: config.localDirectory
                     ? {
                           enabled: config.localDirectory.enabled || false,
-                          // Don't expose the rootPath for security
                       }
                     : null,
-                // Pause indicator settings (shown when playback is paused)
                 pauseIndicator: config.pauseIndicator || { enabled: true },
-                // Burn-in prevention settings for OLED/plasma displays
                 burnInPrevention: config.burnInPrevention || null,
             };
 
@@ -236,7 +223,6 @@ module.exports = function createConfigPublicRouter({
                 const hardwareId = req.get('X-Hardware-Id');
 
                 let device = null;
-                // Prefer exact id match when provided, but avoid requiring secret on GET
                 if (deviceId) {
                     device = await deviceStore.getById(deviceId);
                 }
@@ -247,7 +233,7 @@ module.exports = function createConfigPublicRouter({
                     device = await deviceStore.findByHardwareId(hardwareId);
                 }
 
-                // NEW: Apply profile settings if device has profileId
+                // Apply profile settings if device has profileId
                 let fromProfile = {};
                 try {
                     if (device && device.profileId && profilesStore) {
@@ -263,73 +249,15 @@ module.exports = function createConfigPublicRouter({
                         });
                 }
 
-                // DEPRECATED: Group templates (kept for migration compatibility)
-                let fromGroups = {};
-                try {
-                    if (
-                        device &&
-                        Array.isArray(device.groups) &&
-                        device.groups.length &&
-                        groupsStore
-                    ) {
-                        const allGroups = await groupsStore.getAll();
-                        // Build and sort group sequence: by numeric order asc, then by device list index asc
-                        const seq = device.groups
-                            .map((gid, idx) => {
-                                const g = allGroups.find(x => x.id === gid);
-                                return g ? { g, idx } : null;
-                            })
-                            .filter(Boolean)
-                            .sort((a, b) => {
-                                const ao = Number.isFinite(a.g.order)
-                                    ? a.g.order
-                                    : Number.MAX_SAFE_INTEGER;
-                                const bo = Number.isFinite(b.g.order)
-                                    ? b.g.order
-                                    : Number.MAX_SAFE_INTEGER;
-                                if (ao !== bo) return ao - bo;
-                                return a.idx - b.idx;
-                            });
-                        for (const { g } of seq) {
-                            if (g && g.settingsTemplate && typeof g.settingsTemplate === 'object') {
-                                // Later templates override earlier ones
-                                fromGroups = deepMerge({}, fromGroups, g.settingsTemplate);
-                            }
-                        }
-                    }
-                } catch (ge) {
-                    if (isDebug)
-                        logger.debug('[get-config] Group template merge failed', {
-                            error: ge?.message,
-                        });
-                }
-
-                // DEPRECATED: Device settingsOverride (replaced by profile)
-                const devOverrides =
-                    device && device.settingsOverride && typeof device.settingsOverride === 'object'
-                        ? device.settingsOverride
-                        : null;
-
-                // Merge order: Global < Groups (deprecated) < Profile < Device Override (deprecated)
-                // For new devices with profileId, groups and settingsOverride should be empty
-                merged = deepMerge(
-                    {},
-                    baseConfig,
-                    fromGroups || {},
-                    fromProfile || {},
-                    devOverrides || {}
-                );
+                // Merge order: Global < Profile
+                merged = deepMerge({}, baseConfig, fromProfile || {});
                 if (isDebug) {
                     const pKeys = Object.keys(fromProfile || {});
-                    const gKeys = Object.keys(fromGroups || {});
-                    const dKeys = Object.keys(devOverrides || {});
-                    if (pKeys.length || gKeys.length || dKeys.length) {
-                        logger.debug('[get-config] Applied profile/group/device overrides', {
+                    if (pKeys.length) {
+                        logger.debug('[get-config] Applied profile overrides', {
                             deviceId: device?.id,
                             profileId: device?.profileId || null,
                             profileKeys: pKeys,
-                            groupKeys: gKeys,
-                            deviceKeys: dKeys,
                         });
                     }
                 }
@@ -339,7 +267,7 @@ module.exports = function createConfigPublicRouter({
                 }
             }
 
-            // Build final payload and ensure it's safe to stringify to avoid intermittent 500s
+            // Build final payload and ensure it's safe to stringify
             const finalPayload = {
                 ...merged,
                 _debug: isDebug
@@ -353,30 +281,24 @@ module.exports = function createConfigPublicRouter({
 
             let safeObjToSend = finalPayload;
             try {
-                // Fast path: validate serializability
                 JSON.stringify(finalPayload);
             } catch (_) {
                 try {
-                    // Fallback: sanitize to a JSON-safe plain structure
                     safeObjToSend = toPlainJSONSafe(finalPayload);
-                    // Validate again
                     JSON.stringify(safeObjToSend);
                     if (isDebug)
                         logger.debug('[get-config] Response normalized via safe serializer');
                 } catch (err) {
-                    // Last resort: serve minimal base (without _debug)
                     safeObjToSend = toPlainJSONSafe({ ...merged, _debug: undefined }) || {};
                     if (isDebug)
                         logger.debug(
                             '[get-config] Failed to serialize full config, returned minimal',
-                            {
-                                error: err?.message,
-                            }
+                            { error: err?.message }
                         );
                 }
             }
 
-            // If device bypass is active for this request, surface a lightweight flag so frontend can avoid loading device-mgmt.js logic.
+            // If device bypass is active, surface flag
             try {
                 if (req.deviceBypass) {
                     /** @type {any} */ (safeObjToSend).deviceMgmt =
@@ -384,7 +306,7 @@ module.exports = function createConfigPublicRouter({
                     /** @type {any} */ (safeObjToSend).deviceMgmt.bypassActive = true;
                 }
             } catch (_) {
-                // ignore inability to append bypass flag
+                // ignore
             }
             res.json(safeObjToSend);
         }

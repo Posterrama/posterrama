@@ -32,8 +32,6 @@ const {
     createAdminAuth,
     createAdminAuthDevices,
 } = require('./middleware');
-// NOTE: presets are deprecated - replaced by profiles system
-const { readPresets, writePresets } = require('./lib/preset-helpers');
 const {
     createPlexClient,
     getPlexClient,
@@ -180,7 +178,6 @@ const { getCacheConfig: getCacheConfigUtil } = require('./lib/cache-utils');
 const deepMerge = require('./utils/deep-merge');
 // Device management stores and WebSocket hub
 const deviceStore = require('./utils/deviceStore');
-const groupsStore = require('./utils/groupsStore');
 const wsHub = require('./utils/wsHub');
 // Plex Sessions Poller
 const PlexSessionsPoller = require('./services/plexSessionsPoller');
@@ -2260,14 +2257,6 @@ if (env.server.nodeEnv === 'test') {
             // Replaced raw console.log with logger.debug (pre-review enforcement)
             logger.debug('[REQ]', req.method, req.path, 'Auth:', req.headers.authorization || '');
         }
-        // Only seed a session automatically for benign, non-sensitive reads in tests.
-        // Never auto-seed for /api/devices* so unauthenticated access can be correctly tested.
-        if ((req.method === 'GET' || req.method === 'HEAD') && req.path.startsWith('/api/groups')) {
-            // @ts-ignore - req.session provided by express-session
-            req.session = req.session || {};
-            // @ts-ignore - req.session provided by express-session
-            req.session.user = req.session.user || { username: 'test-admin' };
-        }
         next();
     });
 }
@@ -2421,118 +2410,6 @@ const cspReportJson = express.json({
         );
     },
 });
-
-// Device Presets storage (simple JSON file)
-/**
- * @swagger
- * /api/admin/device-presets:
- *   get:
- *     summary: Get device presets
- *     description: Returns the list of saved device presets for quick per-device overrides.
- *     tags: ['Admin', 'Devices']
- *     security:
- *       - sessionAuth: []
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Array of device presets
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   key:
- *                     type: string
- *                     description: Preset identifier
- *                   label:
- *                     type: string
- *                     description: Human-friendly name
- *                   settings:
- *                     type: object
- *                     description: Settings override payload applied when preset is used
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Failed to read presets
- */
-// Admin: get device presets (JSON)
-// @ts-ignore - Express router overload with middleware
-app.get('/api/admin/device-presets', adminAuth, async (req, res) => {
-    try {
-        const list = await readPresets(__dirname);
-        res.json(list);
-    } catch (e) {
-        res.status(500).json({ error: 'presets_read_failed' });
-    }
-});
-
-/**
- * @swagger
- * /api/admin/device-presets:
- *   put:
- *     summary: Replace device presets
- *     description: Replaces the entire device presets list. Provide an array of presets with unique keys.
- *     tags: ['Admin', 'Devices']
- *     security:
- *       - sessionAuth: []
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: array
- *             items:
- *               type: object
- *               required: [key]
- *               properties:
- *                 key:
- *                   type: string
- *                   description: Preset identifier (must be unique)
- *                 label:
- *                   type: string
- *                 settings:
- *                   type: object
- *     responses:
- *       200:
- *         description: Presets replaced
- *         content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/StandardOkResponse'
- *                 - type: object
- *                   properties:
- *                     count: { type: integer }
- *       400:
- *         description: Validation error (array required or invalid entries)
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Failed to write presets
- */
-// Admin: replace device presets (JSON)
-app.put(
-    '/api/admin/device-presets',
-    // @ts-ignore - Express router overload with middleware
-    adminAuth,
-    express.json({ limit: '1mb' }),
-    async (req, res) => {
-        try {
-            const body = req.body;
-            if (!Array.isArray(body)) return res.status(400).json({ error: 'array_required' });
-            // Light validation: key must be string
-            const ok = body.every(p => p && typeof p.key === 'string');
-            if (!ok) return res.status(400).json({ error: 'invalid_entries' });
-            await writePresets(body, __dirname);
-            res.json({ ok: true, count: body.length });
-        } catch (e) {
-            res.status(500).json({ error: 'presets_write_failed' });
-        }
-    }
-);
 
 /**
  * @swagger
@@ -3312,13 +3189,9 @@ app.get('/admin/logs', isAuthenticated, (req, res) => {
 // Health check routes (modularized)
 app.use('/', require('./routes/health'));
 
-// Device Profiles management routes (replaces groups + presets)
+// Device Profiles management routes
 const createProfilesRouter = require('./routes/profiles');
 app.use('/api/profiles', createProfilesRouter({ adminAuth, cacheManager }));
-
-// Groups management routes - DEPRECATED (kept for migration compatibility)
-const createGroupsRouter = require('./routes/groups');
-app.use('/api/groups', createGroupsRouter({ adminAuth, cacheManager }));
 
 // Public configuration route (modularized)
 const createConfigPublicRouter = require('./routes/config-public');
@@ -3331,7 +3204,6 @@ app.use(
         cacheMiddleware,
         isDebug,
         deviceStore,
-        groupsStore,
         profilesStore,
     })
 );

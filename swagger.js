@@ -111,9 +111,9 @@ function generateSwaggerSpec(req = null) {
                         '**Device lifecycle** → Register POST /api/devices/register, pair with code POST /api/devices/pair, control via WebSocket /ws/devices. Rate limited: 5 req/min.',
                 },
                 {
-                    name: 'Groups',
+                    name: 'Profiles',
                     description:
-                        '**Device grouping** for broadcast control. Create groups POST /api/groups, assign devices, send commands to all members simultaneously.',
+                        '**Device profiles** for display settings. Create profiles POST /api/profiles, assign to devices. All display settings are stored in profiles.',
                 },
                 {
                     name: 'Local Directory',
@@ -170,7 +170,7 @@ function generateSwaggerSpec(req = null) {
                 },
                 {
                     name: 'Device Management',
-                    tags: ['Devices', 'Groups'],
+                    tags: ['Devices', 'Profiles'],
                 },
                 {
                     name: 'Media Sources',
@@ -504,10 +504,10 @@ function generateSwaggerSpec(req = null) {
                                 description: 'Custom device tags',
                                 items: { type: 'string' },
                             },
-                            groups: {
-                                type: 'array',
-                                description: 'Assigned group IDs',
-                                items: { type: 'string' },
+                            profileId: {
+                                type: 'string',
+                                nullable: true,
+                                description: 'Assigned device profile ID',
                             },
                             installId: {
                                 type: 'string',
@@ -542,11 +542,6 @@ function generateSwaggerSpec(req = null) {
                                     mode: { type: 'string' },
                                 },
                             },
-                            settingsOverride: {
-                                type: 'object',
-                                description: 'Per-device settings override payload',
-                            },
-                            preset: { type: 'string', description: 'Optional preset name' },
                             currentState: {
                                 type: 'object',
                                 properties: {
@@ -716,20 +711,21 @@ function generateSwaggerSpec(req = null) {
                             info: { type: 'object', nullable: true },
                         },
                     },
-                    Group: {
+                    Profile: {
                         type: 'object',
                         properties: {
                             id: { type: 'string' },
                             name: { type: 'string' },
                             description: { type: 'string' },
-                            settingsTemplate: {
+                            settings: {
                                 type: 'object',
-                                description: 'Settings template applied to group members',
+                                description: 'Display settings for devices using this profile',
                             },
-                            order: { type: 'integer', description: 'Sort order (ascending)' },
+                            createdAt: { type: 'string', format: 'date-time' },
+                            updatedAt: { type: 'string', format: 'date-time' },
                         },
                     },
-                    GroupCommandResult: {
+                    ProfileCommandResult: {
                         type: 'object',
                         properties: {
                             deviceId: { type: 'string' },
@@ -747,28 +743,24 @@ function generateSwaggerSpec(req = null) {
                             name: { type: 'string' },
                             location: { type: 'string' },
                             tags: { type: 'array', items: { type: 'string' } },
-                            groups: { type: 'array', items: { type: 'string' } },
-                            settingsOverride: { type: 'object' },
-                            preset: { type: 'string' },
+                            profileId: { type: 'string', nullable: true },
                         },
                     },
-                    GroupCreateRequest: {
+                    ProfileCreateRequest: {
                         type: 'object',
                         properties: {
                             id: { type: 'string' },
                             name: { type: 'string' },
                             description: { type: 'string' },
-                            settingsTemplate: { type: 'object' },
-                            order: { type: 'integer' },
+                            settings: { type: 'object' },
                         },
                     },
-                    GroupPatchRequest: {
+                    ProfilePatchRequest: {
                         type: 'object',
                         properties: {
                             name: { type: 'string' },
                             description: { type: 'string' },
-                            settingsTemplate: { type: 'object' },
-                            order: { type: 'integer' },
+                            settings: { type: 'object' },
                         },
                     },
                     DeviceMergeRequest: {
@@ -782,7 +774,7 @@ function generateSwaggerSpec(req = null) {
                             },
                         },
                     },
-                    GroupCommandResponse: {
+                    ProfileCommandResponse: {
                         type: 'object',
                         properties: {
                             ok: { type: 'boolean' },
@@ -791,7 +783,7 @@ function generateSwaggerSpec(req = null) {
                             total: { type: 'integer' },
                             results: {
                                 type: 'array',
-                                items: { $ref: '#/components/schemas/GroupCommandResult' },
+                                items: { $ref: '#/components/schemas/ProfileCommandResult' },
                             },
                         },
                     },

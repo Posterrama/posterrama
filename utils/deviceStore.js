@@ -18,7 +18,6 @@ const path = require('path');
 const crypto = require('crypto');
 const EventEmitter = require('events');
 const logger = require('./logger');
-const deepMerge = require('./deep-merge');
 const SafeFileStore = require('./safeFileStore');
 
 // Event emitter for device changes
@@ -167,15 +166,12 @@ async function registerDevice({
         name,
         location,
         tags: [],
-        groups: [], // DEPRECATED: replaced by profileId
         createdAt: now,
         updatedAt: now,
         lastSeenAt: null,
         status: 'unknown',
         clientInfo: {},
-        settingsOverride: {}, // DEPRECATED: replaced by profileId
-        preset: '', // DEPRECATED: replaced by profileId
-        profileId: null, // NEW: Reference to device profile
+        profileId: null, // Reference to device profile
         currentState: {},
         pairing: {},
     };
@@ -408,8 +404,7 @@ async function deleteDevice(id) {
  * Merge multiple devices into a target device record.
  * - Keeps target id and secretHash intact
  * - Merges name/location if target fields are empty
- * - Unions tags/groups (unique)
- * - Deep merges settingsOverride (target takes precedence)
+ * - Unions tags (unique)
  * - Copies non-null installId/hardwareId if target missing
  * - Preserves the newest timestamps (createdAt lowest, updatedAt/lastSeenAt highest)
  * - Deletes source device records after merge
@@ -443,19 +438,6 @@ async function mergeDevices(targetId, sourceIds = []) {
 
         // Union arrays
         target.tags = uniq([...(target.tags || []), ...(src.tags || [])]);
-        target.groups = uniq([...(target.groups || []), ...(src.groups || [])]);
-
-        // Merge overrides: target wins on conflict
-        try {
-            target.settingsOverride = deepMerge(
-                {},
-                src.settingsOverride || {},
-                target.settingsOverride || {}
-            );
-        } catch (_) {
-            // fallback: keep target
-            target.settingsOverride = target.settingsOverride || src.settingsOverride || {};
-        }
 
         // Prefer most recent currentState data
         try {
@@ -605,42 +587,6 @@ function popCommands(id) {
     return list;
 }
 
-/**
- * Remove references to groups that no longer exist from all devices.
- * @param {Set<string>|string[]} existingGroupIds - Set/array of valid group ids.
- * @returns {Promise<{updated:number, removed:number}>}
- */
-async function pruneOrphanGroupRefs(existingGroupIds) {
-    try {
-        const valid =
-            existingGroupIds instanceof Set ? existingGroupIds : new Set(existingGroupIds || []);
-        const all = await readAll();
-        let modified = false;
-        let removed = 0;
-        for (const d of all) {
-            if (Array.isArray(d.groups) && d.groups.length) {
-                const before = d.groups.length;
-                const next = d.groups.filter(gid => valid.has(gid));
-                if (next.length !== before) {
-                    removed += before - next.length;
-                    d.groups = next;
-                    d.updatedAt = new Date().toISOString();
-                    modified = true;
-                }
-            }
-        }
-        if (modified) await writeAll(all);
-        return { updated: modified ? 1 : 0, removed };
-    } catch (e) {
-        try {
-            logger.warn('[Devices] pruneOrphanGroupRefs failed', e);
-        } catch (_) {
-            // noop: secondary logging failure is non-fatal
-        }
-        return { updated: 0, removed: 0 };
-    }
-}
-
 module.exports = {
     storePath,
     getAll,
@@ -660,6 +606,5 @@ module.exports = {
     revokePairingCode,
     getActivePairings,
     mergeDevices,
-    pruneOrphanGroupRefs,
     deviceEvents, // Export EventEmitter for MQTT and other integrations
 };

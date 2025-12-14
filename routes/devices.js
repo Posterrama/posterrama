@@ -852,11 +852,8 @@ module.exports = function createDevicesRouter({
             // Return only safe, public fields
             const isConnected = wsHub.isConnected(device.id);
 
-            // Merge device base settings with per-device overrides from config
-            let effectiveSettings = { ...config };
-            if (device.settingsOverride && typeof device.settingsOverride === 'object') {
-                effectiveSettings = { ...effectiveSettings, ...device.settingsOverride };
-            }
+            // Use config as effective settings
+            const effectiveSettings = { ...config };
 
             res.json({
                 id: device.id,
@@ -958,17 +955,10 @@ module.exports = function createDevicesRouter({
      *               location:
      *                 type: string
      *                 description: Device location
-     *               groups:
-     *                 type: array
-     *                 items:
-     *                   type: string
-     *                 description: Array of group IDs this device belongs to
-     *               preset:
+     *               profileId:
      *                 type: string
-     *                 description: Preset name to apply to device
-     *               settingsOverride:
-     *                 type: object
-     *                 description: Device-specific settings overrides
+     *                 nullable: true
+     *                 description: Profile ID to apply to this device
      *               plexUsername:
      *                 type: string
      *                 nullable: true
@@ -1011,7 +1001,7 @@ module.exports = function createDevicesRouter({
      * /api/devices/{id}/merge:
      *   post:
      *     summary: Merge source devices into target device
-     *     description: Merge one or more source devices into a target device, combining their properties, groups, settings, and state
+     *     description: Merge one or more source devices into a target device, combining their properties, settings, and state
      *     tags: ['Devices']
      *     security:
      *       - bearerAuth: []

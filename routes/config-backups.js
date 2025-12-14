@@ -75,7 +75,7 @@ module.exports = function createConfigBackupsRouter({
      * /api/admin/config-backups:
      *   post:
      *     summary: Create a new configuration backup
-     *     description: Creates a new backup of whitelisted configuration files (config.json, .env, devices/groups, presets). Optionally include a label and note for documentation.
+     *     description: Creates a new backup of whitelisted configuration files (config.json, .env, devices.json, profiles.json). Optionally include a label and note for documentation.
      *     tags: ['Admin']
      *     security:
      *       - sessionAuth: []
@@ -196,7 +196,7 @@ module.exports = function createConfigBackupsRouter({
      *                 type: string
      *               file:
      *                 type: string
-     *                 enum: ['config.json', 'device-presets.json', 'devices.json', 'groups.json', '.env']
+     *                 enum: ['config.json', 'profiles.json', 'devices.json', '.env']
      *     responses:
      *       200:
      *         description: Restore successful
