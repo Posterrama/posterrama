@@ -18850,10 +18850,11 @@ body.profile-edit-mode #section-display .section-header h2 span {
     height: 32px;
     padding: 0 6px 0 8px;
     margin-left: auto;
+    flex: 0 0 auto;
 }
 
 #modal-device-logs #device-logs-filter-wrap.search-box i {
-    left: 10px;
+    left: 12px;
     opacity: 0.85;
     pointer-events: none;
 }
@@ -18863,7 +18864,7 @@ body.profile-edit-mode #section-display .section-header h2 span {
     width: clamp(180px, 24vw, 320px);
     height: 30px;
     line-height: 30px;
-    padding: 0 10px 0 30px;
+    padding: 0 10px 0 36px;
 }
 
 #modal-device-logs .device-logs-toolbar-right {
@@ -18963,8 +18964,8 @@ body.profile-edit-mode #section-display .section-header h2 span {
     gap: 10px;
     padding: 3px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    white-space: normal;
-    word-break: break-word;
+    white-space: nowrap;
+    word-break: normal;
 }
 
 #modal-device-logs .device-log-line:last-child {
@@ -19006,30 +19007,84 @@ body.profile-edit-mode #section-display .section-header h2 span {
 
 #modal-device-logs .device-log-msg {
     color: rgba(255, 255, 255, 0.92);
-    white-space: pre-wrap;
-}
-
-#modal-device-logs .device-log-data {
-    color: rgba(255, 255, 255, 0.62);
-    margin-left: 8px;
-}
-
-#modal-device-logs .device-log-data-block {
     display: flex;
-    gap: 10px;
-    margin-top: 2px;
-    color: rgba(255, 255, 255, 0.75);
+    align-items: baseline;
+    gap: 8px;
+    white-space: nowrap;
+    overflow: visible;
 }
 
-#modal-device-logs .device-log-bullet {
-    color: rgba(255, 255, 255, 0.55);
-    margin-top: 1px;
-    flex: 0 0 auto;
-}
-
-#modal-device-logs .device-log-data-pre {
+#modal-device-logs .device-log-twisty {
+    appearance: none;
+    border: none;
+    background: transparent;
+    padding: 0;
     margin: 0;
-    white-space: pre-wrap;
-    word-break: break-word;
-    color: rgba(255, 255, 255, 0.72);
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    transform-origin: 50% 50%;
+    user-select: none;
+}
+
+#modal-device-logs .device-log-line.is-expanded .device-log-twisty {
+    transform: rotate(90deg);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+#modal-device-logs .device-log-source {
+    color: rgba(115, 218, 202, 0.92);
+    font-style: italic;
+}
+
+#modal-device-logs .device-log-text {
+    color: rgba(255, 255, 255, 0.92);
+}
+
+#modal-device-logs .device-log-inline {
+    color: rgba(255, 255, 255, 0.62);
+}
+
+#modal-device-logs .device-log-details {
+    grid-column: 3 / 4;
+    padding: 2px 0 6px 22px;
+}
+
+#modal-device-logs .device-log-details[hidden] {
+    display: none !important;
+}
+
+#modal-device-logs .device-log-details-pre {
+    margin: 0;
+    white-space: pre;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+/* Minimal DevTools-like token colors for expanded objects */
+#modal-device-logs .dt-key {
+    color: #8ab4f8;
+}
+#modal-device-logs .dt-string {
+    color: #ce9178;
+}
+#modal-device-logs .dt-number {
+    color: #b5cea8;
+}
+#modal-device-logs .dt-boolean {
+    color: #569cd6;
+}
+#modal-device-logs .dt-null {
+    color: #c586c0;
+}
+#modal-device-logs .dt-undefined {
+    color: #c586c0;
+    opacity: 0.9;
+}
+#modal-device-logs .dt-meta {
+    color: rgba(255, 255, 255, 0.6);
 }

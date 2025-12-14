@@ -14859,6 +14859,120 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 }
             }
 
+            function formatInlineDevtoolsPreview(data) {
+                const MAX_KEYS = 4;
+                const MAX_STR = 80;
+
+                const shortStr = s => {
+                    const v = String(s);
+                    if (v.length <= MAX_STR) return `'${v}'`;
+                    return `'${v.slice(0, MAX_STR)}…'`;
+                };
+
+                const shortVal = v => {
+                    try {
+                        if (v === null) return 'null';
+                        if (v === undefined) return 'undefined';
+                        const t = typeof v;
+                        if (t === 'string') return shortStr(v);
+                        if (t === 'number' || t === 'boolean') return String(v);
+                        if (t === 'bigint') return String(v);
+                        if (Array.isArray(v)) return `Array(${v.length})`;
+                        if (t === 'object') return 'Object';
+                        return String(v);
+                    } catch (_) {
+                        return 'Object';
+                    }
+                };
+
+                const shortObj = obj => {
+                    try {
+                        if (!obj || typeof obj !== 'object' || Array.isArray(obj))
+                            return shortVal(obj);
+                        const keys = Object.keys(obj);
+                        const shown = keys.slice(0, MAX_KEYS);
+                        const parts = shown.map(k => `${k}: ${shortVal(obj[k])}`);
+                        const more = keys.length > MAX_KEYS ? ', …' : '';
+                        return `{ ${parts.join(', ')}${more} }`;
+                    } catch (_) {
+                        return '{ … }';
+                    }
+                };
+
+                try {
+                    if (data === undefined || data === null) return '';
+                    if (Array.isArray(data)) {
+                        if (data.length === 0) return '';
+                        if (data.length === 1) {
+                            const v = data[0];
+                            return typeof v === 'object' && v !== null ? shortObj(v) : shortVal(v);
+                        }
+                        // Multi-arg: show compact previews separated by spaces.
+                        return data
+                            .slice(0, 3)
+                            .map(v =>
+                                typeof v === 'object' && v !== null ? shortObj(v) : shortVal(v)
+                            )
+                            .join(' ');
+                    }
+                    return typeof data === 'object' ? shortObj(data) : shortVal(data);
+                } catch (_) {
+                    return '';
+                }
+            }
+
+            function highlightDevtoolsTextToHtml(text) {
+                const highlightValuePart = raw => {
+                    try {
+                        const s = String(raw || '');
+                        const re =
+                            /'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|-?\d+(?:\.\d+)?|\btrue\b|\bfalse\b|\bnull\b|\bundefined\b|\bNaN\b|\bInfinity\b|\[Circular\]|\[Object\]|\[Array\]/g;
+                        let out = '';
+                        let i = 0;
+                        let m;
+                        while ((m = re.exec(s))) {
+                            const pre = s.slice(i, m.index);
+                            if (pre) out += escapeHtml(pre);
+                            const tok = m[0];
+                            let cls = 'dt-plain';
+                            if (tok[0] === "'" || tok[0] === '"') cls = 'dt-string';
+                            else if (tok === 'true' || tok === 'false') cls = 'dt-boolean';
+                            else if (tok === 'null') cls = 'dt-null';
+                            else if (tok === 'undefined') cls = 'dt-undefined';
+                            else if (/^-?\d/.test(tok) || tok === 'NaN' || tok === 'Infinity')
+                                cls = 'dt-number';
+                            else if (/^\[/.test(tok)) cls = 'dt-meta';
+                            out += `<span class="${cls}">${escapeHtml(tok)}</span>`;
+                            i = m.index + tok.length;
+                        }
+                        const tail = s.slice(i);
+                        if (tail) out += escapeHtml(tail);
+                        return out;
+                    } catch (_) {
+                        return escapeHtml(raw);
+                    }
+                };
+
+                try {
+                    const lines = String(text || '').split('\n');
+                    return lines
+                        .map(line => {
+                            const m = line.match(
+                                /^([\s]*)([A-Za-z_$][0-9A-Za-z_$]*|'(?:[^'\\]|\\.)*'):(\s*)(.*)$/
+                            );
+                            if (!m) return highlightValuePart(line);
+                            const indent = escapeHtml(m[1] || '');
+                            const key = escapeHtml(m[2] || '');
+                            const ws = escapeHtml(m[3] || '');
+                            const rest = highlightValuePart(m[4] || '');
+                            return `${indent}<span class="dt-key">${key}</span>:${ws}${rest}`;
+                        })
+                        .join('\n');
+                } catch (_) {
+                    return escapeHtml(text);
+                }
+            }
+
             function openDeviceLogsFor(id) {
                 if (!id) return;
                 const overlay = document.getElementById('modal-device-logs');
@@ -14886,6 +15000,41 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
                 const consoleEl = document.getElementById('device-logs-console');
                 if (consoleEl) consoleEl.innerHTML = '';
+
+                let onConsoleClick = null;
+                try {
+                    if (consoleEl) {
+                        onConsoleClick = e => {
+                            try {
+                                const btn = e?.target?.closest?.('.device-log-twisty');
+                                if (!btn) return;
+                                const row = btn.closest('.device-log-line');
+                                if (!row) return;
+                                const details = row.querySelector('.device-log-details');
+                                if (!details) return;
+
+                                const willExpand = details.hasAttribute('hidden');
+                                if (willExpand) details.removeAttribute('hidden');
+                                else details.setAttribute('hidden', '');
+
+                                row.classList.toggle('is-expanded', willExpand);
+                                try {
+                                    btn.setAttribute(
+                                        'aria-expanded',
+                                        willExpand ? 'true' : 'false'
+                                    );
+                                } catch (_) {
+                                    /* ignore */
+                                }
+                            } catch (_) {
+                                /* ignore */
+                            }
+                        };
+                        consoleEl.addEventListener('click', onConsoleClick);
+                    }
+                } catch (_) {
+                    /* ignore */
+                }
 
                 const filterEl = document.getElementById('device-logs-filter');
                 if (filterEl) filterEl.value = '';
@@ -15031,6 +15180,23 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
                     const dataBlocks = formatDeviceLogDataBlocks(payload.data);
 
+                    // Parse an optional leading source tag like: [Cinema Display]
+                    let sourceTag = '';
+                    let restMsg = msg;
+                    try {
+                        const sm = restMsg.match(/^\[([^\]]+)\]\s*/);
+                        if (sm && sm[1]) {
+                            sourceTag = sm[1];
+                            restMsg = restMsg.slice(sm[0].length);
+                        }
+                    } catch (_) {
+                        /* ignore */
+                    }
+
+                    const inlinePreview = dataBlocks.length
+                        ? formatInlineDevtoolsPreview(payload.data)
+                        : '';
+
                     const row = document.createElement('div');
                     row.className = `device-log-line lvl-${lvl}`;
                     const levelTag = `[${lvl.toUpperCase()}]`;
@@ -15041,18 +15207,29 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         /* ignore */
                     }
 
-                    const dataHtml = dataBlocks.length
-                        ? dataBlocks
+                    const twistyHtml = dataBlocks.length
+                        ? `<button type="button" class="device-log-twisty" aria-label="Toggle details" aria-expanded="false">▶</button>`
+                        : '';
+                    const sourceHtml = sourceTag
+                        ? `<span class="device-log-source">[${escapeHtml(sourceTag)}]</span>`
+                        : '';
+                    const inlineHtml = inlinePreview
+                        ? `<span class="device-log-inline">${escapeHtml(inlinePreview)}</span>`
+                        : '';
+
+                    const detailsHtml = dataBlocks.length
+                        ? `<div class="device-log-details" hidden>${dataBlocks
                               .map(
                                   s =>
-                                      `<div class="device-log-data-block"><span class="device-log-bullet">•</span><pre class="device-log-data-pre">${escapeHtml(s)}</pre></div>`
+                                      `<pre class="device-log-details-pre">${highlightDevtoolsTextToHtml(s)}</pre>`
                               )
-                              .join('')
+                              .join('')}</div>`
                         : '';
                     row.innerHTML = `
                         <div class="device-log-ts">${escapeHtml(ts)}</div>
                         <div class="device-log-level">${escapeHtml(levelTag)}</div>
-                        <div class="device-log-msg">${escapeHtml(msg)}${dataHtml}</div>
+                        <div class="device-log-msg">${twistyHtml}${sourceHtml}<span class="device-log-text">${escapeHtml(restMsg)}</span>${inlineHtml}</div>
+                        ${detailsHtml}
                     `;
                     consoleEl.appendChild(row);
                     lines++;
@@ -15207,6 +15384,12 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         paused = true;
                         try {
                             if (reattachTimer) clearInterval(reattachTimer);
+                        } catch (_) {
+                            /* ignore */
+                        }
+                        try {
+                            if (consoleEl && onConsoleClick)
+                                consoleEl.removeEventListener('click', onConsoleClick);
                         } catch (_) {
                             /* ignore */
                         }

@@ -1518,9 +1518,8 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                     parts.push(`${a.name || 'Error'}: ${a.message || ''}`.trim());
                     data.push(a);
                 } else {
-                    // Keep objects out of the main message to avoid double-stringifying;
-                    // render them as structured tail data in the admin viewer.
-                    parts.push('[Object]');
+                    // Keep objects out of the main message;
+                    // render them as structured expandable data in the admin viewer.
                     data.push(a);
                 }
             }
@@ -1528,7 +1527,7 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
             // ignore
         }
         let message = parts.join(' ').trim();
-        if (!message) message = '(no message)';
+        if (!message) message = data.length ? 'Object' : '(no message)';
         if (message.length > 4000) message = message.slice(0, 4000);
 
         // Keep structured data small; admin mainly needs a hint, not full objects.
