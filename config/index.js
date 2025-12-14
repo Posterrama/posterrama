@@ -83,6 +83,7 @@ class Config {
             this._clientDebugViewer = this.config.clientDebugViewer;
             this._siteServer = this.config.siteServer;
             this._burnInPrevention = this.config.burnInPrevention;
+            this._pauseIndicator = this.config.pauseIndicator;
         }
     }
 
@@ -269,6 +270,15 @@ class Config {
     set burnInPrevention(value) {
         this._burnInPrevention = value;
         if (this.config) this.config.burnInPrevention = value;
+    }
+
+    // Pause indicator settings (shown when playback is paused)
+    get pauseIndicator() {
+        return this._pauseIndicator || this.config?.pauseIndicator || { enabled: true };
+    }
+    set pauseIndicator(value) {
+        this._pauseIndicator = value;
+        if (this.config) this.config.pauseIndicator = value;
     }
 
     // Security settings

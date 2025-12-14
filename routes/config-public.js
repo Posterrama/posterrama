@@ -220,6 +220,8 @@ module.exports = function createConfigPublicRouter({
                           // Don't expose the rootPath for security
                       }
                     : null,
+                // Pause indicator settings (shown when playback is paused)
+                pauseIndicator: config.pauseIndicator || { enabled: true },
                 // Burn-in prevention settings for OLED/plasma displays
                 burnInPrevention: config.burnInPrevention || null,
             };
