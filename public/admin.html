@@ -157,7 +157,7 @@
             <i class="fab fa-github"></i>
             <span>GitHub Repository</span>
           </a>
-          <a class="dropdown-item" href="https://github.com/Posterrama/posterrama/issues/new?labels=bug&title=Bug%3A%20%3Cshort%20summary%3E&body=%23%23%23%20Summary%0A%3Cwhat%20happened%3F%3E%0A%0A%23%23%23%20Steps%20to%20reproduce%0A1.%20%0A2.%20%0A3.%20%0A%0A%23%23%23%20Expected%20behavior%0A%3Cwhat%20did%20you%20expect%20to%20happen%3F%3E%0A%0A%23%23%23%20Actual%20behavior%0A%3Cwhat%20actually%20happened%3F%3E%0A%0A%23%23%23%20Environment%0A-%20Posterrama%20version%3A%20%3Cfill%20in%3E%0A-%20Browser%3A%20%3Cfill%20in%3E%0A-%20Deployment%3A%20%3CDocker%2FPM2%2Fother%3E%0A-%20Reverse%20proxy%2FCDN%3A%20%3Cnginx%2FCloudflare%2Fnone%3E%0A%0A%23%23%23%20Logs%20%28redact%20tokens%2Fpasswords%29%0A%60%60%60%0A%3Cpaste%20relevant%20logs%20here%3E%0A%60%60%60%0A" target="_blank" rel="noopener" title="Opens GitHub with a prefilled issue template">
+          <a class="dropdown-item" id="menu-report-issue" href="https://github.com/Posterrama/posterrama/issues/new" target="_blank" rel="noopener" title="Opens GitHub with a prefilled issue template">
             <i class="fas fa-bug"></i>
             <span>Report an Issue</span>
           </a>
@@ -5344,6 +5344,79 @@
       } catch(e) {
         console.error('[Version Check] Failed:', e);
       }
+    })();
+  </script>
+  <script>
+    // Prefill the GitHub "new issue" page with a useful template and environment details.
+    // Uses X-API-Version response header which is added by the /api middleware.
+    (function () {
+      const link = document.getElementById('menu-report-issue');
+      if (!link) return;
+
+      const baseUrl = 'https://github.com/Posterrama/posterrama/issues/new';
+
+      function buildBody(posterramaVersion) {
+        const url = window.location?.href || '';
+        const userAgent = navigator?.userAgent || '';
+        const language = navigator?.language || '';
+        let timeZone = '';
+        try {
+          timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        } catch {
+          timeZone = '';
+        }
+
+        return [
+          '### Summary',
+          '<what happened?>',
+          '',
+          '### Steps to reproduce',
+          '1. ',
+          '2. ',
+          '3. ',
+          '',
+          '### Expected behavior',
+          '<what did you expect to happen?>',
+          '',
+          '### Actual behavior',
+          '<what actually happened?>',
+          '',
+          '### Environment',
+          `- Posterrama version: ${posterramaVersion || '<unknown>'}`,
+          `- URL: ${url || '<fill in>'}`,
+          `- Browser (User-Agent): ${userAgent || '<fill in>'}`,
+          `- Language: ${language || '<fill in>'}`,
+          `- Time zone: ${timeZone || '<fill in>'}`,
+          '- Deployment: <Docker/PM2/other>',
+          '- Reverse proxy/CDN: <nginx/Cloudflare/none>',
+          '',
+          '### Logs (redact tokens/passwords)',
+          '```',
+          '<paste relevant logs here>',
+          '```',
+          '',
+        ].join('\n');
+      }
+
+      function setLink(posterramaVersion) {
+        const params = new URLSearchParams();
+        params.set('labels', 'bug');
+        params.set('title', 'Bug: <short summary>');
+        params.set('body', buildBody(posterramaVersion));
+        link.href = `${baseUrl}?${params.toString()}`;
+      }
+
+      // Fallback immediately, then try to enrich with version.
+      setLink('');
+
+      const timeout = new Promise(resolve => setTimeout(() => resolve(null), 1500));
+      const versionFetch = fetch('/api/v1/config', { cache: 'no-store' })
+        .then(r => r.headers.get('x-api-version'))
+        .catch(() => null);
+
+      Promise.race([versionFetch, timeout]).then(version => {
+        if (version) setLink(String(version));
+      });
     })();
   </script>
   <script src="/vendor/luxon.min.js"></script>
