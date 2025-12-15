@@ -963,8 +963,13 @@
                             // Mark transitioning to avoid overlap
                             _state.isTransitioning = !opts.immediate;
 
-                            // Reset both layers
-                            resetLayer(active);
+                            // Reset layers
+                            // Important: for Ken Burns we must NOT reset the outgoing (active) layer,
+                            // otherwise it snaps back to the default transform/scale during the fade.
+                            // Keep its animation running and only fade its opacity.
+                            if (effect !== 'kenburns') {
+                                resetLayer(active);
+                            }
                             resetLayer(inactive);
 
                             // Prepare inactive background
