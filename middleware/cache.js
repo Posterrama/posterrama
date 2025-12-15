@@ -252,7 +252,9 @@ const cacheMiddleware = {
     media: createCacheMiddleware({
         ttl: 30 * 60 * 1000, // 30 minutes (unfiltered content)
         skipIf: req =>
+            req.query.nocache === '1' ||
             req.query.nocache === 'true' ||
+            req.query.nocache === true ||
             req.query.musicMode === '1' ||
             req.query.musicMode === 'true' ||
             req.query.gamesOnly === '1' ||
@@ -263,7 +265,9 @@ const cacheMiddleware = {
     mediaFiltered: createCacheMiddleware({
         ttl: 5 * 60 * 1000, // 5 minutes (filtered content)
         skipIf: req =>
+            req.query.nocache === '1' ||
             req.query.nocache === 'true' ||
+            req.query.nocache === true ||
             req.query.musicMode === '1' ||
             req.query.musicMode === 'true' ||
             req.query.gamesOnly === '1' ||

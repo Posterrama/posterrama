@@ -23,6 +23,23 @@
 
     // (debug logging available via window.logger)
 
+    function isPreviewMode() {
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            return (
+                params.get('preview') === '1' ||
+                window.self !== window.top ||
+                window.Core?.isPreviewMode?.() ||
+                window.PosterramaCore?.isPreviewMode?.()
+            );
+        } catch (_) {
+            return false;
+        }
+    }
+
+    const IS_PREVIEW_MODE = isPreviewMode();
+    let cinemaModeInitialized = false;
+
     // Track effective background color for ton-sur-ton calculation
     let effectiveBgColor = '#000000';
 
@@ -3948,10 +3965,18 @@
                 url += '&excludeGames=1';
             }
 
+            // Preview must be “fresh” to avoid showing stale selections from cached responses.
+            if (IS_PREVIEW_MODE) {
+                url += `&nocache=true&cb=${Date.now()}`;
+            }
+
             debug('Fetching media', { url });
             const res = await fetch(url, {
-                cache: 'no-cache',
-                headers: { 'Cache-Control': 'no-cache' },
+                cache: IS_PREVIEW_MODE ? 'no-store' : 'no-cache',
+                headers: {
+                    'Cache-Control': IS_PREVIEW_MODE ? 'no-store' : 'no-cache',
+                    Pragma: 'no-cache',
+                },
             });
             if (!res.ok) {
                 error('Media fetch failed', { status: res.status, statusText: res.statusText });
@@ -4731,33 +4756,59 @@
     };
 
     // ===== Auto-Initialize on DOM Ready =====
+    async function initWithCinemaConfig(config) {
+        debug('Config loaded', config);
+
+        // Initialize burn-in prevention (loads dynamically if enabled)
+        // Note: burn-in prevention needs the full app config, not just cinema config
+        try {
+            if (window.PosterramaCore && window.PosterramaCore.initBurnInPrevention) {
+                // initBurnInPrevention will fetch full config internally if needed
+                await window.PosterramaCore.initBurnInPrevention();
+            }
+        } catch (_) {
+            // Burn-in prevention is optional
+        }
+
+        debug('Calling initCinemaMode...');
+        try {
+            initCinemaMode(config);
+            cinemaModeInitialized = true;
+            log('initCinemaMode completed successfully');
+        } catch (initError) {
+            error('initCinemaMode crashed', {
+                message: initError?.message,
+                stack: initError?.stack,
+            });
+        }
+    }
+
     async function autoInit() {
         try {
             debug('Auto-init starting...');
+
+            // In admin live preview, do NOT bootstrap from saved config. The admin UI will push
+            // an initial settings payload (via Core/settingsUpdated). Bootstrapping here can
+            // cause a brief flash of stale pinned posters / styling.
+            if (IS_PREVIEW_MODE) {
+                debug('Preview mode detected; waiting for first settings update before init');
+
+                // Fallback: if no preview init arrives (e.g., direct /cinema?preview=1), load config.
+                setTimeout(() => {
+                    if (cinemaModeInitialized) return;
+                    (async () => {
+                        const cfg = await loadCinemaConfig();
+                        await initWithCinemaConfig(cfg);
+                    })().catch(() => {
+                        /* ignore */
+                    });
+                }, 2000);
+
+                return;
+            }
+
             const config = await loadCinemaConfig();
-            debug('Config loaded', config);
-
-            // Initialize burn-in prevention (loads dynamically if enabled)
-            // Note: burn-in prevention needs the full app config, not just cinema config
-            try {
-                if (window.PosterramaCore && window.PosterramaCore.initBurnInPrevention) {
-                    // initBurnInPrevention will fetch full config internally if needed
-                    await window.PosterramaCore.initBurnInPrevention();
-                }
-            } catch (_) {
-                // Burn-in prevention is optional
-            }
-
-            debug('Calling initCinemaMode...');
-            try {
-                initCinemaMode(config);
-                log('initCinemaMode completed successfully');
-            } catch (initError) {
-                error('initCinemaMode crashed', {
-                    message: initError?.message,
-                    stack: initError?.stack,
-                });
-            }
+            await initWithCinemaConfig(config);
         } catch (e) {
             error('Auto-init failed', {
                 message: e?.message,
@@ -4802,6 +4853,14 @@
 
             // Check if cinema config object exists with settings
             if (settings.cinema && typeof settings.cinema === 'object') {
+                if (IS_PREVIEW_MODE && !cinemaModeInitialized) {
+                    // Bootstrap from pushed cinema settings to avoid any initial render using
+                    // stale saved config.
+                    void initWithCinemaConfig(settings.cinema).then(() => {
+                        handleConfigUpdate(settings);
+                    });
+                    return;
+                }
                 handleConfigUpdate(settings);
             }
         } catch (e) {
