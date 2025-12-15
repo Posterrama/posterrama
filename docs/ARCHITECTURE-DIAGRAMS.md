@@ -589,9 +589,9 @@ graph LR
  end
 
  subgraph "Admin Interface"
- A1[/api/admin/metrics]
- A2[/api/admin/logs/stream]
- A3[/api/health]
+ A1["/api/admin/metrics"]
+ A2["/api/admin/logs/stream"]
+ A3["/api/health"]
  end
 
  R1 --> M1
