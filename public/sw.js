@@ -1,7 +1,7 @@
 // Posterrama PWA Service Worker
-// Version 2.2.7 - Force cache refresh to clear old Next.js assets
+// Version 2.2.8 - Cache bump to refresh favicon asset
 
-const CACHE_NAME = 'posterrama-pwa-v2.2.7';
+const CACHE_NAME = 'posterrama-pwa-v2.2.8';
 const MEDIA_CACHE_NAME = 'posterrama-media-v1.1.1';
 
 // Cache limits to avoid QuotaExceededError
