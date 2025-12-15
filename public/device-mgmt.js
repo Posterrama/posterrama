@@ -2137,6 +2137,10 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                         // Handle settings.apply command from server broadcast
                         if (t === 'settings.apply' && msg.payload) {
                             try {
+                                const prevTransitionEffect =
+                                    typeof window !== 'undefined'
+                                        ? window.appConfig?.transitionEffect
+                                        : undefined;
                                 liveDbg('[Live] WS settings.apply received', {
                                     keys: Object.keys(msg.payload || {}),
                                 });
@@ -2164,6 +2168,52 @@ button#pr-do-pair, button#pr-close, button#pr-skip-setup {display: inline-block 
                                         detail: { settings: msg.payload },
                                     });
                                     window.dispatchEvent(event);
+                                }
+
+                                // If this is a screensaver transition-only change, apply it live.
+                                // Rationale: reloading is slow on TVs/tablets (SW cache + browser quirks)
+                                // and makes the UI feel unresponsive when toggling transition effects.
+                                try {
+                                    const keys = Object.keys(msg.payload || {});
+                                    const isScreensaver = currentMode() === 'screensaver';
+                                    const isTransitionOnly =
+                                        keys.length > 0 &&
+                                        keys.every(k =>
+                                            [
+                                                'transitionEffect',
+                                                'transitionIntervalSeconds',
+                                            ].includes(k)
+                                        );
+
+                                    if (isScreensaver && isTransitionOnly) {
+                                        // Ensure the change is visible immediately by forcing
+                                        // a next transition (uses the newly selected effect).
+                                        const nextTransitionEffect =
+                                            window.appConfig?.transitionEffect;
+                                        const changedEffect =
+                                            prevTransitionEffect !== undefined &&
+                                            nextTransitionEffect !== undefined &&
+                                            prevTransitionEffect !== nextTransitionEffect;
+
+                                        if (changedEffect) {
+                                            setTimeout(() => {
+                                                try {
+                                                    window.PosterramaScreensaver?.showNextBackground?.(
+                                                        {
+                                                            forceNext: true,
+                                                        }
+                                                    );
+                                                } catch (_) {
+                                                    /* noop */
+                                                }
+                                            }, 50);
+                                        }
+
+                                        sendAck('ok');
+                                        return;
+                                    }
+                                } catch (_) {
+                                    /* noop */
                                 }
 
                                 // For most settings changes, reload the page to ensure they take effect
