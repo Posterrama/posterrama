@@ -35,6 +35,7 @@ if (!fs.existsSync(configPath)) {
 // Shared logger for config maintenance (migrations/self-heal). Keep console.error for fatal messages
 // (some tests assert console usage).
 const logger = require('../utils/logger');
+const { normalizeCinematicTransitions } = require('../utils/cinema-transition-compat');
 
 function envFlag(name) {
     const raw = String(process.env[name] || '')
@@ -787,6 +788,22 @@ function migrateConfig(cfg, options = {}) {
                 modified = true;
             }
         }
+    }
+
+    // === PROMOTIONAL ===
+    // === CINEMATIC TRANSITIONS (compat) ===
+    // Normalize deprecated/removed transition names so existing installs keep starting.
+    // This must run before schema validation because config.schema.json enumerates valid transitions.
+    try {
+        const { changed } = normalizeCinematicTransitions(cfg);
+        if (changed) {
+            if (report) {
+                report.migration('[Config Migration] Normalized cinematic transition names');
+            }
+            modified = true;
+        }
+    } catch (_) {
+        // Never block startup on compat normalization failures
     }
 
     // === PROMOTIONAL ===
