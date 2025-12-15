@@ -491,10 +491,19 @@ app.use((req, res, next) => {
         const cookies = String(req.headers['cookie'] || '');
         if (!/(^|;\s*)pr_iid=/.test(cookies)) {
             const iid = require('crypto').randomUUID();
-            res.setHeader(
-                'Set-Cookie',
-                `pr_iid=${encodeURIComponent(iid)}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Lax`
-            );
+            const cookieValue = `pr_iid=${encodeURIComponent(
+                iid
+            )}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Lax`;
+
+            // Never overwrite existing Set-Cookie headers (e.g. express-session).
+            const existing = res.getHeader('Set-Cookie');
+            if (!existing) {
+                res.setHeader('Set-Cookie', cookieValue);
+            } else if (Array.isArray(existing)) {
+                res.setHeader('Set-Cookie', [...existing, cookieValue]);
+            } else {
+                res.setHeader('Set-Cookie', [String(existing), cookieValue]);
+            }
         }
     } catch (_) {
         // ignore cookie seeding failures
