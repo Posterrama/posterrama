@@ -1334,6 +1334,20 @@
                             effectiveLayoutVariant = 'classic';
                         }
 
+                        // If we are NOT in filmCards anymore, stop any previous FilmCards intervals.
+                        if (
+                            effectiveLayoutVariant !== 'filmCards' &&
+                            typeof window.FilmCards !== 'undefined' &&
+                            window.FilmCards &&
+                            typeof window.FilmCards.stop === 'function'
+                        ) {
+                            try {
+                                window.FilmCards.stop();
+                            } catch (_) {
+                                // ignore
+                            }
+                        }
+
                         if (effectiveLayoutVariant === 'heroGrid') {
                             // Determine hero settings
                             const heroCfg = (wallartConfig.layoutSettings || {}).heroGrid || {};
@@ -1692,6 +1706,7 @@
                                     container: wallartGrid,
                                     mediaQueue: mediaQueue,
                                     appConfig: window.appConfig,
+                                    isPreview: window.IS_PREVIEW === true,
                                 });
 
                                 // Update state from FilmCards result

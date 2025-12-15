@@ -391,7 +391,8 @@
                         const layoutVariant = window.appConfig?.wallartMode?.layoutVariant;
                         let previewCount = 200;
                         if (musicMode) previewCount = 200;
-                        else if (layoutVariant === 'filmCards') previewCount = 1000;
+                        // Film Cards is intentionally heavy; keep preview lightweight to avoid freezing admin.
+                        else if (layoutVariant === 'filmCards') previewCount = 300;
                         else if (gamesOnly) previewCount = 500;
 
                         const type = (window.appConfig && window.appConfig.type) || 'movie';

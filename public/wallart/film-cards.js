@@ -9,12 +9,54 @@ console.log('[Film Cards] Script loaded - setting up message listener');
     'use strict';
 
     window.FilmCards = {
+        _isPreview: false,
+        _groupRotationIntervalId: null,
+        _posterRotationIntervalId: null,
+
+        stop() {
+            try {
+                if (this._groupRotationIntervalId) {
+                    clearInterval(this._groupRotationIntervalId);
+                }
+            } catch (_) {
+                // ignore
+            }
+            this._groupRotationIntervalId = null;
+
+            try {
+                if (this._posterRotationIntervalId) {
+                    clearInterval(this._posterRotationIntervalId);
+                }
+            } catch (_) {
+                // ignore
+            }
+            this._posterRotationIntervalId = null;
+        },
+
+        sampleMedia(items, targetCount) {
+            if (!Array.isArray(items)) return [];
+            const n = items.length;
+            if (!Number.isFinite(targetCount) || targetCount <= 0) return [];
+            if (n <= targetCount) return items;
+
+            // Deterministic-ish downsample (fast, avoids shuffle of huge arrays)
+            const step = Math.max(1, Math.floor(n / targetCount));
+            const out = [];
+            for (let i = 0; i < n && out.length < targetCount; i += step) {
+                out.push(items[i]);
+            }
+            return out;
+        },
+
         /**
          * Initialize film cards display
          * @param {object} params - Configuration parameters
          * @returns {object} State object with currentPosters and usedPosters
          */
         initialize(params) {
+            // Important: preview/admin can reinitialize rapidly on live setting changes.
+            // Clear any previous timers to avoid accumulating intervals and freezing the browser.
+            this.stop();
             console.log('[Film Cards] Initialize called with:', {
                 hasContainer: !!params.container,
                 mediaCount: params.mediaQueue?.length || 0,
@@ -23,10 +65,23 @@ console.log('[Film Cards] Script loaded - setting up message listener');
 
             const { container, mediaQueue = [], appConfig = {} } = params;
 
+            const isPreview =
+                params?.isPreview === true ||
+                window.IS_PREVIEW === true ||
+                (window.PosterramaCore &&
+                    typeof window.PosterramaCore.isPreviewMode === 'function' &&
+                    window.PosterramaCore.isPreviewMode());
+
+            this._isPreview = !!isPreview;
+
             if (!container || !mediaQueue.length) {
                 console.log('[Film Cards] Early return - no container or media');
                 return { currentPosters: [], usedPosters: new Set() };
             }
+
+            // Admin preview runs inside an iframe and can easily freeze the main admin tab.
+            // Keep film-cards preview intentionally lightweight.
+            const mediaForGrouping = isPreview ? this.sampleMedia(mediaQueue, 260) : mediaQueue;
 
             // Inject CSS animations
             if (!document.getElementById('film-cards-animations')) {
@@ -67,16 +122,16 @@ console.log('[Film Cards] Script loaded - setting up message listener');
             let groupsMap;
             switch (groupBy) {
                 case 'director':
-                    groupsMap = this.groupByDirector(mediaQueue, minGroupSize);
+                    groupsMap = this.groupByDirector(mediaForGrouping, minGroupSize);
                     break;
                 case 'genre':
-                    groupsMap = this.groupByGenre(mediaQueue, minGroupSize);
+                    groupsMap = this.groupByGenre(mediaForGrouping, minGroupSize);
                     break;
                 case 'actor':
-                    groupsMap = this.groupByActor(mediaQueue, minGroupSize);
+                    groupsMap = this.groupByActor(mediaForGrouping, minGroupSize);
                     break;
                 case 'collection':
-                    groupsMap = this.groupByCollection(mediaQueue, minGroupSize);
+                    groupsMap = this.groupByCollection(mediaForGrouping, minGroupSize);
                     break;
                 case 'random':
                 default: {
@@ -85,13 +140,13 @@ console.log('[Film Cards] Script loaded - setting up message listener');
                     const randomMode = modes[Math.floor(Math.random() * modes.length)];
                     console.log('[Film Cards] Random mode selected:', randomMode);
                     if (randomMode === 'director') {
-                        groupsMap = this.groupByDirector(mediaQueue, minGroupSize);
+                        groupsMap = this.groupByDirector(mediaForGrouping, minGroupSize);
                     } else if (randomMode === 'genre') {
-                        groupsMap = this.groupByGenre(mediaQueue, minGroupSize);
+                        groupsMap = this.groupByGenre(mediaForGrouping, minGroupSize);
                     } else if (randomMode === 'actor') {
-                        groupsMap = this.groupByActor(mediaQueue, minGroupSize);
+                        groupsMap = this.groupByActor(mediaForGrouping, minGroupSize);
                     } else {
-                        groupsMap = this.groupByCollection(mediaQueue, minGroupSize);
+                        groupsMap = this.groupByCollection(mediaForGrouping, minGroupSize);
                     }
                     break;
                 }
@@ -103,6 +158,12 @@ console.log('[Film Cards] Script loaded - setting up message listener');
             if (groups.length === 0) {
                 console.warn('[Film Cards] No groups found after grouping');
                 return { currentPosters: [], usedPosters: new Set() };
+            }
+
+            // In preview mode: cap group count to keep DOM + timers small.
+            if (isPreview) {
+                const maxGroups = 12;
+                groups = groups.sort((a, b) => b.films.length - a.films.length).slice(0, maxGroups);
             }
 
             // Shuffle groups randomly
@@ -136,6 +197,16 @@ console.log('[Film Cards] Script loaded - setting up message listener');
 
             const showGroup = () => {
                 console.log('[Film Cards] Showing group', currentGroupIndex);
+
+                // Stop any previous poster rotation immediately (don't wait for next interval tick).
+                if (this._posterRotationIntervalId) {
+                    try {
+                        clearInterval(this._posterRotationIntervalId);
+                    } catch (_) {
+                        // ignore
+                    }
+                    this._posterRotationIntervalId = null;
+                }
                 container.innerHTML = '';
 
                 const groupData = groups[currentGroupIndex];
@@ -144,7 +215,11 @@ console.log('[Film Cards] Script loaded - setting up message listener');
                 container.appendChild(currentCard);
 
                 // Start poster rotation for this group's card
-                this.startPosterRotation(currentCard, groupData, posterRotationSeconds);
+                this._posterRotationIntervalId = this.startPosterRotation(
+                    currentCard,
+                    groupData,
+                    posterRotationSeconds
+                );
             };
 
             // Initial display
@@ -152,7 +227,7 @@ console.log('[Film Cards] Script loaded - setting up message listener');
             showGroup();
 
             // Rotate to next group
-            setInterval(() => {
+            this._groupRotationIntervalId = setInterval(() => {
                 currentGroupIndex = (currentGroupIndex + 1) % groups.length;
                 showGroup();
             }, cardRotationSeconds * 1000);
@@ -479,6 +554,7 @@ console.log('[Film Cards] Script loaded - setting up message listener');
         createFilmCard(groupData, groupBy, accentColor = '#b40f0f') {
             // Detect portrait orientation
             const isPortrait = window.innerHeight > window.innerWidth;
+            const isPreview = this._isPreview === true;
 
             const card = document.createElement('div');
             card.className = 'film-card';
@@ -498,6 +574,8 @@ console.log('[Film Cards] Script loaded - setting up message listener');
             `;
 
             // FIRST: Select which posters will be shown (shuffled)
+            // In preview, keep the same grid density as the real display.
+            // Reducing maxPosters makes each poster tile extremely large.
             const maxPosters = isPortrait ? 5 : 8;
             const postersToShow = [];
             const usedIds = new Set();
@@ -547,7 +625,7 @@ console.log('[Film Cards] Script loaded - setting up message listener');
                         height: 285%;
                         object-fit: cover;
                         object-position: center top;
-                        filter: grayscale(100%) contrast(1.2) brightness(0.9);
+                        ${isPreview ? '' : 'filter: grayscale(100%) contrast(1.2) brightness(0.9);'}
                     `;
                     redContainer.appendChild(redPhoto);
 
@@ -563,7 +641,7 @@ console.log('[Film Cards] Script loaded - setting up message listener');
                         position: absolute;
                         inset: 0;
                         background: linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.92), rgba(${darkRgb.r}, ${darkRgb.g}, ${darkRgb.b}, 0.95));
-                        mix-blend-mode: multiply;
+                        ${isPreview ? '' : 'mix-blend-mode: multiply;'}
                         pointer-events: none;
                     `;
                     redContainer.appendChild(redOverlay);
@@ -607,7 +685,7 @@ console.log('[Film Cards] Script loaded - setting up message listener');
                         height: 100%;
                         object-fit: cover;
                         object-position: left center;
-                        filter: grayscale(100%) contrast(1.2) brightness(0.9);
+                        ${isPreview ? '' : 'filter: grayscale(100%) contrast(1.2) brightness(0.9);'}
                     `;
                     redContainer.appendChild(redPhoto);
 
@@ -624,7 +702,7 @@ console.log('[Film Cards] Script loaded - setting up message listener');
                         position: absolute;
                         inset: 0;
                         background: linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.92), rgba(${darkRgb.r}, ${darkRgb.g}, ${darkRgb.b}, 0.95));
-                        mix-blend-mode: multiply;
+                        ${isPreview ? '' : 'mix-blend-mode: multiply;'}
                         pointer-events: none;
                     `;
                     redContainer.appendChild(redOverlay);
@@ -956,13 +1034,13 @@ console.log('[Film Cards] Script loaded - setting up message listener');
         startPosterRotation(card, groupData, rotationSeconds) {
             if (!groupData.films || groupData.films.length <= 1) {
                 console.log('[Film Cards] Not enough films to rotate for', groupData.name);
-                return;
+                return null;
             }
 
             const posterGrid = card.querySelector('.film-poster-grid');
             if (!posterGrid) {
                 console.warn('[Film Cards] Could not find poster grid');
-                return;
+                return null;
             }
 
             const allFilms = [...groupData.films];
@@ -1060,6 +1138,8 @@ console.log('[Film Cards] Script loaded - setting up message listener');
                     });
                 }
             }, rotationSeconds * 1000);
+
+            return rotationInterval;
         },
 
         /**
