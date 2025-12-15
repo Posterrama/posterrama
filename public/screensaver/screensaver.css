@@ -13,6 +13,24 @@ body[data-mode='screensaver'] {
     --ss-scene-opacity: 1;
     --ss-scene-ms: 900ms;
     --ss-scene-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Classic Ken Burns (background only) driven by JS */
+    --ss-kb-from-x: 0vw;
+    --ss-kb-from-y: 0vh;
+    --ss-kb-to-x: 0vw;
+    --ss-kb-to-y: 0vh;
+    --ss-kb-from-scale: 1.06;
+    --ss-kb-to-scale: 1.14;
+}
+
+@keyframes ss-kenburns {
+    from {
+        transform: translate3d(var(--ss-kb-from-x), var(--ss-kb-from-y), 0)
+            scale(var(--ss-kb-from-scale));
+    }
+    to {
+        transform: translate3d(var(--ss-kb-to-x), var(--ss-kb-to-y), 0) scale(var(--ss-kb-to-scale));
+    }
 }
 
 /* Foreground scene elements */

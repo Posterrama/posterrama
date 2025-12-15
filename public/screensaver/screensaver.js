@@ -891,6 +891,7 @@
                         try {
                             layer.style.animation = 'none';
                             layer.removeAttribute('data-ken-burns');
+                            layer.removeAttribute('data-ss-kenburns');
                             layer.style.transition = 'none';
                             layer.style.transform = 'translate3d(0,0,0)';
                         } catch (_) {
@@ -927,26 +928,18 @@
                         const effect = String(
                             window.appConfig?.transitionEffect || 'kenburns'
                         ).toLowerCase();
-                        const pauseSecRaw = Number(window.appConfig?.effectPauseTime ?? 3);
-                        const pauseMsRequested =
-                            Number.isFinite(pauseSecRaw) && pauseSecRaw > 0
-                                ? Math.floor(pauseSecRaw * 1000)
-                                : 0;
 
-                        const pauseMs = effect === 'kenburns' ? 0 : Math.max(0, pauseMsRequested);
-                        const minEffectMs = 320;
-                        const maxPauseMs = Math.max(0, intervalMs - minEffectMs);
-                        const pauseMsClamped = Math.min(pauseMs, maxPauseMs);
-                        const effectMs =
-                            effect === 'kenburns'
-                                ? intervalMs
-                                : Math.max(minEffectMs, intervalMs - pauseMsClamped);
+                        // Keep non-KenBurns transitions short so the image is mostly static.
+                        // Ken Burns animates continuously for the full interval.
+                        const transitionMs = Math.max(
+                            320,
+                            Math.min(1400, Math.round(intervalMs * 0.22))
+                        );
 
                         return {
                             effect,
                             intervalMs,
-                            pauseMs: pauseMsClamped,
-                            effectMs,
+                            transitionMs,
                         };
                     };
 
@@ -964,7 +957,8 @@
                     const img = new Image();
                     img.onload = () => {
                         try {
-                            const { effect, effectMs } = getTimings();
+                            const { effect, intervalMs, transitionMs } = getTimings();
+                            const effectMs = effect === 'kenburns' ? intervalMs : transitionMs;
 
                             // Mark transitioning to avoid overlap
                             _state.isTransitioning = !opts.immediate;
@@ -1084,27 +1078,46 @@
                                     _state.isTransitioning = false;
                                 }, effectMs + 50);
                             } else {
-                                // Ken Burns: animate background continuously for full interval
-                                const kbNames = [
-                                    'kenburns-zoom-in-tl',
-                                    'kenburns-zoom-in-tr',
-                                    'kenburns-zoom-in-bl',
-                                    'kenburns-zoom-in-br',
-                                    'kenburns-zoom-out-tl',
-                                    'kenburns-zoom-out-tr',
-                                    'kenburns-zoom-out-bl',
-                                    'kenburns-zoom-out-br',
-                                ];
-                                const name = kbNames[Math.floor(Math.random() * kbNames.length)];
-                                const durSec = Math.max(5, Math.round(effectMs / 1000));
-                                const crossfadeMs = Math.min(
-                                    1500,
-                                    Math.max(500, Math.round(effectMs * 0.25))
+                                // Classic Ken Burns: slow pan + zoom with a gentle crossfade.
+                                // (No effectPauseTime; the animation itself is the whole interval.)
+                                const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+                                const rand = (min, max) => min + Math.random() * (max - min);
+
+                                const crossfadeMs = clamp(Math.round(intervalMs * 0.16), 650, 1600);
+                                const safeCrossfadeMs = clamp(crossfadeMs, 350, intervalMs - 400);
+
+                                // Pan ranges (vw/vh) are small; scale ensures no edge reveal.
+                                const zoomIn = Math.random() < 0.75;
+                                const fromScale = zoomIn ? rand(1.03, 1.08) : rand(1.1, 1.17);
+                                const toScale = zoomIn ? rand(1.1, 1.17) : rand(1.03, 1.08);
+
+                                const fromX = rand(-4, 4);
+                                const fromY = rand(-3, 3);
+                                const toX = rand(-4, 4);
+                                const toY = rand(-3, 3);
+
+                                inactive.setAttribute('data-ss-kenburns', 'true');
+                                inactive.style.setProperty(
+                                    '--ss-kb-from-x',
+                                    `${fromX.toFixed(2)}vw`
+                                );
+                                inactive.style.setProperty(
+                                    '--ss-kb-from-y',
+                                    `${fromY.toFixed(2)}vh`
+                                );
+                                inactive.style.setProperty('--ss-kb-to-x', `${toX.toFixed(2)}vw`);
+                                inactive.style.setProperty('--ss-kb-to-y', `${toY.toFixed(2)}vh`);
+                                inactive.style.setProperty(
+                                    '--ss-kb-from-scale',
+                                    String(fromScale.toFixed(3))
+                                );
+                                inactive.style.setProperty(
+                                    '--ss-kb-to-scale',
+                                    String(toScale.toFixed(3))
                                 );
 
-                                inactive.setAttribute('data-ken-burns', 'true');
                                 inactive.style.opacity = '0';
-                                inactive.style.animation = `${name} ${durSec}s ease-in-out forwards`;
+                                inactive.style.animation = `ss-kenburns ${intervalMs}ms ease-in-out forwards`;
                                 inactive.style.transition = `opacity ${crossfadeMs}ms ease-in-out`;
                                 active.style.transition = `opacity ${crossfadeMs}ms ease-in-out`;
                                 requestAnimationFrame(() => {
@@ -1131,12 +1144,8 @@
                                     } catch (_) {
                                         /* noop */
                                     }
-                                }, crossfadeMs + 50);
-
-                                // Allow next transition after the full interval
-                                setTimeout(() => {
                                     _state.isTransitioning = false;
-                                }, effectMs + 50);
+                                }, safeCrossfadeMs + 50);
                             }
 
                             // Ensure visibility immediately after updating info to prevent flash
@@ -1284,10 +1293,10 @@
                     const lb = document.getElementById('layer-b');
                     if (!la || !lb) return false;
                     return (
-                        (la.hasAttribute('data-ken-burns') &&
-                            la.getAttribute('data-ken-burns') !== 'false') ||
-                        (lb.hasAttribute('data-ken-burns') &&
-                            lb.getAttribute('data-ken-burns') !== 'false')
+                        (la.hasAttribute('data-ss-kenburns') &&
+                            la.getAttribute('data-ss-kenburns') !== 'false') ||
+                        (lb.hasAttribute('data-ss-kenburns') &&
+                            lb.getAttribute('data-ss-kenburns') !== 'false')
                     );
                 } catch (_) {
                     return false; // Return false if an error occurs
@@ -1377,11 +1386,7 @@
                     const oldConfig = window.appConfig || {};
 
                     // Settings that affect timing/cycling and require restart
-                    const restartSettings = [
-                        'transitionEffect',
-                        'transitionIntervalSeconds',
-                        'effectPauseTime',
-                    ];
+                    const restartSettings = ['transitionEffect', 'transitionIntervalSeconds'];
 
                     // Visual settings that only need UI update
                     const visualSettings = [
