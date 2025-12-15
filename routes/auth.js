@@ -12,6 +12,8 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
+const pkg = require('../package.json');
+
 const logger = require('../utils/logger');
 
 /**
@@ -280,10 +282,12 @@ module.exports = function createAuthRouter({
             const versions = getAssetVersions(path.join(__dirname, '..'));
 
             // Replace asset version placeholders with individual file versions
-            const stamped = contents.replace(
-                /admin\.css\?v=[^"&\s]+/g,
-                `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`
-            );
+            const stamped = contents
+                .replace(
+                    /admin\.css\?v=[^"&\s]+/g,
+                    `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`
+                )
+                .replace(/__POSTERRAMA_VERSION__/g, String(process.env.APP_VERSION || pkg.version));
 
             res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
             res.send(stamped);
