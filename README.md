@@ -254,12 +254,15 @@ Setup is straightforward—just enable MQTT in Posterrama settings, point it to 
 
 ### Technical features
 
-- Smart multi‑tier caching (memory + disk) with intelligent expiration
-- Optimized image pipeline for fast loads and crisp 4K output
-- Efficient WebSocket updates for live device control and instant settings apply
-- Robust logging with compact Notification Center (filters, levels)
-- Resilient configuration (/get-config) with schema validation and safe defaults
-- API-first design with OpenAPI docs at /api-docs
+- Reverse‑proxy aware sessions and cookies (safe defaults for HTTPS termination / Cloudflare / nginx)
+- Brute‑force protection on admin auth (rate limiting + hardened login flow)
+- Configuration safety rails: schema validation + startup checks + clear error paths (fail fast instead of “half‑broken”)
+- Built‑in backup/restore for critical state (config + devices/profiles) to recover quickly
+- Multi-tier caching (memory + disk) designed to keep displays responsive even on slower storage or large libraries
+- Real-time control channel with resilient device presence (WebSocket hub with heartbeat/online detection)
+- Operational visibility: structured logs + in-app Notification Center + metrics endpoints for monitoring
+- API-first architecture with documented contracts (OpenAPI/Swagger) for automation and integrations
+- Safe file handling patterns (uploads/storage with defensive validation/locking to avoid corruption under concurrency)
 
 ## System requirements
 
