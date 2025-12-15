@@ -134,7 +134,7 @@ Optional Hardening
 - Run behind a reverse proxy (nginx/traefik) terminating TLS.
 - Set NODE_ENV=production to reduce verbose logs, ensure production Express settings.
 - Use a dedicated network security group / firewall rule limiting port 4000 to trusted IPs (or just expose reverse proxy).
-- Periodically run: npm run deps:audit and npm run deps:health
+- Periodically run: npm run deps:audit
 
 Common Pitfalls
 ---------------
