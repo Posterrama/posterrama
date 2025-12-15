@@ -90,7 +90,8 @@ module.exports = async () => {
         }
 
         // Clean up runtime artifacts generated during Jest runs
-        safeRimrafDirContents(path.join(root, 'sessions'));
+        // NOTE: Never wipe the live `sessions/` directory; the app may be running from this workspace.
+        safeRimrafDirContents(path.join(root, 'sessions-test'));
         safeRimrafDirContents(path.join(root, 'image_cache'));
         safeRimrafDirContents(path.join(root, 'logs'));
     } catch (_) {

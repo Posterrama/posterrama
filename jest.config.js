@@ -101,6 +101,7 @@ module.exports = {
         '/__tests__/',
         '/logs/',
         '/sessions/',
+        '/sessions-test/',
         '/image_cache/',
         '/screenshots/',
         '/public/',

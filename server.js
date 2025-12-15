@@ -380,8 +380,12 @@ const autoUpdater = require('./utils/updater');
 
 // Session middleware setup (must come BEFORE any middleware/routes that access req.session)
 // Create a session store that gracefully ignores missing files (ENOENT)
+// IMPORTANT: Keep test sessions isolated so running Jest on a live install doesn't wipe real sessions.
+const __sessionsDir = process.env.SESSION_DIR
+    ? path.resolve(String(process.env.SESSION_DIR))
+    : path.join(__dirname, env.server.nodeEnv === 'test' ? 'sessions-test' : 'sessions');
 const __fileStore = new FileStore({
-    path: path.join(__dirname, 'sessions'), // Sessions will be stored in a stable, absolute directory
+    path: __sessionsDir, // Sessions will be stored in a stable, absolute directory
     logFn: isDebug ? logger.debug : () => {},
     ttl: 86400 * 7, // Session TTL in seconds (7 days)
     reapInterval: 86400, // Clean up expired sessions once a day
