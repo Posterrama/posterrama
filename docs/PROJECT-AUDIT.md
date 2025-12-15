@@ -15,6 +15,9 @@ Last updated: 2025-12-15
 - Runtime sync filesystem I/O: major hot paths migrated off `fs.*Sync` (including logger init and updater worker logging).
 - Config maintenance logging: `config/validate-env.js` no longer spams `console.log`; uses the shared logger + quiet/verbose + summary.
 - Metrics cardinality guardrails: HTTP metrics now use route templates (baseUrl + route path) and Prometheus HTTP request metrics are recorded.
+- ZIP exports: abort work on client disconnect (ZIP streaming routes stop traversal and abort the archive on disconnect).
+- Error taxonomy: error responses now include an additive `code` field (e.g. `invalid_request`, `not_found`, `internal_error`).
+- Security regression tests: enforce admin auth boundary + local-directory traversal/symlink protections.
 
 ## Open items (the only things worth tracking here)
 
@@ -24,17 +27,9 @@ Last updated: 2025-12-15
     - Goal: fewer inline routes/special-cases; more route factories and services.
     - Payoff: lower regression probability and easier changes.
 
-2. ZIP exports: stop work on client disconnect
-    - Status: output is streamed and bounded; remaining waste is CPU/disk if the client drops.
-    - Fix: abort traversal/archiving quickly on `req`/`res` close.
-
-3. Standardize error codes (small taxonomy)
-    - Goal: stable error-code vocabulary + consistent HTTP mapping.
-    - Payoff: better client UX and meaningful alerting.
-
-4. Targeted security regression tests
-    - Admin endpoints auth boundary as a testable invariant.
-    - Local-directory traversal attempts (incl. symlink policy if applicable).
+2. (Optional) Tighten the admin-auth boundary test
+    - Current invariant: every `/api/admin/*` route definition contains an auth middleware.
+    - If desired: make it stricter (e.g., require auth middleware before the handler, not just present in the argument list).
 
 ### P2 (nice improvements that pay off)
 
