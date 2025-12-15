@@ -141,13 +141,15 @@ if (Array.isArray(config.mediaServers)) {
         }
     });
     if (needsSave) {
-        try {
-            const configPath = path.join(__dirname, 'config.json');
-            fs.writeFileSync(configPath, JSON.stringify(config, null, 4), 'utf8');
-            logger.info('[Config Migration] Added missing "name" fields to mediaServers');
-        } catch (e) {
-            logger.warn('[Config Migration] Could not save updated config:', e.message);
-        }
+        const configPath = path.join(__dirname, 'config.json');
+        void fsp
+            .writeFile(configPath, JSON.stringify(config, null, 4), 'utf8')
+            .then(() => {
+                logger.info('[Config Migration] Added missing "name" fields to mediaServers');
+            })
+            .catch(e => {
+                logger.warn('[Config Migration] Could not save updated config:', e.message);
+            });
     }
 }
 
