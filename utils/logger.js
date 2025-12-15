@@ -25,12 +25,14 @@ function ensureLogsDirReady() {
  */
 function addFileTransports(inst) {
     // Guard: avoid duplicate file transports
-    const hasCombined = inst.transports.some(
-        t => t && t.filename && String(t.filename).endsWith(path.join('logs', 'combined.log'))
-    );
-    const hasError = inst.transports.some(
-        t => t && t.filename && String(t.filename).endsWith(path.join('logs', 'error.log'))
-    );
+    const hasCombined = inst.transports.some(t => {
+        const filename = t ? /** @type {any} */ (t).filename : undefined;
+        return filename && String(filename).endsWith(path.join('logs', 'combined.log'));
+    });
+    const hasError = inst.transports.some(t => {
+        const filename = t ? /** @type {any} */ (t).filename : undefined;
+        return filename && String(filename).endsWith(path.join('logs', 'error.log'));
+    });
     if (hasCombined && hasError) return;
 
     inst.add(
@@ -232,6 +234,7 @@ function buildTransports(inst, { forTest = false } = {}) {
  *   fatal: (...args: any[]) => winston.Logger,
  *   __resetMemory: () => void,
  *   __ping: () => boolean,
+ *   __diskLoggingScheduled?: boolean,
  *   shouldExcludeFromAdmin?: (message: string) => boolean,
  *   getRecentLogs?: (level?: string | null, limit?: number, offset?: number, testOnly?: boolean) => LogEntry[],
  *   updateLogLevelFromDebug?: () => void

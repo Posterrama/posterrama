@@ -4526,7 +4526,7 @@
                                         },
                                         "hasUpdate": {
                                             "type": "boolean",
-                                            "example": false
+                                            "example": true
                                         },
                                         "updateType": {
                                             "type": "string",
@@ -4550,7 +4550,7 @@
                                         },
                                         "releaseName": {
                                             "type": "string",
-                                            "example": "Version 3.0.0 - GitHub Integration"
+                                            "example": "Version 3.0.0"
                                         }
                                     }
                                 },

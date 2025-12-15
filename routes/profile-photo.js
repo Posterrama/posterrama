@@ -25,8 +25,8 @@ const fsp = fs.promises;
 /**
  * Create profile photo router
  * @param {Object} deps - Dependencies
- * @param {Function} deps.adminAuth - Admin authentication middleware
- * @param {Function} deps.getAvatarPath - Get avatar file path helper
+ * @param {import('express').RequestHandler} deps.adminAuth - Admin authentication middleware
+ * @param {(username: string, avatarDir: string) => Promise<string|null>} deps.getAvatarPath - Get avatar file path helper
  * @param {string} deps.avatarDir - Avatar storage directory path
  * @returns {express.Router} Configured router
  */
