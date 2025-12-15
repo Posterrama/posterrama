@@ -235,6 +235,7 @@ check_code_quality() {
         ! -path "./backups/config/*" \
         ! -path "./devices.json.backup" \
         ! -path "./config.json.backup" \
+        ! -path "./profiles.json.backup" \
         ! -path "./.env.backup" \
         2>/dev/null)
     if [[ -z "$BACKUP_FILES_ALL" ]]; then
