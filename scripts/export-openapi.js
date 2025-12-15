@@ -13,6 +13,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const prettier = require('prettier');
 
 // Force fresh require of swagger.js
 delete require.cache[require.resolve('../swagger.js')];
@@ -29,9 +30,18 @@ const swagger = require('../swagger');
 
         await fs.promises.mkdir(outDir, { recursive: true });
 
-        // Write with 4-space indentation (consistent with sync-openapi.js)
-        // and a trailing newline to avoid noisy diffs.
-        await fs.promises.writeFile(outFile, JSON.stringify(spec, null, 4) + '\n');
+        // Keep formatting stable to avoid noisy diffs.
+        // Prettier's JSON printer behaves slightly differently depending on input formatting,
+        // so feed it a consistently-indented string first.
+        const prettierConfig = (await prettier.resolveConfig(outFile)) || {};
+        let output = await prettier.format(JSON.stringify(spec, null, 4), {
+            ...prettierConfig,
+            parser: 'json',
+        });
+        if (!output.endsWith('\n')) {
+            output += '\n';
+        }
+        await fs.promises.writeFile(outFile, output);
 
         console.log('✅ OpenAPI spec exported to', outFile);
         console.log(`📊 Endpoints: ${Object.keys(spec.paths || {}).length}`);
