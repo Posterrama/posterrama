@@ -7,6 +7,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const deepMerge = require('../utils/deep-merge');
+const { normalizeCinematicTransitions } = require('../utils/cinema-transition-compat');
 
 // Cache for RomM platform counts (30 minute TTL)
 const rommPlatformCache = new Map();
@@ -108,6 +109,13 @@ module.exports = function createAdminConfigRouter({
             if (isDebug) logger.debug('[Admin API] Request received for /api/admin/config.');
             const currentConfig = await readConfig();
             if (isDebug) logger.debug('[Admin API] Successfully read config.json.');
+
+            // Backward-compatible: migrate deprecated cinematic transition names in responses
+            try {
+                normalizeCinematicTransitions(currentConfig);
+            } catch (_) {
+                // best-effort
+            }
 
             // Convert streaming sources array to object format for admin panel
             if (currentConfig.streamingSources && Array.isArray(currentConfig.streamingSources)) {
@@ -383,6 +391,13 @@ module.exports = function createAdminConfigRouter({
             if (mergedConfig.tmdbSource && mergedConfig.tmdbSource.apiKey == null) {
                 mergedConfig.tmdbSource.apiKey = '';
                 logger.debug('[TMDB Debug] Normalized missing apiKey to empty string');
+            }
+
+            // Backward-compatible: migrate deprecated cinematic transition names before persisting
+            try {
+                normalizeCinematicTransitions(mergedConfig);
+            } catch (_) {
+                // best-effort
             }
 
             // Detect mode changes for broadcast to devices

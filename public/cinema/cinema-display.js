@@ -86,24 +86,19 @@
             cinematicTransitions: {
                 enabledTransitions: [
                     'fade',
-                    'zoomIn',
                     'slideUp',
                     'cinematic',
                     'lightFlare',
                     'shatter',
-                    'spotlight',
                     'unfold',
                     'swing',
                     'ripple',
                     'curtainReveal',
                     'filmGate',
                     'projectorFlicker',
-                    'rackFocus',
-                    'lightSweep',
                     'parallaxFloat',
                     'dollyIn',
                     'splitFlap',
-                    'smokeFade',
                     'lensIris',
                 ],
                 selectionMode: 'random', // random, sequential, smart, single
@@ -2603,48 +2598,52 @@
 
     // ===== Transition Selection =====
     // All available transitions
+    const LEGACY_TRANSITION_MAP = {
+        zoomIn: 'dollyIn',
+        spotlight: 'lensIris',
+        rackFocus: 'cinematic',
+        lightSweep: 'lightFlare',
+        smokeFade: 'fade',
+    };
+    const mapTransition = t => (LEGACY_TRANSITION_MAP[t] ? LEGACY_TRANSITION_MAP[t] : t);
+
     const ALL_TRANSITIONS = [
         'fade',
-        'zoomIn',
         'slideUp',
         'cinematic',
         'lightFlare',
         'shatter',
-        'spotlight',
         'unfold',
         'swing',
         'ripple',
         'curtainReveal',
         'filmGate',
         'projectorFlicker',
-        'rackFocus',
-        'lightSweep',
         'parallaxFloat',
         'dollyIn',
         'splitFlap',
-        'smokeFade',
         'lensIris',
     ];
 
     // Genre to transition mapping for smart mode
     const GENRE_TRANSITION_MAP = {
-        action: ['shatter', 'swing', 'zoomIn', 'filmGate'],
-        adventure: ['unfold', 'slideUp', 'zoomIn', 'parallaxFloat'],
-        thriller: ['spotlight', 'shatter', 'cinematic', 'projectorFlicker'],
-        horror: ['shatter', 'spotlight', 'ripple', 'projectorFlicker'],
+        action: ['shatter', 'swing', 'dollyIn', 'filmGate'],
+        adventure: ['unfold', 'slideUp', 'dollyIn', 'parallaxFloat'],
+        thriller: ['lensIris', 'shatter', 'cinematic', 'projectorFlicker'],
+        horror: ['shatter', 'lensIris', 'ripple', 'projectorFlicker'],
         comedy: ['swing', 'slideUp', 'fade', 'splitFlap'],
-        romance: ['fade', 'lightFlare', 'unfold', 'lightSweep', 'smokeFade'],
-        drama: ['cinematic', 'fade', 'spotlight', 'rackFocus', 'dollyIn'],
-        documentary: ['fade', 'slideUp', 'cinematic', 'rackFocus'],
-        animation: ['swing', 'ripple', 'zoomIn', 'splitFlap'],
+        romance: ['fade', 'lightFlare', 'unfold', 'lensIris', 'dollyIn'],
+        drama: ['cinematic', 'fade', 'lensIris', 'dollyIn', 'unfold'],
+        documentary: ['fade', 'slideUp', 'cinematic', 'filmGate'],
+        animation: ['swing', 'ripple', 'dollyIn', 'splitFlap'],
         fantasy: ['lightFlare', 'unfold', 'ripple', 'lensIris'],
         'sci-fi': ['lightFlare', 'shatter', 'ripple', 'lensIris', 'filmGate'],
         'science fiction': ['lightFlare', 'shatter', 'ripple', 'lensIris', 'filmGate'],
-        mystery: ['spotlight', 'cinematic', 'fade', 'rackFocus'],
-        crime: ['spotlight', 'shatter', 'cinematic', 'filmGate'],
+        mystery: ['lensIris', 'cinematic', 'fade', 'filmGate'],
+        crime: ['lensIris', 'shatter', 'cinematic', 'filmGate'],
         family: ['fade', 'slideUp', 'swing', 'curtainReveal'],
-        music: ['ripple', 'lightFlare', 'swing', 'lightSweep'],
-        war: ['shatter', 'cinematic', 'spotlight', 'filmGate'],
+        music: ['ripple', 'lightFlare', 'swing', 'projectorFlicker'],
+        war: ['shatter', 'cinematic', 'lensIris', 'filmGate'],
         western: ['unfold', 'slideUp', 'cinematic', 'curtainReveal'],
         history: ['unfold', 'fade', 'cinematic', 'filmGate'],
     };
@@ -2657,8 +2656,10 @@
     function selectTransition(media = null) {
         const transitions = cinemaConfig.poster?.cinematicTransitions || {};
         const mode = transitions.selectionMode || 'random';
-        const enabledTransitions = transitions.enabledTransitions || ['fade'];
-        const singleTransition = transitions.singleTransition || 'fade';
+        const enabledTransitions = (transitions.enabledTransitions || ['fade']).map(t =>
+            mapTransition(t)
+        );
+        const singleTransition = mapTransition(transitions.singleTransition || 'fade');
 
         // Filter to only include valid transitions
         const validTransitions = enabledTransitions.filter(t => ALL_TRANSITIONS.includes(t));
@@ -2669,7 +2670,9 @@
         switch (mode) {
             case 'single':
                 // Use the specified single transition
-                return ALL_TRANSITIONS.includes(singleTransition) ? singleTransition : 'fade';
+                return ALL_TRANSITIONS.includes(singleTransition)
+                    ? singleTransition
+                    : validTransitions[0] || 'fade';
 
             case 'sequential': {
                 // Cycle through enabled transitions in order
@@ -4951,7 +4954,7 @@
 
         switch (data.type) {
             case 'CINEMA_PREVIEW_TRANSITION': {
-                const transition = String(data.transition || '').trim();
+                const transition = mapTransition(String(data.transition || '').trim());
                 if (!transition) return;
                 if (!ALL_TRANSITIONS.includes(transition)) return;
 

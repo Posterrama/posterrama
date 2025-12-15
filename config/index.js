@@ -77,6 +77,15 @@ class Config {
         // config.json can legitimately vary between environments; keep typing permissive.
         /** @type {any} */
         const loaded = require('../config.json');
+
+        // Backward-compatibility: migrate deprecated cinematic transition names in-memory
+        // so clients don't get stuck with removed enum values.
+        try {
+            const { normalizeCinematicTransitions } = require('../utils/cinema-transition-compat');
+            normalizeCinematicTransitions(loaded);
+        } catch (_) {
+            // best-effort compatibility; never block startup
+        }
         this.config = loaded;
 
         // Validate config against schema at runtime

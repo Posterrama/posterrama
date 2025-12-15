@@ -1571,8 +1571,23 @@
         const ct = poster.cinematicTransitions || {};
         $('#cinemaTransitionMode') &&
             ($('#cinemaTransitionMode').value = ct.selectionMode || 'random');
-        $('#cinemaSingleTransition') &&
-            ($('#cinemaSingleTransition').value = ct.singleTransition || 'fade');
+        // Backward-compatible: map removed transitions to modern equivalents
+        const legacyTransitionMap = {
+            zoomIn: 'dollyIn',
+            spotlight: 'lensIris',
+            rackFocus: 'cinematic',
+            lightSweep: 'lightFlare',
+            smokeFade: 'fade',
+        };
+        if ($('#cinemaSingleTransition')) {
+            const selectEl = $('#cinemaSingleTransition');
+            const mappedSingle = legacyTransitionMap[ct.singleTransition] || ct.singleTransition;
+            const desired = mappedSingle || 'fade';
+            const hasOption = Array.from(selectEl.options || []).some(
+                o => o && o.value === desired
+            );
+            selectEl.value = hasOption ? desired : 'dollyIn';
+        }
 
         // Show/hide single transition dropdown based on mode
         const singleRow = document.getElementById('singleTransitionRow');
@@ -1631,57 +1646,76 @@
             });
         }
 
-        // Single-transition mode: add a small preview button next to the dropdown
-        if (singleRow) {
-            const selectWrap = singleRow.querySelector('.select-wrap');
+        // Single-transition mode preview button
+        // Prefer the HTML-provided button (#cinemaSingleTransitionPreviewBtn) to avoid breaking grid layout.
+        if (singleRow && !singleRow.__posterramaSinglePreviewWired) {
             const selectEl = document.getElementById('cinemaSingleTransition');
-            if (selectWrap && selectEl && !singleRow.__posterramaSinglePreviewWired) {
+            const btn = document.getElementById('cinemaSingleTransitionPreviewBtn');
+            if (selectEl && btn) {
                 singleRow.__posterramaSinglePreviewWired = true;
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'transition-preview-btn single-transition-preview-btn';
-                btn.setAttribute('aria-label', 'Preview selected single transition');
-                btn.title = 'Preview the selected single transition in the live display preview';
-                btn.textContent = '▶';
-                selectWrap.insertAdjacentElement('afterend', btn);
                 btn.addEventListener('click', evt => {
                     evt.preventDefault();
                     evt.stopPropagation();
                     const transition = selectEl.value || 'fade';
                     previewTransition(transition);
                 });
+            } else {
+                // Fallback for older admin.html: inject button after select-wrap
+                const selectWrap = singleRow.querySelector('.select-wrap');
+                if (selectWrap && selectEl) {
+                    singleRow.__posterramaSinglePreviewWired = true;
+                    const injected = document.createElement('button');
+                    injected.type = 'button';
+                    injected.className = 'transition-preview-btn single-transition-preview-btn';
+                    injected.setAttribute('aria-label', 'Preview selected single transition');
+                    injected.title =
+                        'Preview the selected single transition in the live display preview';
+                    injected.textContent = '▶';
+                    selectWrap.insertAdjacentElement('afterend', injected);
+                    injected.addEventListener('click', evt => {
+                        evt.preventDefault();
+                        evt.stopPropagation();
+                        const transition = selectEl.value || 'fade';
+                        previewTransition(transition);
+                    });
+                }
             }
         }
 
         // Set enabled transitions checkboxes
-        const enabledList = ct.enabledTransitions || [
-            'fade',
-            'zoomIn',
-            'slideUp',
-            'cinematic',
-            'lightFlare',
-            'shatter',
-            'spotlight',
-            'unfold',
-            'swing',
-            'ripple',
-            'curtainReveal',
-            'filmGate',
-            'projectorFlicker',
-            'rackFocus',
-            'lightSweep',
-            'parallaxFloat',
-            'dollyIn',
-            'splitFlap',
-            'smokeFade',
-            'lensIris',
-        ];
+        const enabledList = (
+            ct.enabledTransitions || [
+                'fade',
+                'slideUp',
+                'cinematic',
+                'lightFlare',
+                'shatter',
+                'unfold',
+                'swing',
+                'ripple',
+                'curtainReveal',
+                'filmGate',
+                'projectorFlicker',
+                'parallaxFloat',
+                'dollyIn',
+                'splitFlap',
+                'lensIris',
+            ]
+        ).map(t => legacyTransitionMap[t] || t);
         const checkboxes = document.querySelectorAll(
             '#enabledTransitionsGrid input[type="checkbox"]'
         );
         checkboxes.forEach(cb => {
             cb.checked = enabledList.includes(cb.value);
         });
+
+        // Ensure at least one transition remains enabled
+        const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+        if (!anyChecked) {
+            const fallbackCb = Array.from(checkboxes).find(cb => cb.value === 'dollyIn');
+            if (fallbackCb) fallbackCb.checked = true;
+            else if (checkboxes[0]) checkboxes[0].checked = true;
+        }
 
         $('#cinemaPosterTransition') &&
             ($('#cinemaPosterTransition').value = poster.transitionDuration || 1.5);

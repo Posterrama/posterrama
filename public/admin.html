@@ -1544,54 +1544,47 @@
                         </div>
                         <div class="form-row" id="singleTransitionRow" style="display:none;">
                           <label for="cinemaSingleTransition">Single Transition</label>
-                          <div class="select-wrap has-caret">
-                            <select id="cinemaSingleTransition">
-                              <option value="fade">Fade</option>
-                              <option value="zoomIn">Zoom In</option>
-                              <option value="slideUp">Slide Up</option>
-                              <option value="cinematic">Cinematic Reveal</option>
-                              <option value="lightFlare">Light Flare</option>
-                              <option value="shatter">Shatter</option>
-                              <option value="spotlight">Spotlight</option>
-                              <option value="unfold">Unfold</option>
-                              <option value="swing">Swing</option>
-                              <option value="ripple">Ripple</option>
-                              <option value="curtainReveal">Curtain Reveal</option>
-                              <option value="filmGate">Film Gate</option>
-                              <option value="projectorFlicker">Projector Flicker</option>
-                              <option value="rackFocus">Rack Focus</option>
-                              <option value="lightSweep">Light Sweep</option>
-                              <option value="parallaxFloat">Parallax Float</option>
-                              <option value="dollyIn">Dolly In</option>
-                              <option value="splitFlap">Split Flap</option>
-                              <option value="smokeFade">Smoke Fade</option>
-                              <option value="lensIris">Lens Iris</option>
-                            </select>
-                            <span class="select-caret" aria-hidden="true">▾</span>
+                          <div class="cinema-transition-inline">
+                            <div class="select-wrap has-caret">
+                              <select id="cinemaSingleTransition">
+                                <option value="fade">Fade</option>
+                                <option value="slideUp">Slide Up</option>
+                                <option value="cinematic">Cinematic Reveal</option>
+                                <option value="lightFlare">Light Flare</option>
+                                <option value="shatter">Shatter</option>
+                                <option value="unfold">Unfold</option>
+                                <option value="swing">Swing</option>
+                                <option value="ripple">Ripple</option>
+                                <option value="curtainReveal">Curtain Reveal</option>
+                                <option value="filmGate">Film Gate</option>
+                                <option value="projectorFlicker">Projector Flicker</option>
+                                <option value="parallaxFloat">Parallax Float</option>
+                                <option value="dollyIn">Dolly In</option>
+                                <option value="splitFlap">Split Flap</option>
+                                <option value="lensIris">Lens Iris</option>
+                              </select>
+                              <span class="select-caret" aria-hidden="true">▾</span>
+                            </div>
+                            <button type="button" class="transition-preview-btn single-transition-preview-btn" id="cinemaSingleTransitionPreviewBtn" title="Preview the selected transition in the live display preview" aria-label="Preview selected single transition">▶</button>
                           </div>
                         </div>
                         <div class="form-row transitions-row" id="enabledTransitionsRow">
                           <label>Enabled Transitions</label>
                           <div class="transitions-checklist" id="enabledTransitionsGrid">
                             <label class="toggle-row"><input type="checkbox" value="fade" checked><span>Fade</span></label>
-                            <label class="toggle-row"><input type="checkbox" value="zoomIn" checked><span>Zoom In</span></label>
                             <label class="toggle-row"><input type="checkbox" value="slideUp" checked><span>Slide Up</span></label>
                             <label class="toggle-row"><input type="checkbox" value="cinematic" checked><span>Cinematic Reveal</span></label>
                             <label class="toggle-row"><input type="checkbox" value="lightFlare" checked><span>Light Flare</span></label>
                             <label class="toggle-row"><input type="checkbox" value="shatter" checked><span>Shatter</span></label>
-                            <label class="toggle-row"><input type="checkbox" value="spotlight" checked><span>Spotlight</span></label>
                             <label class="toggle-row"><input type="checkbox" value="unfold" checked><span>Unfold</span></label>
                             <label class="toggle-row"><input type="checkbox" value="swing" checked><span>Swing</span></label>
                             <label class="toggle-row"><input type="checkbox" value="ripple" checked><span>Ripple</span></label>
                             <label class="toggle-row"><input type="checkbox" value="curtainReveal" checked><span>Curtain Reveal</span></label>
                             <label class="toggle-row"><input type="checkbox" value="filmGate" checked><span>Film Gate</span></label>
                             <label class="toggle-row"><input type="checkbox" value="projectorFlicker" checked><span>Projector Flicker</span></label>
-                            <label class="toggle-row"><input type="checkbox" value="rackFocus" checked><span>Rack Focus</span></label>
-                            <label class="toggle-row"><input type="checkbox" value="lightSweep" checked><span>Light Sweep</span></label>
                             <label class="toggle-row"><input type="checkbox" value="parallaxFloat" checked><span>Parallax Float</span></label>
                             <label class="toggle-row"><input type="checkbox" value="dollyIn" checked><span>Dolly In</span></label>
                             <label class="toggle-row"><input type="checkbox" value="splitFlap" checked><span>Split Flap</span></label>
-                            <label class="toggle-row"><input type="checkbox" value="smokeFade" checked><span>Smoke Fade</span></label>
                             <label class="toggle-row"><input type="checkbox" value="lensIris" checked><span>Lens Iris</span></label>
                           </div>
                         </div>

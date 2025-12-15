@@ -6,6 +6,7 @@
 const express = require('express');
 const logger = require('../utils/logger');
 const deepMerge = require('../utils/deep-merge');
+const { normalizeCinematicTransitions } = require('../utils/cinema-transition-compat');
 
 /**
  * @typedef {Object} ConfigRequestExtensions
@@ -649,6 +650,13 @@ module.exports = function createConfigPublicRouter({
                 if (isDebug) {
                     logger.debug('[get-config] Override merge failed', { error: e?.message });
                 }
+            }
+
+            // Backward-compatible: migrate deprecated cinematic transition names in the outgoing payload
+            try {
+                normalizeCinematicTransitions(merged);
+            } catch (_) {
+                // best-effort; never block /get-config
             }
 
             // Build final payload and ensure it's safe to stringify
