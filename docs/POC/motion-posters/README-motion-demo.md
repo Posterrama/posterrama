@@ -243,7 +243,7 @@ Script scales automatically, but for best results use 1000-2000px width
 2. Test segmentation-based approach (per element animation)
 3. Or skip feature entirely
 
-**See:** `/docs/MOTION-POSTERS-POC.md` for full plan
+**See:** `MOTION-POSTERS-POC.md` for full plan
 
 ---
 
@@ -263,4 +263,4 @@ mpv --loop motion-output/motion_poster.mp4
 
 ---
 
-**Questions?** Check main POC doc: `/docs/MOTION-POSTERS-POC.md`
+**Questions?** Check main POC doc: `MOTION-POSTERS-POC.md`

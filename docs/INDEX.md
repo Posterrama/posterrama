@@ -10,6 +10,7 @@ This folder contains Posterrama’s developer documentation.
 - **Production readiness checklist:** `API-PRODUCTION-READINESS.md`
 - **OpenAPI workflow:** `OPENAPI-WORKFLOW.md`
 - **Architecture diagrams:** `ARCHITECTURE-DIAGRAMS.md`
+- **Adding a new media source:** `ADDING-A-SOURCE.md`
 
 ## Frontend
 
