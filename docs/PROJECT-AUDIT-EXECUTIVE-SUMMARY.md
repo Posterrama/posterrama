@@ -28,21 +28,25 @@
     - Status: improved — free disk space uses `fs.promises.statfs()` with short TTL caching (no shell pipeline / `execSync`).
     - Remaining consideration: ensure it’s not over-sampled on very busy instances (tune TTL if needed).
 
-5. Config self-healing logs bypass the logger pipeline
+5. Event-loop blocking sync filesystem calls in runtime paths
+    - Status: improved — request-path/runtime modules have been migrated off `fs.*Sync` (logger init and update-runner logging are async).
+    - Remaining: some `fs.*Sync` usage still exists in startup-only utilities (e.g. environment/config bootstrap) and in tests.
+
+6. Config self-healing logs bypass the logger pipeline
     - `config/validate-env.js` uses `console.log` heavily.
     - Fix: route through the project logger (and add a “quiet” mode / structured summary).
 
-6. Monolithic `server.js` still contains many “special-case” inline routes and legacy glue
+7. Monolithic `server.js` still contains many “special-case” inline routes and legacy glue
     - This makes changes risky and increases regression probability.
     - Fix: continue extracting to route factories + services with stable interfaces.
 
 ### P2 (nice improvements that pay off)
 
-7. Type safety debt concentrated in core utilities
+8. Type safety debt concentrated in core utilities
     - Example: `utils/cache.js` is `@ts-nocheck` and very large.
     - Fix: split module + add JSDoc types incrementally; enforce via CI.
 
-8. Metrics cardinality risks
+9. Metrics cardinality risks
     - If metrics label on raw request paths exists anywhere, it can explode cardinality.
     - Fix: normalize to route templates (e.g., `/api/media/:id`), cap label sets.
 

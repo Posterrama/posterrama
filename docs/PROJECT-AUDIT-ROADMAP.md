@@ -21,12 +21,14 @@ This is a pragmatic execution plan. Adjust based on how widely Posterrama is dep
 4. Unify runtime logging
     - Convert `config/validate-env.js` migration logs to `logger.*`.
     - Emit a concise migration summary.
+    - Status: partially done — logger initialization no longer uses sync filesystem calls; config self-healing still uses direct console output.
 
 ## 31–60 days (stability and maintainability)
 
 5. Remove/replace `execSync` usage in server paths (mostly done)
     - Runtime disk free space checks use `fs.promises.statfs()` (no shell pipeline).
     - Follow-up: audit remaining `execSync` usage in non-request utilities and keep it off hot paths.
+    - Related: avoid `fs.*Sync` in runtime paths where possible; remaining sync usage is primarily startup-only utilities and tests.
 
 6. Add a small “error taxonomy” and enforce it
     - Stable error codes + consistent HTTP mapping.

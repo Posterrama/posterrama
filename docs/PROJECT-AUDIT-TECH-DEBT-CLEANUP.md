@@ -23,6 +23,10 @@
 
 `config/validate-env.js` currently prints migration messages directly.
 
+- Status update:
+    - The core logger no longer performs synchronous filesystem work at module load (disk logging is initialized asynchronously, best-effort).
+    - The remaining gap is still `config/validate-env.js` verbosity and direct console output.
+
 ## “Delete or simplify” candidates
 
 These are candidates to reduce maintenance burden (evaluate before deleting):

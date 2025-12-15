@@ -28,6 +28,14 @@
 - Concrete fix:
     - Normalize paths (route templates), cap label values, sample low-value logs.
 
+### 4) Event-loop blocking sync filesystem I/O on hot paths
+
+- Risk:
+    - `fs.*Sync` calls can stall the event loop and amplify tail latency under load.
+- Status: improved
+    - Request-path/runtime modules have been migrated off sync filesystem calls (e.g., logger initialization and updater worker logging now use async I/O).
+    - Remaining sync usage is primarily in startup-only utilities and tests.
+
 ## Opportunities
 
 - Cache layer already has strong foundations (tiering, memory monitoring). Next wins:
