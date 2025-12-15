@@ -38,6 +38,21 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             }
         }
 
+        function toast(enabled) {
+            try {
+                window.notify?.toast({
+                    type: enabled ? 'success' : 'warning',
+                    title: 'Display Loader',
+                    message: enabled
+                        ? 'Enabled for cinema/wallart/screensaver.'
+                        : 'Disabled for cinema/wallart/screensaver.',
+                    duration: 2600,
+                });
+            } catch (_) {
+                // ignore
+            }
+        }
+
         function render(btn) {
             const enabled = isEnabled();
             btn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
@@ -46,6 +61,23 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 : 'Display Loader: OFF (click to enable)';
 
             const ic = btn.querySelector('i');
+            if (ic) {
+                ic.classList.toggle('fa-spinner', enabled);
+                ic.classList.toggle('fa-eye-slash', !enabled);
+            }
+        }
+
+        function renderMenuItem(item) {
+            const enabled = isEnabled();
+            item.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+            item.title = enabled
+                ? 'Display Loader is ON (click to disable)'
+                : 'Display Loader is OFF (click to enable)';
+
+            const label = item.querySelector('[data-label]');
+            if (label) label.textContent = enabled ? 'Display Loader: ON' : 'Display Loader: OFF';
+
+            const ic = item.querySelector('i');
             if (ic) {
                 ic.classList.toggle('fa-spinner', enabled);
                 ic.classList.toggle('fa-eye-slash', !enabled);
@@ -70,19 +102,10 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     const nextEnabled = !enabledNow;
                     setEnabled(nextEnabled);
                     render(btn);
+                    toast(nextEnabled);
 
-                    try {
-                        window.notify?.toast({
-                            type: nextEnabled ? 'success' : 'warning',
-                            title: 'Display Loader',
-                            message: nextEnabled
-                                ? 'Enabled for cinema/wallart/screensaver.'
-                                : 'Disabled for cinema/wallart/screensaver.',
-                            duration: 2600,
-                        });
-                    } catch (_) {
-                        // ignore
-                    }
+                    const menuItem = document.getElementById('display-loader-toggle-menu');
+                    if (menuItem) renderMenuItem(menuItem);
                 });
 
                 render(btn);
@@ -92,10 +115,59 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             }
         }
 
+        function bootMenuItem() {
+            try {
+                const menu = document.getElementById('settings-menu');
+                if (!menu) return;
+                if (document.getElementById('display-loader-toggle-menu')) return;
+
+                const item = document.createElement('a');
+                item.id = 'display-loader-toggle-menu';
+                item.className = 'dropdown-item';
+                item.href = '#';
+                item.setAttribute('role', 'menuitem');
+                item.innerHTML =
+                    '<i class="fas fa-spinner" aria-hidden="true"></i> <span data-label>Display Loader: ON</span>';
+
+                item.addEventListener('click', ev => {
+                    ev.preventDefault();
+                    const enabledNow = isEnabled();
+                    const nextEnabled = !enabledNow;
+                    setEnabled(nextEnabled);
+                    renderMenuItem(item);
+
+                    const btn = document.getElementById('display-loader-toggle');
+                    if (btn) render(btn);
+
+                    toast(nextEnabled);
+                });
+
+                // Insert right after the "Quick links" heading for discoverability.
+                const heading = menu.querySelector('.dropdown-heading');
+                if (heading && heading.parentNode) {
+                    heading.insertAdjacentElement('afterend', item);
+                } else {
+                    menu.insertBefore(item, menu.firstChild);
+                }
+
+                renderMenuItem(item);
+            } catch (_) {
+                // ignore
+            }
+        }
+
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', boot, { once: true });
+            document.addEventListener(
+                'DOMContentLoaded',
+                () => {
+                    boot();
+                    bootMenuItem();
+                },
+                { once: true }
+            );
         } else {
             boot();
+            bootMenuItem();
         }
     }
 
