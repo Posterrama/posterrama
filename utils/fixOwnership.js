@@ -15,7 +15,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const logger = require('./logger');
 
 function resolveIds() {
@@ -34,10 +34,24 @@ function resolveIds() {
             const user = process.env.POSTERRAMA_RUN_AS_USER.trim();
             if (user) {
                 if (uid === null) {
-                    uid = Number(execSync(`id -u ${user}`).toString().trim());
+                    uid = Number(
+                        String(
+                            execFileSync('id', ['-u', user], {
+                                encoding: 'utf8',
+                                timeout: 2000,
+                            })
+                        ).trim()
+                    );
                 }
                 if (gid === null) {
-                    gid = Number(execSync(`id -g ${user}`).toString().trim());
+                    gid = Number(
+                        String(
+                            execFileSync('id', ['-g', user], {
+                                encoding: 'utf8',
+                                timeout: 2000,
+                            })
+                        ).trim()
+                    );
                 }
             }
         }

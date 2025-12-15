@@ -30,7 +30,8 @@ const swagger = require('../swagger');
         await fs.promises.mkdir(outDir, { recursive: true });
 
         // Write with 4-space indentation (consistent with sync-openapi.js)
-        await fs.promises.writeFile(outFile, JSON.stringify(spec, null, 4));
+        // and a trailing newline to avoid noisy diffs.
+        await fs.promises.writeFile(outFile, JSON.stringify(spec, null, 4) + '\n');
 
         console.log('✅ OpenAPI spec exported to', outFile);
         console.log(`📊 Endpoints: ${Object.keys(spec.paths || {}).length}`);
