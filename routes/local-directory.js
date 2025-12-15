@@ -21,6 +21,110 @@ module.exports = function createLocalDirectoryRouter({
 }) {
     const router = express.Router();
 
+    const archiver = require('archiver');
+
+    const parsePositiveInt = (value, fallback, { min = 1, max = Number.MAX_SAFE_INTEGER } = {}) => {
+        const n = Number.parseInt(String(value ?? ''), 10);
+        if (!Number.isFinite(n)) return fallback;
+        if (n < min) return min;
+        if (n > max) return max;
+        return n;
+    };
+
+    const getZipLimits = () => {
+        return {
+            maxFiles: parsePositiveInt(process.env.LOCAL_ZIP_MAX_FILES, 5000, {
+                min: 1,
+                max: 200000,
+            }),
+            maxBytes: parsePositiveInt(process.env.LOCAL_ZIP_MAX_BYTES, 1024 * 1024 * 1024, {
+                min: 1,
+                max: Number.MAX_SAFE_INTEGER,
+            }),
+            maxDepth: parsePositiveInt(process.env.LOCAL_ZIP_MAX_DEPTH, 25, { min: 1, max: 200 }),
+            maxSingleFileBytes: parsePositiveInt(
+                process.env.LOCAL_ZIP_MAX_SINGLE_FILE_BYTES,
+                512 * 1024 * 1024,
+                { min: 1, max: Number.MAX_SAFE_INTEGER }
+            ),
+        };
+    };
+
+    const zipJoin = (...parts) => parts.filter(Boolean).join('/').replace(/\\/g, '/');
+
+    const isSkippableLocalEntry = dirent => {
+        if (!dirent || !dirent.name) return false;
+        if (dirent.name === '.posterrama') return true;
+        if (dirent.isFile?.() && dirent.name.endsWith('.poster.json')) return true;
+        return false;
+    };
+
+    const createDirectoryFileWalker = (rootDir, { maxDepth }) => {
+        const root = path.resolve(rootDir);
+
+        async function* walk(currentDir, depth, relDir) {
+            if (depth > maxDepth) return;
+
+            let handle;
+            try {
+                handle = await fs.promises.opendir(currentDir);
+            } catch (_) {
+                return;
+            }
+
+            for await (const dirent of handle) {
+                if (isSkippableLocalEntry(dirent)) continue;
+                if (dirent.isSymbolicLink?.()) continue;
+
+                const absPath = path.join(currentDir, dirent.name);
+                const relPath = relDir ? zipJoin(relDir, dirent.name) : dirent.name;
+
+                if (dirent.isDirectory?.()) {
+                    yield* walk(absPath, depth + 1, relPath);
+                } else if (dirent.isFile?.()) {
+                    const st = await fs.promises.stat(absPath).catch(() => null);
+                    if (!st || !st.isFile()) continue;
+                    yield { absPath, relPath, size: st.size };
+                }
+            }
+        }
+
+        return () => walk(root, 0, '');
+    };
+
+    const preflightZipLimits = async (createIterator, limits) => {
+        let files = 0;
+        let totalBytes = 0;
+        for await (const file of createIterator()) {
+            files += 1;
+            totalBytes += Number(file.size) || 0;
+
+            if (file.size > limits.maxSingleFileBytes) {
+                const err = new Error('zip_limits_exceeded');
+                err.code = 'zip_limits_exceeded';
+                err.reason = 'max_single_file_bytes';
+                err.file = file.relPath;
+                err.limit = limits.maxSingleFileBytes;
+                throw err;
+            }
+            if (files > limits.maxFiles) {
+                const err = new Error('zip_limits_exceeded');
+                err.code = 'zip_limits_exceeded';
+                err.reason = 'max_files';
+                err.limit = limits.maxFiles;
+                throw err;
+            }
+            if (totalBytes > limits.maxBytes) {
+                const err = new Error('zip_limits_exceeded');
+                err.code = 'zip_limits_exceeded';
+                err.reason = 'max_bytes';
+                err.limit = limits.maxBytes;
+                throw err;
+            }
+        }
+        return { files, totalBytes };
+    };
+
     /**
      * @swagger
      * /api/local/scan:
@@ -349,34 +453,23 @@ module.exports = function createLocalDirectoryRouter({
                 if (!st || !st.isDirectory())
                     return res.status(404).json({ error: 'Directory not found' });
 
-                const JSZip = require('jszip');
-                const zip = new JSZip();
-
-                const addDirToZip = async (rootDir, zipFolder, rel = '') => {
-                    const entries = await fs.promises.readdir(rootDir, { withFileTypes: true });
-                    for (const entry of entries) {
-                        // Skip internal system dir and generated metadata
-                        if (entry.name === '.posterrama' || entry.name.endsWith('.poster.json'))
-                            continue;
-                        const full = path.join(rootDir, entry.name);
-                        const relPath = rel ? path.join(rel, entry.name) : entry.name;
-                        if (entry.isDirectory()) {
-                            const sub = zipFolder.folder(entry.name);
-                            await addDirToZip(full, sub, relPath);
-                        } else if (entry.isFile()) {
-                            try {
-                                const data = await fs.promises.readFile(full);
-                                zipFolder.file(entry.name, data);
-                            } catch (_) {
-                                // Skip unreadable files silently
-                            }
-                        }
-                    }
-                };
-
                 const folderName = path.basename(dirPath) || 'download';
-                const rootZipFolder = zip.folder(folderName);
-                await addDirToZip(dirPath, rootZipFolder);
+                const limits = getZipLimits();
+                const createIterator = createDirectoryFileWalker(dirPath, limits);
+
+                try {
+                    await preflightZipLimits(createIterator, limits);
+                } catch (e) {
+                    if (e && e.code === 'zip_limits_exceeded') {
+                        return res.status(413).json({
+                            error: 'zip_limits_exceeded',
+                            reason: e.reason,
+                            limit: e.limit,
+                            file: e.file,
+                        });
+                    }
+                    throw e;
+                }
 
                 const ts = new Date();
                 const pad = n => String(n).padStart(2, '0');
@@ -385,12 +478,24 @@ module.exports = function createLocalDirectoryRouter({
                 res.setHeader('Content-Type', 'application/zip');
                 res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-                const stream = zip.generateNodeStream({
-                    type: 'nodebuffer',
-                    compression: 'DEFLATE',
-                    compressionOptions: { level: 6 },
+                const archive = archiver('zip', { zlib: { level: 6 } });
+                archive.on('warning', err => {
+                    logger.warn('Local directory zip warning:', err);
                 });
-                stream.pipe(res);
+                archive.on('error', err => {
+                    logger.error('Local directory zip error:', err);
+                    if (!res.headersSent) {
+                        res.status(500).json({ error: 'zip_failed' });
+                    } else {
+                        res.destroy(err);
+                    }
+                });
+
+                archive.pipe(res);
+                for await (const file of createIterator()) {
+                    archive.file(file.absPath, { name: zipJoin(folderName, file.relPath) });
+                }
+                archive.finalize();
             } catch (error) {
                 logger.error('Local directory zip download error:', error);
                 return res.status(500).json({ error: 'zip_failed' });
@@ -439,74 +544,102 @@ module.exports = function createLocalDirectoryRouter({
 
             try {
                 const base = path.resolve(config.localDirectory.rootPath);
-                const JSZip = require('jszip');
-                const zip = new JSZip();
-                let addedCount = 0;
+                const limits = getZipLimits();
+
+                const files = [];
+                let totalBytes = 0;
 
                 for (const requestedPath of paths) {
-                    try {
-                        const trimmedPath = String(requestedPath).trim();
-                        if (!trimmedPath) continue;
+                    const trimmedPath = String(requestedPath).trim();
+                    if (!trimmedPath) continue;
 
-                        let fullPath;
-                        if (path.isAbsolute(trimmedPath)) {
-                            const abs = path.resolve(trimmedPath);
-                            fullPath = abs.startsWith(base)
-                                ? abs
-                                : path.resolve(base, trimmedPath.replace(/^\/+/, ''));
-                        } else {
-                            fullPath = path.resolve(base, trimmedPath);
-                        }
+                    let fullPath;
+                    if (path.isAbsolute(trimmedPath)) {
+                        const abs = path.resolve(trimmedPath);
+                        fullPath = abs.startsWith(base)
+                            ? abs
+                            : path.resolve(base, trimmedPath.replace(/^\/+/, ''));
+                    } else {
+                        fullPath = path.resolve(base, trimmedPath);
+                    }
 
-                        // Ensure within base
-                        const within =
-                            fullPath === base || (fullPath + path.sep).startsWith(base + path.sep);
-                        if (!within) {
-                            logger.warn('Bulk download: skipping invalid path', {
-                                path: requestedPath,
-                            });
-                            continue;
-                        }
-
-                        const st = await fs.promises.stat(fullPath).catch(() => null);
-                        if (!st || !st.isFile()) {
-                            logger.warn('Bulk download: file not found or not a file', {
-                                path: requestedPath,
-                            });
-                            continue;
-                        }
-
-                        // Add file to ZIP with relative path
-                        const relativePath = path.relative(base, fullPath);
-                        const content = await fs.promises.readFile(fullPath);
-                        zip.file(relativePath, content);
-                        addedCount++;
-                    } catch (error) {
-                        logger.error('Bulk download: error adding file to ZIP', {
+                    const within =
+                        fullPath === base || (fullPath + path.sep).startsWith(base + path.sep);
+                    if (!within) {
+                        logger.warn('Bulk download: skipping invalid path', {
                             path: requestedPath,
-                            error,
+                        });
+                        continue;
+                    }
+
+                    const st = await fs.promises.stat(fullPath).catch(() => null);
+                    if (!st || !st.isFile()) {
+                        logger.warn('Bulk download: file not found or not a file', {
+                            path: requestedPath,
+                        });
+                        continue;
+                    }
+
+                    if (st.size > limits.maxSingleFileBytes) {
+                        return res.status(413).json({
+                            error: 'zip_limits_exceeded',
+                            reason: 'max_single_file_bytes',
+                            limit: limits.maxSingleFileBytes,
+                            file: path.relative(base, fullPath),
+                        });
+                    }
+
+                    files.push({
+                        fullPath,
+                        name: path.relative(base, fullPath).replace(/\\/g, '/'),
+                        size: st.size,
+                    });
+                    totalBytes += st.size;
+
+                    if (files.length > limits.maxFiles) {
+                        return res.status(413).json({
+                            error: 'zip_limits_exceeded',
+                            reason: 'max_files',
+                            limit: limits.maxFiles,
+                        });
+                    }
+                    if (totalBytes > limits.maxBytes) {
+                        return res.status(413).json({
+                            error: 'zip_limits_exceeded',
+                            reason: 'max_bytes',
+                            limit: limits.maxBytes,
                         });
                     }
                 }
 
-                if (addedCount === 0) {
+                if (files.length === 0) {
                     return res.status(404).json({ error: 'No valid files found' });
                 }
-
-                // Generate ZIP and stream
-                const zipBuffer = await zip.generateAsync({
-                    type: 'nodebuffer',
-                    compression: 'DEFLATE',
-                    compressionOptions: { level: 6 },
-                });
 
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
                 const filename = `posterrama-files-${timestamp}.zip`;
 
                 res.setHeader('Content-Type', 'application/zip');
                 res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-                res.setHeader('Content-Length', zipBuffer.length);
-                res.send(zipBuffer);
+
+                const archive = archiver('zip', { zlib: { level: 6 } });
+                archive.on('warning', err => {
+                    logger.warn('Bulk download zip warning:', err);
+                });
+                archive.on('error', err => {
+                    logger.error('Bulk download zip error:', err);
+                    if (!res.headersSent) {
+                        res.status(500).json({ error: 'zip_failed' });
+                    } else {
+                        res.destroy(err);
+                    }
+                });
+
+                archive.pipe(res);
+                for (const f of files) {
+                    archive.file(f.fullPath, { name: f.name });
+                }
+                archive.finalize();
             } catch (error) {
                 logger.error('Bulk download error:', error);
                 res.status(500).json({ error: 'Download failed' });
@@ -1363,28 +1496,69 @@ module.exports = function createLocalDirectoryRouter({
                 await fs.promises.mkdir(exportDir, { recursive: true });
                 const entries = await fs.promises.readdir(exportDir);
 
-                // Build zip stream
-                const JSZip = require('jszip');
-                const zip = new JSZip();
+                const limits = getZipLimits();
+                const posterpacks = [];
+                let totalBytes = 0;
                 for (const name of entries) {
                     if (!name.toLowerCase().endsWith('.zip')) continue;
                     const full = path.join(exportDir, name);
                     const st = await fs.promises.stat(full).catch(() => null);
                     if (!st || !st.isFile()) continue;
-                    const data = await fs.promises.readFile(full);
-                    zip.file(name, data);
+
+                    if (st.size > limits.maxSingleFileBytes) {
+                        return res.status(413).json({
+                            error: 'zip_limits_exceeded',
+                            reason: 'max_single_file_bytes',
+                            limit: limits.maxSingleFileBytes,
+                            file: name,
+                        });
+                    }
+
+                    posterpacks.push({ full, name, size: st.size });
+                    totalBytes += st.size;
+
+                    if (posterpacks.length > limits.maxFiles) {
+                        return res.status(413).json({
+                            error: 'zip_limits_exceeded',
+                            reason: 'max_files',
+                            limit: limits.maxFiles,
+                        });
+                    }
+                    if (totalBytes > limits.maxBytes) {
+                        return res.status(413).json({
+                            error: 'zip_limits_exceeded',
+                            reason: 'max_bytes',
+                            limit: limits.maxBytes,
+                        });
+                    }
+                }
+
+                if (posterpacks.length === 0) {
+                    return res.status(404).json({ error: 'No posterpacks found' });
                 }
 
                 const filename = `${source}-posterpacks-${Date.now()}.zip`;
                 res.setHeader('Content-Type', 'application/zip');
                 res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-                const stream = zip.generateNodeStream({
-                    type: 'nodebuffer',
-                    compression: 'DEFLATE',
-                    compressionOptions: { level: 6 },
+                const archive = archiver('zip', { zlib: { level: 6 } });
+                archive.on('warning', err => {
+                    logger.warn('Posterpacks zip warning:', err);
                 });
-                stream.pipe(res);
+                archive.on('error', err => {
+                    logger.error('Posterpacks zip error:', err);
+                    if (!res.headersSent) {
+                        res.status(500).json({ error: 'download_all_failed' });
+                    } else {
+                        res.destroy(err);
+                    }
+                });
+
+                archive.pipe(res);
+                for (const p of posterpacks) {
+                    archive.file(p.full, { name: p.name });
+                }
+                archive.finalize();
             } catch (e) {
                 logger.error('Download-all posterpacks failed:', e);
                 res.status(500).json({ error: 'download_all_failed' });
