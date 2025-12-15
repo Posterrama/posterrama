@@ -4780,47 +4780,6 @@
     </div>
   </div>
 
-  <!-- Group Assign Modal (DEPRECATED - kept for migration) -->
-  <div class="modal-overlay" id="modal-group-assign" style="display: none;">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-group-title">
-      <div class="modal-header">
-        <div class="modal-title" id="modal-group-title">
-          <i class="fas fa-layer-group"></i>
-          Assign to Group
-        </div>
-        <button class="modal-close" data-close-modal><i class="fas fa-times"></i></button>
-      </div>
-      <div class="modal-body">
-        <p>Select a group to assign or remove for the selected devices.</p>
-        <div class="form-group" style="margin-top: var(--space-md);">
-          <label for="group-select">Group</label>
-          <div class="select-wrap has-caret">
-            <select id="group-select"></select>
-            <span class="select-caret" aria-hidden="true">▾</span>
-          </div>
-        </div>
-        <div class="form-group" style="margin-top: var(--space-md);">
-          <label for="new-group-name">Or create a new group</label>
-          <div style="display:flex; gap:.5rem; align-items:center;">
-            <input id="new-group-name" type="text" placeholder="New group name" />
-            <button class="btn btn-secondary btn-sm btn-assign-accent" id="btn-group-create-assign">
-              <i class="fas fa-plus" aria-hidden="true"></i><span>Create & assign</span>
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer" style="display:flex; gap:12px; justify-content:flex-end;">
-        <button class="btn btn-secondary btn-sm btn-cancel" data-close-modal><span>Cancel</span></button>
-        <button class="btn btn-secondary btn-sm btn-remove-accent" id="btn-group-remove">
-          <i class="fas fa-minus-circle" aria-hidden="true"></i><span>Remove</span>
-        </button>
-        <button class="btn btn-secondary btn-sm btn-assign-accent" id="btn-group-assign">
-          <i class="fas fa-layer-group" aria-hidden="true"></i><span>Assign</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Assign Preset Modal (DEPRECATED - kept for migration) -->
   <div class="modal-overlay" id="modal-assign-preset" style="display: none;">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-preset-title">

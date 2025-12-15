@@ -230,13 +230,13 @@ function createCacheMiddleware(options = {}) {
  * TTL Strategy (optimized for performance):
  * - Static content (config, genres, libraries): Long TTL (hours)
  * - Semi-static (media listings): Medium TTL (minutes to hour)
- * - Dynamic (device status, groups): Short TTL (1-2 minutes)
+ * - Dynamic (device status): Short TTL (1-2 minutes)
  */
 const cacheMiddleware = {
     // Very short cache for highly dynamic data (device status)
     veryShort: createCacheMiddleware({ ttl: 1 * 60 * 1000 }), // 1 minute
 
-    // Short cache for frequently changing data (groups, filtered media)
+    // Short cache for frequently changing data (filtered media)
     short: createCacheMiddleware({ ttl: 2 * 60 * 1000 }), // 2 minutes
 
     // Medium cache for semi-static data (unfiltered media)

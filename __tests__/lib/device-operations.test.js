@@ -352,6 +352,16 @@ describe('device-operations', () => {
             ).rejects.toThrow('device_not_found');
         });
 
+        it('should reject legacy groups field', async () => {
+            mockDeviceStore.getById.mockResolvedValueOnce({ id: 'device-123' });
+
+            await expect(
+                deviceOps.processDeviceUpdate(mockDeviceStore, 'device-123', { groups: ['x'] })
+            ).rejects.toThrow('groups_not_supported');
+
+            expect(mockDeviceStore.patchDevice).not.toHaveBeenCalled();
+        });
+
         it('should update allowed fields only', async () => {
             mockDeviceStore.getById
                 .mockResolvedValueOnce({ id: 'device-123', name: 'Old Name' })

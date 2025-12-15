@@ -55,6 +55,27 @@ async function readAll() {
             logger.warn(`[Devices] Store content is not an array, resetting`);
             cache = [];
         }
+
+        // Migration: fully remove legacy "groups" field from devices.
+        // Persist the scrubbed store once to avoid carrying dead fields indefinitely.
+        // (Groups feature has been removed.)
+        let modified = false;
+        for (const d of cache) {
+            if (d && Object.prototype.hasOwnProperty.call(d, 'groups')) {
+                delete d.groups;
+                modified = true;
+            }
+        }
+        if (modified) {
+            try {
+                await fileStore.write(cache);
+                logger.info('[Devices] Scrubbed legacy groups field from device store');
+            } catch (e) {
+                logger.warn('[Devices] Failed to persist groups scrub migration', {
+                    error: e && e.message ? e.message : String(e),
+                });
+            }
+        }
     } catch (error) {
         logger.error(`[Devices] Failed to read store, using empty array:`, error);
         cache = [];

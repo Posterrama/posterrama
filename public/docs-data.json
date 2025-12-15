@@ -1151,20 +1151,10 @@
             "category": "Devices",
             "keywords": ["device", "display", "screen", "monitor", "manage"],
             "description": "View and configure connected displays.",
-            "help": "Every screen running Posterrama automatically registers here. You can rename devices, assign them to groups, and configure individual settings. The grid shows real-time status of each device.",
+            "help": "Every screen running Posterrama automatically registers here. You can rename devices and configure individual settings. The grid shows real-time status of each device.",
             "example": "Click a device card to open its settings. Rename it to 'Living Room TV' for easy identification.",
             "section": "devices",
             "setting": "device-grid"
-        },
-        {
-            "id": "device-groups",
-            "title": "Device Groups",
-            "category": "Devices",
-            "keywords": ["group", "sync", "synchronized", "together", "multiple"],
-            "description": "Group devices for synchronized playback.",
-            "help": "Assign devices to groups so they display the same content at the same time. Perfect for video walls, hallway displays, or any setup where multiple screens should stay in sync.",
-            "section": "devices",
-            "setting": "group-select"
         },
         {
             "id": "dashboard",

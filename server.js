@@ -22,6 +22,7 @@ const { initializeWebSocketServer, initializeSSEServer } = require('./lib/realti
 const {
     asyncHandler,
     createIsAuthenticated,
+    createMetricsAuth,
     testSessionShim,
     createAdminAuth,
     createAdminAuthDevices,
@@ -323,6 +324,9 @@ const isDebug = env.server.debug;
 const isAuthenticated = /** @type {import('express').RequestHandler} */ (
     createIsAuthenticated({ isDebug })
 );
+
+// Auth middleware specifically for the Prometheus /metrics endpoint (no redirects).
+const metricsAuth = /** @type {import('express').RequestHandler} */ (createMetricsAuth({ logger }));
 
 // Cache the server IP address
 const serverIPAddress = getLocalIPAddress();
@@ -1050,6 +1054,8 @@ app.use('/', frontendPagesRouter);
  *       Exposes server metrics in Prometheus format for monitoring and alerting.
  *       Includes default metrics (CPU, memory, event loop) and custom metrics
  *       (cache, HTTP, WebSocket, source APIs, devices).
+ *
+ *       Authentication required: admin session or API token (Bearer / X-API-Key).
  *     responses:
  *       200:
  *         description: Prometheus metrics in text format
@@ -1059,8 +1065,10 @@ app.use('/', frontendPagesRouter);
  *               # HELP posterrama_http_requests_total Total HTTP requests
  *               # TYPE posterrama_http_requests_total counter
  *               posterrama_http_requests_total{method="GET",path="/api/media",status="200"} 42
+ *       401:
+ *         description: Unauthorized
  */
-app.get('/metrics', async (req, res) => {
+app.get('/metrics', metricsAuth, async (req, res) => {
     try {
         const contentType = metricsManager.getPrometheusContentType();
         const metricsText = await metricsManager.getPrometheusMetrics();

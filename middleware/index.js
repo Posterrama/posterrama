@@ -330,6 +330,7 @@ module.exports = {
     // New modular middleware
     asyncHandler: require('./asyncHandler'),
     createIsAuthenticated: require('./auth'),
+    createMetricsAuth: require('./metricsAuth').createMetricsAuth,
     testSessionShim: require('./testSessionShim'),
     ...require('./adminAuth'),
 };
