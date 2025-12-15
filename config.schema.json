@@ -1153,7 +1153,17 @@
                                             "spotlight",
                                             "unfold",
                                             "swing",
-                                            "ripple"
+                                            "ripple",
+                                            "curtainReveal",
+                                            "filmGate",
+                                            "projectorFlicker",
+                                            "rackFocus",
+                                            "lightSweep",
+                                            "parallaxFloat",
+                                            "dollyIn",
+                                            "splitFlap",
+                                            "smokeFade",
+                                            "lensIris"
                                         ]
                                     },
                                     "default": [
@@ -1166,7 +1176,17 @@
                                         "spotlight",
                                         "unfold",
                                         "swing",
-                                        "ripple"
+                                        "ripple",
+                                        "curtainReveal",
+                                        "filmGate",
+                                        "projectorFlicker",
+                                        "rackFocus",
+                                        "lightSweep",
+                                        "parallaxFloat",
+                                        "dollyIn",
+                                        "splitFlap",
+                                        "smokeFade",
+                                        "lensIris"
                                     ],
                                     "description": "List of enabled transitions to use"
                                 },
@@ -1188,7 +1208,17 @@
                                         "spotlight",
                                         "unfold",
                                         "swing",
-                                        "ripple"
+                                        "ripple",
+                                        "curtainReveal",
+                                        "filmGate",
+                                        "projectorFlicker",
+                                        "rackFocus",
+                                        "lightSweep",
+                                        "parallaxFloat",
+                                        "dollyIn",
+                                        "splitFlap",
+                                        "smokeFade",
+                                        "lensIris"
                                     ],
                                     "default": "fade",
                                     "description": "The transition to use when selectionMode is 'single'"
@@ -1206,7 +1236,17 @@
                                     "spotlight",
                                     "unfold",
                                     "swing",
-                                    "ripple"
+                                    "ripple",
+                                    "curtainReveal",
+                                    "filmGate",
+                                    "projectorFlicker",
+                                    "rackFocus",
+                                    "lightSweep",
+                                    "parallaxFloat",
+                                    "dollyIn",
+                                    "splitFlap",
+                                    "smokeFade",
+                                    "lensIris"
                                 ],
                                 "selectionMode": "random",
                                 "singleTransition": "fade"
@@ -1253,7 +1293,17 @@
                                 "spotlight",
                                 "unfold",
                                 "swing",
-                                "ripple"
+                                "ripple",
+                                "curtainReveal",
+                                "filmGate",
+                                "projectorFlicker",
+                                "rackFocus",
+                                "lightSweep",
+                                "parallaxFloat",
+                                "dollyIn",
+                                "splitFlap",
+                                "smokeFade",
+                                "lensIris"
                             ],
                             "selectionMode": "random",
                             "singleTransition": "fade"

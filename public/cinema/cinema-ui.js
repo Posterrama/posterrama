@@ -1592,6 +1592,16 @@
             'unfold',
             'swing',
             'ripple',
+            'curtainReveal',
+            'filmGate',
+            'projectorFlicker',
+            'rackFocus',
+            'lightSweep',
+            'parallaxFloat',
+            'dollyIn',
+            'splitFlap',
+            'smokeFade',
+            'lensIris',
         ];
         const checkboxes = document.querySelectorAll(
             '#enabledTransitionsGrid input[type="checkbox"]'

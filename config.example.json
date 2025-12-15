@@ -190,7 +190,17 @@
                     "spotlight",
                     "unfold",
                     "swing",
-                    "ripple"
+                    "ripple",
+                    "curtainReveal",
+                    "filmGate",
+                    "projectorFlicker",
+                    "rackFocus",
+                    "lightSweep",
+                    "parallaxFloat",
+                    "dollyIn",
+                    "splitFlap",
+                    "smokeFade",
+                    "lensIris"
                 ],
                 "selectionMode": "random",
                 "singleTransition": "fade"

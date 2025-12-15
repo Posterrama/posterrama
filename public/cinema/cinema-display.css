@@ -2323,6 +2323,418 @@ body.cinema-anim-ripple #poster {
 }
 
 /* =================================================================
+   IMPACTFUL PORTRAIT-FRIENDLY POSTER ANIMATIONS
+   ================================================================= */
+
+/* Curtain Reveal - theater curtains slide away */
+body.cinema-anim-curtainReveal #poster {
+    animation: cinemaCurtainPoster var(--cinema-poster-transition) ease-out forwards;
+}
+
+body.cinema-anim-curtainReveal #poster-wrapper::before,
+body.cinema-anim-curtainReveal #poster-wrapper::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 55vw;
+    max-width: 55%;
+    z-index: 9998;
+    pointer-events: none;
+    opacity: 1;
+    will-change: transform, opacity;
+}
+
+body.cinema-anim-curtainReveal #poster-wrapper::before {
+    left: 0;
+    background: linear-gradient(90deg, rgba(8, 8, 10, 0.98), rgba(0, 0, 0, 0.85));
+    animation: cinemaCurtainLeft var(--cinema-poster-transition) cubic-bezier(0.22, 1, 0.36, 1)
+        forwards;
+}
+
+body.cinema-anim-curtainReveal #poster-wrapper::after {
+    right: 0;
+    background: linear-gradient(270deg, rgba(8, 8, 10, 0.98), rgba(0, 0, 0, 0.85));
+    animation: cinemaCurtainRight var(--cinema-poster-transition) cubic-bezier(0.22, 1, 0.36, 1)
+        forwards;
+}
+
+@keyframes cinemaCurtainPoster {
+    0% {
+        opacity: 0;
+        transform: scale(1.02);
+        filter: brightness(0.75);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: brightness(1);
+    }
+}
+
+@keyframes cinemaCurtainLeft {
+    0% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    70% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(-110%);
+        opacity: 0;
+    }
+}
+
+@keyframes cinemaCurtainRight {
+    0% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    70% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(110%);
+        opacity: 0;
+    }
+}
+
+/* Film Gate - top/bottom matte opens */
+body.cinema-anim-filmGate #poster {
+    animation: cinemaFilmGatePoster var(--cinema-poster-transition) ease-out forwards;
+}
+
+body.cinema-anim-filmGate #poster-wrapper::before,
+body.cinema-anim-filmGate #poster-wrapper::after {
+    content: '';
+    position: fixed;
+    left: 0;
+    right: 0;
+    height: 50vh;
+    background: rgba(0, 0, 0, 0.98);
+    z-index: 9998;
+    pointer-events: none;
+    will-change: transform, opacity;
+}
+
+body.cinema-anim-filmGate #poster-wrapper::before {
+    top: 0;
+    animation: cinemaFilmGateTop var(--cinema-poster-transition) cubic-bezier(0.22, 1, 0.36, 1)
+        forwards;
+}
+
+body.cinema-anim-filmGate #poster-wrapper::after {
+    bottom: 0;
+    animation: cinemaFilmGateBottom var(--cinema-poster-transition) cubic-bezier(0.22, 1, 0.36, 1)
+        forwards;
+}
+
+@keyframes cinemaFilmGatePoster {
+    0% {
+        opacity: 0;
+        transform: scale(0.985);
+        filter: brightness(0.85);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: brightness(1);
+    }
+}
+
+@keyframes cinemaFilmGateTop {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-105%);
+        opacity: 0;
+    }
+}
+
+@keyframes cinemaFilmGateBottom {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(105%);
+        opacity: 0;
+    }
+}
+
+/* Projector Flicker - restrained flicker & jitter (short) */
+body.cinema-anim-projectorFlicker #poster {
+    animation: cinemaProjectorFlicker var(--cinema-poster-transition) ease-out forwards;
+    will-change: transform, opacity;
+}
+
+@keyframes cinemaProjectorFlicker {
+    0% {
+        opacity: 0;
+        transform: scale(0.99) translateY(4px);
+        filter: brightness(0.7);
+    }
+    10% {
+        opacity: 0.85;
+        transform: scale(1) translateY(-1px);
+        filter: brightness(1.05);
+    }
+    16% {
+        opacity: 0.55;
+        transform: scale(1) translateY(1px);
+        filter: brightness(0.85);
+    }
+    24% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        filter: brightness(1);
+    }
+    32% {
+        opacity: 0.9;
+        transform: scale(1) translateY(-1px);
+    }
+    40% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        filter: brightness(1);
+    }
+}
+
+/* Rack Focus - simulated focus pull (poster sharpens & settles) */
+body.cinema-anim-rackFocus #poster {
+    animation: cinemaRackFocus var(--cinema-poster-transition) ease-out forwards;
+    will-change: transform, opacity, filter;
+}
+
+@keyframes cinemaRackFocus {
+    0% {
+        opacity: 0;
+        transform: scale(1.03);
+        filter: blur(2px) brightness(0.75);
+    }
+    45% {
+        opacity: 1;
+        filter: blur(1px) brightness(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: blur(0) brightness(1);
+    }
+}
+
+/* Light Sweep - softer, premium highlight pass */
+body.cinema-anim-lightSweep #poster {
+    animation: cinemaLightSweepBase var(--cinema-poster-transition) ease-out forwards;
+    position: relative;
+    overflow: hidden;
+}
+
+body.cinema-anim-lightSweep #poster::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -120%;
+    width: 60%;
+    height: 200%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0) 30%,
+        rgba(255, 255, 255, 0.22) 50%,
+        rgba(255, 255, 255, 0) 70%,
+        transparent 100%
+    );
+    transform: skewX(-18deg);
+    animation: cinemaLightSweep var(--cinema-poster-transition) ease-out forwards;
+    pointer-events: none;
+    will-change: transform, opacity, left;
+}
+
+@keyframes cinemaLightSweepBase {
+    0% {
+        opacity: 0;
+        transform: scale(1.01);
+        filter: contrast(1.05) brightness(0.85);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: contrast(1) brightness(1);
+    }
+}
+
+@keyframes cinemaLightSweep {
+    0% {
+        left: -120%;
+        opacity: 0;
+    }
+    18% {
+        opacity: 1;
+    }
+    100% {
+        left: 160%;
+        opacity: 0;
+    }
+}
+
+/* Parallax Float - depth-y float for portrait posters */
+body.cinema-anim-parallaxFloat #poster {
+    animation: cinemaParallaxFloat var(--cinema-poster-transition) cubic-bezier(0.22, 1, 0.36, 1)
+        forwards;
+    will-change: transform, opacity;
+}
+
+@keyframes cinemaParallaxFloat {
+    0% {
+        opacity: 0;
+        transform: translateY(18px) scale(0.985);
+    }
+    55% {
+        opacity: 1;
+        transform: translateY(-4px) scale(1.01);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Dolly In - slow push-in */
+body.cinema-anim-dollyIn #poster {
+    animation: cinemaDollyIn var(--cinema-poster-transition) cubic-bezier(0.25, 0.46, 0.45, 0.94)
+        forwards;
+    will-change: transform, opacity;
+}
+
+@keyframes cinemaDollyIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.92);
+        filter: brightness(0.8);
+    }
+    60% {
+        opacity: 1;
+        filter: brightness(0.98);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: brightness(1);
+    }
+}
+
+/* Split Flap - horizontal split opens */
+body.cinema-anim-splitFlap #poster {
+    animation: cinemaSplitFlap var(--cinema-poster-transition) ease-out forwards;
+    will-change: transform, opacity, clip-path;
+}
+
+@keyframes cinemaSplitFlap {
+    0% {
+        opacity: 0;
+        transform: scale(0.98);
+        clip-path: inset(50% 0 50% 0);
+        filter: brightness(0.8);
+    }
+    35% {
+        opacity: 1;
+        clip-path: inset(20% 0 20% 0);
+        filter: brightness(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        clip-path: inset(0 0 0 0);
+        filter: brightness(1);
+    }
+}
+
+/* Smoke Fade - subtle haze drifts upward */
+body.cinema-anim-smokeFade #poster {
+    animation: cinemaSmokeFadeBase var(--cinema-poster-transition) ease-out forwards;
+    position: relative;
+    overflow: hidden;
+}
+
+body.cinema-anim-smokeFade #poster::after {
+    content: '';
+    position: absolute;
+    left: -10%;
+    right: -10%;
+    bottom: -30%;
+    top: -30%;
+    background:
+        radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 60%),
+        radial-gradient(circle at 70% 85%, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 65%);
+    opacity: 0;
+    transform: translateY(18px);
+    animation: cinemaSmokeDrift var(--cinema-poster-transition) ease-out forwards;
+    pointer-events: none;
+    will-change: transform, opacity;
+}
+
+@keyframes cinemaSmokeFadeBase {
+    0% {
+        opacity: 0;
+        transform: scale(1.01);
+        filter: brightness(0.8);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: brightness(1);
+    }
+}
+
+@keyframes cinemaSmokeDrift {
+    0% {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+    35% {
+        opacity: 0.85;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-18px);
+    }
+}
+
+/* Lens Iris - circular iris opens (soft) */
+body.cinema-anim-lensIris #poster {
+    animation: cinemaLensIris var(--cinema-poster-transition) ease-out forwards;
+    will-change: transform, opacity, clip-path;
+}
+
+@keyframes cinemaLensIris {
+    0% {
+        opacity: 0;
+        transform: scale(1.02);
+        clip-path: circle(0% at 50% 50%);
+        filter: brightness(0.75);
+    }
+    40% {
+        opacity: 1;
+        clip-path: circle(40% at 50% 50%);
+        filter: brightness(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        clip-path: circle(110% at 50% 50%);
+        filter: brightness(1);
+    }
+}
+
+/* =================================================================
    METADATA POSITION VARIANTS (Issue #35)
    ================================================================= */
 
