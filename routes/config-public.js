@@ -111,6 +111,21 @@ module.exports = function createConfigPublicRouter({
                 'X-Install-Id',
                 'X-Hardware-Id',
             ],
+            // Never serve cached config when the client explicitly asks to bypass caching
+            // (bootstraps and devices often set these to avoid stale mode/pin flashes).
+            skipIf: req => {
+                const nocache = req.query?.nocache;
+                const hasNoCacheQuery = nocache === '1' || nocache === 'true' || nocache === true;
+                const cc = String(req.headers['cache-control'] || '').toLowerCase();
+                const pragma = String(req.headers.pragma || '').toLowerCase();
+                const hasNoCacheHeader =
+                    cc.includes('no-store') ||
+                    cc.includes('no-cache') ||
+                    pragma.includes('no-cache');
+                // Common cache-busters used by the frontend to guarantee freshness
+                const hasCacheBuster = req.query?._t !== undefined || req.query?.cb !== undefined;
+                return hasNoCacheQuery || hasNoCacheHeader || hasCacheBuster;
+            },
             // Include a device discriminator in the cache key for correctness
             keyGenerator: req => {
                 const devPart = (
@@ -123,6 +138,12 @@ module.exports = function createConfigPublicRouter({
             },
         }),
         async (/** @type {ConfigRequest} */ req, res) => {
+            // /get-config is dynamic per device/profile and should never be cached by the browser
+            // or intermediary proxies. We may still do short server-side caching when allowed.
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
+
             // Helper: normalize to a JSON-safe plain structure (drop functions/symbols, handle BigInt, Dates, NaN/Infinity)
             function toPlainJSONSafe(value, seen = new WeakSet()) {
                 const t = typeof value;

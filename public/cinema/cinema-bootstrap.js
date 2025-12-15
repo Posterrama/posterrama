@@ -28,9 +28,9 @@
             const cfg = useCore
                 ? await window.PosterramaCore.fetchConfig()
                 : await (
-                      await fetch('/get-config', {
-                          cache: 'no-cache',
-                          headers: { 'Cache-Control': 'no-cache' },
+                      await fetch(`/get-config?nocache=1&_t=${Date.now()}`, {
+                          cache: 'no-store',
+                          headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' },
                       })
                   ).json();
             try {
@@ -67,6 +67,9 @@
             const baseUrl = window.location.origin;
             let url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}`;
 
+            // Avoid any server-side cache during boot to prevent a brief flash of stale selections.
+            url += `&nocache=1&cb=${Date.now()}`;
+
             // Add appropriate parameter based on games mode
             if (isGamesOnly) {
                 url += '&gamesOnly=true';
@@ -76,9 +79,10 @@
 
             const res = await fetch(url, {
                 method: 'GET',
-                cache: 'no-cache',
+                cache: 'no-store',
                 headers: {
-                    'Cache-Control': 'no-cache',
+                    'Cache-Control': 'no-store',
+                    Pragma: 'no-cache',
                     Accept: 'application/json',
                 },
                 credentials: 'same-origin',

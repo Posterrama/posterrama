@@ -3,12 +3,13 @@
     const Core = {};
 
     Core.fetchConfig = async function fetchConfig(extra = {}) {
-        const qs = `_t=${Date.now()}`;
+        const qs = `nocache=1&_t=${Date.now()}`;
         const url = `/get-config?${qs}`;
 
         // Build headers with device identity if available (for per-device settings override)
         const headers = {
-            'Cache-Control': 'no-cache',
+            'Cache-Control': 'no-store',
+            Pragma: 'no-cache',
             ...(extra.headers || {}),
         };
 
@@ -32,7 +33,7 @@
         }
 
         const resp = await fetch(url, {
-            cache: 'no-cache',
+            cache: 'no-store',
             headers,
             ...extra,
         });
@@ -440,14 +441,35 @@
         // Store preview config override
         window.__previewConfig = null;
 
+        // Cache a "base" config snapshot so partial preview patches don't wipe nested objects.
+        // This prevents flashes where cinema/wallart boot with missing nested fields (e.g. pinnedMediaKey).
+        let previewBaseConfig = null;
+        /** @type {Promise<any> | null} */
+        let previewBasePromise = null;
+
+        const getPreviewBaseConfig = async () => {
+            if (previewBaseConfig) return previewBaseConfig;
+            if (!previewBasePromise) {
+                previewBasePromise = (async () => {
+                    const cfg = await originalFetchConfig();
+                    previewBaseConfig = cfg;
+                    return cfg;
+                })().finally(() => {
+                    previewBasePromise = null;
+                });
+            }
+            return previewBasePromise;
+        };
+
         // Override fetchConfig to return preview config when available
         const originalFetchConfig = Core.fetchConfig;
         Core.fetchConfig = async function (extra = {}) {
             // If we have a preview config override, merge it with the real config
             const realConfig = await originalFetchConfig(extra);
+            previewBaseConfig = realConfig;
             if (window.__previewConfig) {
-                // Merge preview config on top of real config
-                return { ...realConfig, ...window.__previewConfig };
+                // Deep-merge preview config on top of real config (don't lose nested fields)
+                return deepMerge(realConfig, window.__previewConfig);
             }
             return realConfig;
         };
@@ -466,24 +488,37 @@
                     // Store the preview config
                     window.__previewConfig = data.payload;
 
-                    // Apply settings DIRECTLY inline instead of calling window.applySettings
-                    try {
-                        // Merge new settings into existing appConfig
-                        if (typeof window.appConfig === 'object' && window.appConfig !== null) {
-                            Object.assign(window.appConfig, data.payload);
-                        } else {
-                            window.appConfig = data.payload;
-                        }
+                    // Apply settings using a deep merge so partial preview patches don't wipe
+                    // nested objects. Dispatch the FULL merged config, not just the patch.
+                    (async () => {
+                        try {
+                            const base =
+                                typeof window.appConfig === 'object' && window.appConfig !== null
+                                    ? window.appConfig
+                                    : await getPreviewBaseConfig();
 
-                        // Trigger a custom event that modules can listen to for live updates
-                        window.dispatchEvent(
-                            new CustomEvent('settingsUpdated', {
-                                detail: { settings: data.payload },
-                            })
-                        );
-                    } catch (e) {
-                        console.error('[setupPreviewListener] Failed to apply settings:', e);
-                    }
+                            const merged = deepMerge(base || {}, data.payload);
+                            window.appConfig = merged;
+
+                            window.dispatchEvent(
+                                new CustomEvent('settingsUpdated', {
+                                    detail: { settings: merged },
+                                })
+                            );
+                        } catch (e) {
+                            console.error('[setupPreviewListener] Failed to apply settings:', e);
+                            // Last-resort fallback: dispatch patch (better than silence)
+                            try {
+                                window.dispatchEvent(
+                                    new CustomEvent('settingsUpdated', {
+                                        detail: { settings: data.payload },
+                                    })
+                                );
+                            } catch (_) {
+                                /* ignore */
+                            }
+                        }
+                    })();
                 }
             } catch (_) {
                 /* ignore malformed messages */

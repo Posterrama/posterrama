@@ -2478,7 +2478,7 @@
     }
 
     // ===== Background Settings =====
-    async function applyBackgroundSettings(media) {
+    async function applyBackgroundSettings(media, opts = {}) {
         const root = document.documentElement;
         const bg = cinemaConfig.background;
 
@@ -2509,6 +2509,18 @@
         const needsTonSurTon =
             cinemaConfig.poster.frameColorMode && cinemaConfig.poster.frameColorMode !== 'custom';
 
+        // If ton-sur-ton frame color is enabled, set an immediate non-custom frame color based on
+        // the current effective background, so we never flash the custom color at boot.
+        if (needsTonSurTon) {
+            const mode = cinemaConfig.poster.frameColorMode;
+            const variant = mode === 'tonSurTonLight' ? 'light' : 'dark';
+            const base =
+                typeof effectiveBgColor === 'string' && /^#?[0-9a-fA-F]{6}$/.test(effectiveBgColor)
+                    ? effectiveBgColor
+                    : '#000000';
+            root.style.setProperty('--cinema-frame-color', createTonSurTonColor(base, variant));
+        }
+
         // Set poster URL for blurred background
         if (media) {
             const posterUrl = media.posterUrl || media.poster_path || '';
@@ -2525,7 +2537,10 @@
                         bg.mode === 'blurred' ||
                         needsTonSurTon)
                 ) {
-                    dominantColor = await extractDominantColor(posterUrl);
+                    // Prefer sampling a low-res thumbnail when available for faster stabilization.
+                    // This reduces the brief "background/color then correct" flash on first paint.
+                    const sampleUrl = opts.samplePosterUrl || posterUrl;
+                    dominantColor = await extractDominantColor(sampleUrl);
                     log('Extracted dominant color:', dominantColor);
                 }
                 dominantColor = dominantColor || '#4a4a7a';
@@ -2689,16 +2704,28 @@
             document.body.classList.add(`cinema-overlay-${poster.overlay}`);
         }
 
-        // Remove existing animation classes using the ALL_TRANSITIONS constant
-        ALL_TRANSITIONS.forEach(t => document.body.classList.remove(`cinema-anim-${t}`));
-
-        // Apply initial transition based on selection mode
-        const initialTransition = selectTransition();
-        document.body.classList.add(`cinema-anim-${initialTransition}`);
+        // NOTE: Do not apply a "bootstrap" transition class here.
+        // Transitions are applied per-poster in updateCinemaDisplay(media), where we have real
+        // media context (and can avoid a brief "wrong" animation on first paint).
 
         // Set CSS variables (use rem for 4K scaling)
         root.style.setProperty('--cinema-poster-transition', `${poster.transitionDuration}s`);
-        root.style.setProperty('--cinema-frame-color', poster.frameColor);
+
+        // Frame color: if ton-sur-ton mode is enabled, never apply the stored custom color
+        // (it may be the UI default like #CE06FF and causes a flash before ton-sur-ton is computed).
+        const needsTonSurTon = poster.frameColorMode && poster.frameColorMode !== 'custom';
+        let frameColor = poster.frameColor;
+        if (needsTonSurTon) {
+            const variant = poster.frameColorMode === 'tonSurTonLight' ? 'light' : 'dark';
+            const base =
+                typeof effectiveBgColor === 'string' && /^#?[0-9a-fA-F]{6}$/.test(effectiveBgColor)
+                    ? effectiveBgColor
+                    : cinemaConfig.background?.solidColor;
+            const safeBase =
+                typeof base === 'string' && /^#?[0-9a-fA-F]{6}$/.test(base) ? base : '#000000';
+            frameColor = createTonSurTonColor(safeBase, variant);
+        }
+        root.style.setProperty('--cinema-frame-color', frameColor);
         root.style.setProperty('--cinema-frame-width', `${poster.frameWidth / 16}rem`);
 
         log('Poster settings applied', poster);
@@ -3075,6 +3102,7 @@
 
         // PROGRESSIVE LOADING: Show thumbnail first, then upgrade to full quality
         const posterEl = document.getElementById('poster');
+        let posterSampleUrl = null;
         if (posterEl && media && media.posterUrl) {
             const url = media.posterUrl;
 
@@ -3104,6 +3132,7 @@
             const thumbUrl = url.includes('?')
                 ? `${url}&quality=30&width=400`
                 : `${url}?quality=30&width=400`;
+            posterSampleUrl = thumbUrl;
 
             debug(`Cinema Update #${updateId} THUMBNAIL loading`, {
                 url: thumbUrl,
@@ -3156,7 +3185,7 @@
 
         // Update background with media info (for blurred/gradient/ambient modes)
         // Must await to ensure effectiveBgColor is set before ton-sur-ton calculation
-        await applyBackgroundSettings(media);
+        await applyBackgroundSettings(media, { samplePosterUrl: posterSampleUrl });
 
         // Update header - always refresh when media changes for context-aware headers
         // Also needed if ton-sur-ton is enabled (needs effectiveBgColor from background)
@@ -3314,7 +3343,10 @@
             if (useCore) {
                 data = await window.PosterramaCore.fetchConfig();
             } else {
-                const response = await fetch('/get-config');
+                const response = await fetch(`/get-config?nocache=1&_t=${Date.now()}`, {
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' },
+                });
                 if (!response.ok) {
                     throw new Error(`Failed to load config: ${response.status}`);
                 }

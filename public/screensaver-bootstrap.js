@@ -88,9 +88,13 @@ async function ensureConfig() {
         const cfg = useCore
             ? await window.PosterramaCore.fetchConfig()
             : await (
-                  await fetch('/get-config', {
-                      cache: 'no-cache',
-                      headers: getDeviceHeaders(),
+                  await fetch(`/get-config?nocache=1&_t=${Date.now()}`, {
+                      cache: 'no-store',
+                      headers: {
+                          ...getDeviceHeaders(),
+                          'Cache-Control': 'no-store',
+                          Pragma: 'no-cache',
+                      },
                   })
               ).json();
 
@@ -138,6 +142,9 @@ async function ensureMediaQueue() {
         const baseUrl = window.location.origin;
         let url = `${baseUrl}/get-media?count=${count}&type=${encodeURIComponent(type)}`;
 
+        // Avoid any server-side cache during boot to prevent stale media on first paint.
+        url += `&nocache=1&cb=${Date.now()}`;
+
         // Add appropriate parameter based on games mode
         if (isGamesOnly) {
             url += '&gamesOnly=true';
@@ -147,9 +154,10 @@ async function ensureMediaQueue() {
 
         const res = await fetch(url, {
             method: 'GET',
-            cache: 'no-cache',
+            cache: 'no-store',
             headers: {
-                'Cache-Control': 'no-cache',
+                'Cache-Control': 'no-store',
+                Pragma: 'no-cache',
                 Accept: 'application/json',
             },
             credentials: 'same-origin',
