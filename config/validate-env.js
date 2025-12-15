@@ -32,6 +32,103 @@ if (!fs.existsSync(configPath)) {
     }
 }
 
+// Shared logger for config maintenance (migrations/self-heal). Keep console.error for fatal messages
+// (some tests assert console usage).
+const logger = require('../utils/logger');
+
+function envFlag(name) {
+    const raw = String(process.env[name] || '')
+        .trim()
+        .toLowerCase();
+    if (!raw) return null;
+    if (raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on') return true;
+    if (raw === '0' || raw === 'false' || raw === 'no' || raw === 'off') return false;
+    return null;
+}
+
+const isTestRun = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID != null;
+
+function createConfigMaintenanceReport() {
+    const quietDefault = isTestRun;
+    const quiet = envFlag('POSTERRAMA_CONFIG_VALIDATE_QUIET') ?? quietDefault;
+    const verbose =
+        envFlag('POSTERRAMA_CONFIG_VALIDATE_VERBOSE') ??
+        (String(process.env.TEST_VERBOSE_CONFIG_VALIDATION || '').trim() === '1' ||
+            String(process.env.TEST_VERBOSE_CONFIG_VALIDATION || '')
+                .trim()
+                .toLowerCase() === 'true');
+
+    const state = {
+        quiet,
+        verbose,
+        migrations: 0,
+        repairs: 0,
+        removedUnknownProperties: 0,
+        savedWrites: 0,
+        saveErrors: 0,
+        notes: [],
+    };
+
+    function detail(message, meta) {
+        // Per-change logs stay at debug; summary emitted at info.
+        logger.debug(message, meta);
+    }
+
+    return {
+        state,
+        migration(message, meta) {
+            state.migrations += 1;
+            if (!state.quiet || state.verbose) detail(message, meta);
+        },
+        repair(message, meta) {
+            state.repairs += 1;
+            if (!state.quiet || state.verbose) detail(message, meta);
+        },
+        removedUnknown(pathStr) {
+            state.removedUnknownProperties += 1;
+            if (!state.quiet || state.verbose) {
+                detail('[Config Self-Heal] Removing unknown property', { path: pathStr });
+            }
+        },
+        saved(kind) {
+            state.savedWrites += 1;
+            if (!state.quiet || state.verbose) {
+                detail('[Config] Saved config.json after maintenance', { kind });
+            }
+        },
+        saveError(kind, error) {
+            state.saveErrors += 1;
+            logger.warn('[Config] Failed to save config.json after maintenance', {
+                kind,
+                error: error && error.message,
+            });
+        },
+        note(message) {
+            state.notes.push(message);
+        },
+        emitSummaryIfNeeded(context = {}) {
+            const changed =
+                state.migrations > 0 ||
+                state.repairs > 0 ||
+                state.removedUnknownProperties > 0 ||
+                state.savedWrites > 0 ||
+                state.saveErrors > 0;
+            if (state.quiet && !state.verbose) return;
+            if (!changed && !state.verbose) return;
+
+            logger.info('[Config Maintenance] Summary', {
+                ...context,
+                migrations: state.migrations,
+                repairs: state.repairs,
+                removedUnknownProperties: state.removedUnknownProperties,
+                savedWrites: state.savedWrites,
+                saveErrors: state.saveErrors,
+                notes: state.verbose ? state.notes : undefined,
+            });
+        },
+    };
+}
+
 const Ajv = require('ajv');
 // Use example env during tests, real .env otherwise
 const envFileToUse = process.env.NODE_ENV === 'test' ? exampleEnvPath : envPath;
@@ -108,8 +205,9 @@ try {
  * @param {object} cfg - The config object to migrate/repair
  * @returns {boolean} - True if config was modified and needs saving
  */
-function migrateConfig(cfg) {
+function migrateConfig(cfg, options = {}) {
     let modified = false;
+    const report = options && options.report;
 
     // === VALID ENUM VALUES (from schema) ===
     const VALID = {
@@ -190,9 +288,13 @@ function migrateConfig(cfg) {
     // Helper: validate and fix enum value
     const fixEnum = (obj, key, validValues, defaultValue, path) => {
         if (obj && obj[key] !== undefined && !validValues.includes(obj[key])) {
-            console.log(
-                `[Config Repair] Invalid ${path}.${key}: "${obj[key]}" → "${defaultValue}"`
-            );
+            if (report) {
+                report.repair('[Config Repair] Invalid enum value normalized', {
+                    path: `${path}.${key}`,
+                    from: obj[key],
+                    to: defaultValue,
+                });
+            }
             obj[key] = defaultValue;
             return true;
         }
@@ -212,7 +314,11 @@ function migrateConfig(cfg) {
     const removeProperty = (obj, key, path) => {
         if (obj && obj[key] !== undefined) {
             delete obj[key];
-            console.log(`[Config Repair] Removed invalid property: ${path}.${key}`);
+            if (report) {
+                report.repair('[Config Repair] Removed invalid property', {
+                    path: `${path}.${key}`,
+                });
+            }
             return true;
         }
         return false;
@@ -222,14 +328,20 @@ function migrateConfig(cfg) {
     // Ensure backgroundRefreshMinutes exists (was previously required in schema)
     if (cfg.backgroundRefreshMinutes === undefined) {
         cfg.backgroundRefreshMinutes = 60;
-        console.log('[Config Migration] Added missing backgroundRefreshMinutes: 60');
+        if (report)
+            report.migration('[Config Migration] Added default backgroundRefreshMinutes', {
+                value: 60,
+            });
         modified = true;
     } else if (
         typeof cfg.backgroundRefreshMinutes !== 'number' ||
         cfg.backgroundRefreshMinutes < 5
     ) {
         cfg.backgroundRefreshMinutes = 60;
-        console.log('[Config Migration] Fixed invalid backgroundRefreshMinutes: 60');
+        if (report)
+            report.migration('[Config Migration] Fixed invalid backgroundRefreshMinutes', {
+                value: 60,
+            });
         modified = true;
     }
 
@@ -246,18 +358,30 @@ function migrateConfig(cfg) {
 
             // Deprecated value removed from UI/schema; normalize old configs.
             if (musicMode.displayStyle === 'album-info') {
-                console.log(
-                    '[Config Migration] Changed wallartMode.musicMode.displayStyle from "album-info" to "covers-only"'
-                );
+                if (report) {
+                    report.migration(
+                        '[Config Migration] Normalized wallartMode.musicMode.displayStyle',
+                        {
+                            from: 'album-info',
+                            to: 'covers-only',
+                        }
+                    );
+                }
                 musicMode.displayStyle = 'covers-only';
                 modified = true;
             }
 
             // Legacy/invalid value that was previously exposed in UI; normalize old configs.
             if (musicMode.displayStyle === 'grid') {
-                console.log(
-                    '[Config Migration] Changed wallartMode.musicMode.displayStyle from "grid" to "covers-only"'
-                );
+                if (report) {
+                    report.migration(
+                        '[Config Migration] Normalized wallartMode.musicMode.displayStyle',
+                        {
+                            from: 'grid',
+                            to: 'covers-only',
+                        }
+                    );
+                }
                 musicMode.displayStyle = 'covers-only';
                 modified = true;
             }
@@ -390,7 +514,8 @@ function migrateConfig(cfg) {
                 : 'subtle',
             animation: 'none',
         };
-        console.log('[Config Migration] Migrated cinema.typography to header.typography');
+        if (report)
+            report.migration('[Config Migration] Migrated cinema.typography to header.typography');
         modified = true;
     }
 
@@ -448,7 +573,8 @@ function migrateConfig(cfg) {
     // Fix footer.type (migrate "specs" to "metadata")
     if (footer.type === 'specs') {
         footer.type = 'metadata';
-        console.log('[Config Migration] Changed footer.type from "specs" to "metadata"');
+        if (report)
+            report.migration('[Config Migration] Changed footer.type from "specs" to "metadata"');
         modified = true;
     }
     modified = fixEnum(footer, 'type', VALID.footerType, 'marquee', 'cinema.footer') || modified;
@@ -462,7 +588,7 @@ function migrateConfig(cfg) {
             color: '#cccccc',
             shadow: 'none',
         };
-        console.log('[Config Migration] Created footer.typography');
+        if (report) report.migration('[Config Migration] Created footer.typography');
         modified = true;
     }
 
@@ -501,7 +627,7 @@ function migrateConfig(cfg) {
             }
         }
         delete cinema.typography;
-        console.log('[Config Migration] Removed deprecated cinema.typography');
+        if (report) report.migration('[Config Migration] Removed deprecated cinema.typography');
         modified = true;
     }
 
@@ -522,7 +648,10 @@ function migrateConfig(cfg) {
     // Fix position (remove "side" option)
     if (metadata.position === 'side') {
         metadata.position = 'bottom';
-        console.log('[Config Migration] Changed metadata.position from "side" to "bottom"');
+        if (report)
+            report.migration(
+                '[Config Migration] Changed metadata.position from "side" to "bottom"'
+            );
         modified = true;
     }
     modified =
@@ -544,7 +673,7 @@ function migrateConfig(cfg) {
     if (specs.showFlags !== undefined) {
         specs.showHDR = specs.showFlags;
         delete specs.showFlags;
-        console.log('[Config Migration] Renamed specs.showFlags to specs.showHDR');
+        if (report) report.migration('[Config Migration] Renamed specs.showFlags to specs.showHDR');
         modified = true;
     }
 
@@ -555,9 +684,12 @@ function migrateConfig(cfg) {
         icons: 'icons-only',
     };
     if (specs.style && styleMapping[specs.style]) {
-        console.log(
-            `[Config Migration] Changed specs.style from "${specs.style}" to "${styleMapping[specs.style]}"`
-        );
+        if (report) {
+            report.migration('[Config Migration] Normalized specs.style', {
+                from: specs.style,
+                to: styleMapping[specs.style],
+            });
+        }
         specs.style = styleMapping[specs.style];
         modified = true;
     }
@@ -566,12 +698,22 @@ function migrateConfig(cfg) {
 
     // Migrate old iconSet values (filled/outline/mediaflags) to new values (tabler/material)
     if (specs.iconSet === 'filled' || specs.iconSet === 'outline') {
-        console.log(`[Config Migration] Changed specs.iconSet from "${specs.iconSet}" to "tabler"`);
+        if (report) {
+            report.migration('[Config Migration] Normalized specs.iconSet', {
+                from: specs.iconSet,
+                to: 'tabler',
+            });
+        }
         specs.iconSet = 'tabler';
         modified = true;
     }
     if (specs.iconSet === 'mediaflags') {
-        console.log(`[Config Migration] Changed specs.iconSet from "mediaflags" to "material"`);
+        if (report) {
+            report.migration('[Config Migration] Normalized specs.iconSet', {
+                from: 'mediaflags',
+                to: 'material',
+            });
+        }
         specs.iconSet = 'material';
         modified = true;
     }
@@ -695,9 +837,10 @@ function migrateConfig(cfg) {
     if (modified && process.env.NODE_ENV !== 'test') {
         try {
             fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf-8');
-            console.log('[Config Migration] ✓ Config file repaired and saved');
+            if (report) report.saved('migration');
         } catch (err) {
             console.error('[Config Migration] Failed to save repaired config:', err.message);
+            if (report) report.saveError('migration', err);
         }
     }
 
@@ -711,8 +854,9 @@ function migrateConfig(cfg) {
  * @param {object} schema - The JSON schema
  * @returns {boolean} - True if any properties were removed
  */
-function removeUnknownProperties(cfg, schema) {
+function removeUnknownProperties(cfg, schema, options = {}) {
     let removed = false;
+    const report = options && options.report;
 
     if (!cfg || typeof cfg !== 'object' || !schema) return false;
 
@@ -735,7 +879,7 @@ function removeUnknownProperties(cfg, schema) {
         for (const key of currentKeys) {
             // Check if this property is allowed
             if (!additionalAllowed && !allowedProps.includes(key)) {
-                console.log(`[Config Self-Heal] Removing unknown property: ${pathStr}.${key}`);
+                if (report) report.removedUnknown(`${pathStr}.${key}`);
                 delete obj[key];
                 removed = true;
                 continue;
@@ -766,20 +910,25 @@ function removeUnknownProperties(cfg, schema) {
     if (removed && process.env.NODE_ENV !== 'test') {
         try {
             fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf-8');
-            console.log('[Config Self-Heal] ✓ Unknown properties removed and config saved');
+            if (report) report.saved('self-heal');
         } catch (err) {
             console.error('[Config Self-Heal] Failed to save cleaned config:', err.message);
+            if (report) report.saveError('self-heal', err);
         }
     }
 
     return removed;
 }
 
+const configMaintenanceReport = createConfigMaintenanceReport();
+
 // Run self-healing to remove unknown properties BEFORE migrations
-removeUnknownProperties(config, configSchema);
+removeUnknownProperties(config, configSchema, { report: configMaintenanceReport });
 
 // Run migrations before validation
-migrateConfig(config);
+migrateConfig(config, { report: configMaintenanceReport });
+
+configMaintenanceReport.emitSummaryIfNeeded({ phase: 'startup' });
 
 // Export the validation function for use by other modules
 function validateEnvironment() {
