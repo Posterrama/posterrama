@@ -19,6 +19,7 @@
             order: null,
             isPinned: false,
             pinnedMediaId: null,
+            isTransitioning: false,
         };
         // Small helpers for DOM access
         const $ = sel => document.getElementById(sel);
@@ -257,6 +258,15 @@
                 try {
                     if (_state.started) return;
                     _state.started = true;
+
+                    // Add a mode class so shared CSS selectors can apply consistently.
+                    try {
+                        if (document && document.body) {
+                            document.body.classList.add('screensaver-mode');
+                        }
+                    } catch (_) {
+                        /* noop */
+                    }
 
                     // Initialize clock widget
                     try {
@@ -778,7 +788,7 @@
                         // No background yet, show first one immediately
                         setTimeout(() => {
                             try {
-                                api.showNextBackground();
+                                api.showNextBackground({ immediate: true });
                             } catch (_) {
                                 /* noop: startCycler best-effort */
                             }
@@ -791,6 +801,10 @@
             // Advance to next media item and transition layers
             showNextBackground(opts = {}) {
                 try {
+                    if (_state.isTransitioning && !opts.forceNext && !opts.immediate) {
+                        return;
+                    }
+
                     // Don't rotate if poster is pinned
                     if (_state.isPinned && !opts.forceNext) {
                         return;
@@ -873,62 +887,204 @@
                     const active = window.activeLayer || la;
                     const inactive = window.inactiveLayer || lb;
 
+                    const resetLayer = layer => {
+                        try {
+                            layer.style.animation = 'none';
+                            layer.removeAttribute('data-ken-burns');
+                            layer.style.transition = 'none';
+                            layer.style.transform = 'translate3d(0,0,0)';
+                        } catch (_) {
+                            /* noop */
+                        }
+                    };
+
+                    const setSceneVars = vars => {
+                        try {
+                            const b = document.body;
+                            if (!b) return;
+                            if (typeof vars.ms === 'number') {
+                                b.style.setProperty('--ss-scene-ms', `${Math.max(0, vars.ms)}ms`);
+                            }
+                            if (typeof vars.xPx === 'number') {
+                                b.style.setProperty('--ss-scene-x', `${Math.round(vars.xPx)}px`);
+                            }
+                            if (typeof vars.opacity === 'number') {
+                                b.style.setProperty(
+                                    '--ss-scene-opacity',
+                                    String(Math.max(0, Math.min(1, vars.opacity)))
+                                );
+                            }
+                        } catch (_) {
+                            /* noop */
+                        }
+                    };
+
+                    const getTimings = () => {
+                        const intervalMs = Math.max(
+                            5000,
+                            Math.floor((window.appConfig?.transitionIntervalSeconds || 10) * 1000)
+                        );
+                        const effect = String(
+                            window.appConfig?.transitionEffect || 'kenburns'
+                        ).toLowerCase();
+                        const pauseSecRaw = Number(window.appConfig?.effectPauseTime ?? 3);
+                        const pauseMsRequested =
+                            Number.isFinite(pauseSecRaw) && pauseSecRaw > 0
+                                ? Math.floor(pauseSecRaw * 1000)
+                                : 0;
+
+                        const pauseMs = effect === 'kenburns' ? 0 : Math.max(0, pauseMsRequested);
+                        const minEffectMs = 320;
+                        const maxPauseMs = Math.max(0, intervalMs - minEffectMs);
+                        const pauseMsClamped = Math.min(pauseMs, maxPauseMs);
+                        const effectMs =
+                            effect === 'kenburns'
+                                ? intervalMs
+                                : Math.max(minEffectMs, intervalMs - pauseMsClamped);
+
+                        return {
+                            effect,
+                            intervalMs,
+                            pauseMs: pauseMsClamped,
+                            effectMs,
+                        };
+                    };
+
+                    const slideOffsetPx = (() => {
+                        try {
+                            const vw = window.innerWidth || 1920;
+                            // ~12% of viewport width, clamped.
+                            return Math.max(80, Math.min(320, Math.round(vw * 0.12)));
+                        } catch (_) {
+                            return 160;
+                        }
+                    })();
+
                     // Preload next image before switching
                     const img = new Image();
                     img.onload = () => {
                         try {
-                            // Configure effect
-                            const effect = String(
-                                window.appConfig?.transitionEffect || 'kenburns'
-                            ).toLowerCase();
-                            const intervalMs = Math.max(
-                                5000,
-                                Math.floor(
-                                    (window.appConfig?.transitionIntervalSeconds || 10) * 1000
-                                )
-                            );
+                            const { effect, effectMs } = getTimings();
 
-                            // Reset styles on inactive before applying new bg/effect
-                            inactive.style.animation = 'none';
-                            inactive.removeAttribute('data-ken-burns');
-                            inactive.style.transition = 'none';
-                            inactive.style.transform = 'none';
-                            inactive.style.opacity = '0';
+                            // Mark transitioning to avoid overlap
+                            _state.isTransitioning = !opts.immediate;
 
-                            // Set background on inactive layer
+                            // Reset both layers
+                            resetLayer(active);
+                            resetLayer(inactive);
+
+                            // Prepare inactive background
                             inactive.style.backgroundImage = `url('${nextUrl}')`;
 
+                            // Fast path: first paint or forced immediate
+                            if (opts.immediate) {
+                                active.style.opacity = '0';
+                                inactive.style.opacity = '1';
+                                try {
+                                    window.activeLayer = inactive;
+                                    window.inactiveLayer = active;
+                                } catch (_) {
+                                    /* noop */
+                                }
+                                updateInfo(nextItem);
+                                try {
+                                    api.ensureVisibility();
+                                } catch (_) {
+                                    /* noop */
+                                }
+                                try {
+                                    setSceneVars({ ms: 0, xPx: 0, opacity: 1 });
+                                } catch (_) {
+                                    /* noop */
+                                }
+                                _state.isTransitioning = false;
+                                return;
+                            }
+
+                            // Scene (foreground + widgets) uses CSS variables
+                            const halfOutMs = Math.max(160, Math.floor(effectMs / 2));
+                            const halfInMs = Math.max(160, effectMs - halfOutMs);
+
+                            // Background transition
                             if (effect === 'fade' || effect === 'none') {
-                                // Simple crossfade
-                                inactive.style.transition = 'opacity 1.5s ease-in-out';
-                                // Start transition on next tick
+                                inactive.style.opacity = '0';
+                                inactive.style.transition = `opacity ${effectMs}ms ease-in-out`;
+                                active.style.transition = `opacity ${effectMs}ms ease-in-out`;
                                 requestAnimationFrame(() => {
                                     inactive.style.opacity = '1';
                                     active.style.opacity = '0';
                                 });
-                            } else if (
-                                effect === 'slide' ||
-                                effect === 'slideleft' ||
-                                effect === 'slideup'
-                            ) {
-                                // Minimal slide: translate inactive in, active out
-                                const isUp = effect.includes('up');
-                                inactive.style.transition = 'transform 1s ease, opacity 1.2s ease';
-                                active.style.transition = 'transform 1s ease, opacity 1.2s ease';
-                                inactive.style.transform = isUp
-                                    ? 'translateY(10vh)'
-                                    : 'translateX(10vw)';
-                                inactive.style.opacity = '0.001';
+
+                                // Foreground: fade-out then fade-in
+                                setSceneVars({ ms: halfOutMs, xPx: 0, opacity: 0 });
+                                setTimeout(() => {
+                                    try {
+                                        updateInfo(nextItem);
+                                        api.ensureVisibility();
+                                    } catch (_) {
+                                        /* noop */
+                                    }
+                                    setSceneVars({ ms: halfInMs, xPx: 0, opacity: 1 });
+                                }, halfOutMs);
+
+                                setTimeout(() => {
+                                    try {
+                                        window.activeLayer = inactive;
+                                        window.inactiveLayer = active;
+                                        resetLayer(active);
+                                        active.style.opacity = '0';
+                                        inactive.style.opacity = '1';
+                                    } catch (_) {
+                                        /* noop */
+                                    }
+                                    _state.isTransitioning = false;
+                                }, effectMs + 50);
+                            } else if (effect === 'slide') {
+                                // Background: slide left as new slides in from right
+                                inactive.style.opacity = '0';
+                                inactive.style.transform = `translate3d(${slideOffsetPx}px,0,0)`;
+                                active.style.opacity = '1';
+                                active.style.transform = 'translate3d(0,0,0)';
+                                inactive.style.transition = `transform ${effectMs}ms ease-in-out, opacity ${effectMs}ms ease-in-out`;
+                                active.style.transition = `transform ${effectMs}ms ease-in-out, opacity ${effectMs}ms ease-in-out`;
                                 requestAnimationFrame(() => {
                                     inactive.style.transform = 'translate3d(0,0,0)';
                                     inactive.style.opacity = '1';
-                                    active.style.transform = isUp
-                                        ? 'translateY(-10vh)'
-                                        : 'translateX(-10vw)';
+                                    active.style.transform = `translate3d(-${slideOffsetPx}px,0,0)`;
                                     active.style.opacity = '0';
                                 });
+
+                                // Foreground: slide-out left, jump right, slide-in
+                                setSceneVars({ ms: halfOutMs, xPx: -slideOffsetPx, opacity: 0 });
+                                setTimeout(() => {
+                                    try {
+                                        updateInfo(nextItem);
+                                        api.ensureVisibility();
+                                    } catch (_) {
+                                        /* noop */
+                                    }
+                                    // Jump to the right off-screen before sliding in
+                                    setSceneVars({ ms: 0, xPx: slideOffsetPx, opacity: 0 });
+                                    requestAnimationFrame(() => {
+                                        setSceneVars({ ms: halfInMs, xPx: 0, opacity: 1 });
+                                    });
+                                }, halfOutMs);
+
+                                setTimeout(() => {
+                                    try {
+                                        window.activeLayer = inactive;
+                                        window.inactiveLayer = active;
+                                        resetLayer(active);
+                                        active.style.opacity = '0';
+                                        inactive.style.opacity = '1';
+                                        inactive.style.transform = 'translate3d(0,0,0)';
+                                    } catch (_) {
+                                        /* noop */
+                                    }
+                                    _state.isTransitioning = false;
+                                }, effectMs + 50);
                             } else {
-                                // Ken Burns: pick a random keyframe and duration ~= interval
+                                // Ken Burns: animate background continuously for full interval
                                 const kbNames = [
                                     'kenburns-zoom-in-tl',
                                     'kenburns-zoom-in-tr',
@@ -940,28 +1096,48 @@
                                     'kenburns-zoom-out-br',
                                 ];
                                 const name = kbNames[Math.floor(Math.random() * kbNames.length)];
-                                const durSec = Math.max(5, Math.round(intervalMs / 1000));
+                                const durSec = Math.max(5, Math.round(effectMs / 1000));
+                                const crossfadeMs = Math.min(
+                                    1500,
+                                    Math.max(500, Math.round(effectMs * 0.25))
+                                );
+
                                 inactive.setAttribute('data-ken-burns', 'true');
+                                inactive.style.opacity = '0';
                                 inactive.style.animation = `${name} ${durSec}s ease-in-out forwards`;
-                                // Crossfade while KB plays
-                                inactive.style.transition = 'opacity 1.5s ease-in-out';
+                                inactive.style.transition = `opacity ${crossfadeMs}ms ease-in-out`;
+                                active.style.transition = `opacity ${crossfadeMs}ms ease-in-out`;
                                 requestAnimationFrame(() => {
                                     inactive.style.opacity = '1';
                                     active.style.opacity = '0';
                                 });
-                            }
 
-                            // After transition, swap roles
-                            setTimeout(() => {
+                                // Foreground: keep stable (ensure fully visible)
+                                setSceneVars({ ms: 320, xPx: 0, opacity: 1 });
+                                updateInfo(nextItem);
                                 try {
-                                    window.activeLayer = inactive;
-                                    window.inactiveLayer = active;
+                                    api.ensureVisibility();
                                 } catch (_) {
-                                    /* noop: layer swap best-effort */
+                                    /* noop */
                                 }
-                            }, 1600);
-                            // Update metadata/poster/clearlogo
-                            updateInfo(nextItem);
+
+                                setTimeout(() => {
+                                    try {
+                                        window.activeLayer = inactive;
+                                        window.inactiveLayer = active;
+                                        // Keep old active clean; KB must remain on active layer
+                                        resetLayer(active);
+                                        active.style.opacity = '0';
+                                    } catch (_) {
+                                        /* noop */
+                                    }
+                                }, crossfadeMs + 50);
+
+                                // Allow next transition after the full interval
+                                setTimeout(() => {
+                                    _state.isTransitioning = false;
+                                }, effectMs + 50);
+                            }
 
                             // Ensure visibility immediately after updating info to prevent flash
                             // of disabled elements (e.g., clearlogo showing briefly when disabled)
@@ -1201,7 +1377,11 @@
                     const oldConfig = window.appConfig || {};
 
                     // Settings that affect timing/cycling and require restart
-                    const restartSettings = ['transitionEffect', 'transitionIntervalSeconds'];
+                    const restartSettings = [
+                        'transitionEffect',
+                        'transitionIntervalSeconds',
+                        'effectPauseTime',
+                    ];
 
                     // Visual settings that only need UI update
                     const visualSettings = [

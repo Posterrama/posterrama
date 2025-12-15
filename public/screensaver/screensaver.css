@@ -1,2 +1,66 @@
-/* Screensaver CSS (scaffold) */
-/* Real screensaver styles will move here to avoid duplication */
+/* Screensaver CSS */
+/* Keeps screensaver-only behaviors isolated from shared style.css */
+
+/*
+  Transition system
+  - JS drives the CSS variables below.
+  - This allows “whole scene” transitions (background + foreground + widgets)
+	while preserving per-element scale transforms.
+*/
+
+body[data-mode='screensaver'] {
+    --ss-scene-x: 0px;
+    --ss-scene-opacity: 1;
+    --ss-scene-ms: 900ms;
+    --ss-scene-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Foreground scene elements */
+body[data-mode='screensaver'] #info-container,
+body[data-mode='screensaver'] #controls-container {
+    transition:
+        opacity var(--ss-scene-ms) var(--ss-scene-ease),
+        transform var(--ss-scene-ms) var(--ss-scene-ease);
+    will-change: transform, opacity;
+}
+
+/* Preserve the “slide-up on first show” feel while enabling X transitions */
+body[data-mode='screensaver'] #info-container {
+    opacity: var(--ss-scene-opacity);
+    transform: translate3d(var(--ss-scene-x), 20px, 0);
+}
+body[data-mode='screensaver'] #info-container.visible {
+    opacity: var(--ss-scene-opacity);
+    transform: translate3d(var(--ss-scene-x), 0, 0);
+}
+
+/* Widgets have their own scale transforms in style.css — preserve those */
+body[data-mode='screensaver'] #clock-widget-container {
+    transition:
+        opacity var(--ss-scene-ms) var(--ss-scene-ease),
+        transform var(--ss-scene-ms) var(--ss-scene-ease);
+    will-change: transform, opacity;
+    opacity: var(--ss-scene-opacity);
+    transform: translate3d(var(--ss-scene-x), 0, 0) scale(var(--clock-scale));
+}
+
+body[data-mode='screensaver'] #clearlogo-container {
+    transition:
+        opacity var(--ss-scene-ms) var(--ss-scene-ease),
+        transform var(--ss-scene-ms) var(--ss-scene-ease);
+    will-change: transform, opacity;
+    opacity: var(--ss-scene-opacity);
+    transform: translate3d(var(--ss-scene-x), 0, 0) scale(var(--clearlogo-scale));
+}
+
+body[data-mode='screensaver'] #controls-container {
+    opacity: var(--ss-scene-opacity);
+    transform: translate3d(var(--ss-scene-x), 0, 0);
+}
+
+/* Background layers: JS sets opacity/transform/animation directly, but keep them performant */
+body[data-mode='screensaver'] .screensaver-layer {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
+}
