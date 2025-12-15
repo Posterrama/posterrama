@@ -33,9 +33,8 @@ class AutoUpdater {
 
     async writeStatus() {
         try {
-            const fsSync = require('fs');
             const dir = path.dirname(this.statusFile);
-            fsSync.mkdirSync(dir, { recursive: true });
+            await fs.mkdir(dir, { recursive: true });
             const payload = {
                 ...this.updateStatus,
                 startTime: this.updateStatus.startTime
@@ -603,7 +602,7 @@ class AutoUpdater {
      */
     async detectOwnership() {
         try {
-            const stat = fsSync.statSync(this.appRoot);
+            const stat = await fs.stat(this.appRoot);
             this.targetUid = stat.uid;
             this.targetGid = stat.gid;
             logger.info('Detected target ownership', { uid: this.targetUid, gid: this.targetGid });
