@@ -181,8 +181,12 @@ function requestLoggingMiddleware() {
             if (res.statusCode >= 500) {
                 logger.warn('Request completed with error', logData);
             } else if (res.statusCode >= 400) {
-                // Skip 401 errors for admin endpoints - these are normal when not logged in
-                if (res.statusCode === 401 && req.url && req.url.startsWith('/api/admin')) {
+                // Skip 401 errors for admin endpoints - these are normal when not logged in.
+                // Use originalUrl to remain correct when the app is mounted under a base path.
+                const urlForMatch = String(req.originalUrl || req.url || '');
+                const pathOnly = urlForMatch.split('?')[0];
+                const isAdminApi = /(^|\/)api\/admin(\/|$)/.test(pathOnly);
+                if (res.statusCode === 401 && isAdminApi) {
                     return;
                 }
                 logger.warn('Request completed with error', logData);

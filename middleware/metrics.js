@@ -116,11 +116,12 @@ const metricsMiddleware = (req, res, next) => {
             } else if (statusCode >= 400) {
                 // Skip logging 401 errors for admin endpoints - normal when not logged in
                 // But still need to call originalEnd below!
-                if (
-                    statusCode !== 401 ||
-                    !performanceData.path ||
-                    !performanceData.path.startsWith('/api/admin')
-                ) {
+                const pathForMatch = String(
+                    performanceData.path || req.originalUrl || req.url || ''
+                );
+                const pathOnly = pathForMatch.split('?')[0];
+                const isAdminApi = /(^|\/)api\/admin(\/|$)/.test(pathOnly);
+                if (statusCode !== 401 || !isAdminApi) {
                     logger.warn('⚠️ Client error', performanceData);
                 }
             }

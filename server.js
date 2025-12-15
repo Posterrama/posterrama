@@ -476,8 +476,11 @@ app.use(
         cookie: {
             maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
             httpOnly: true,
-            secure: env.server.nodeEnv === 'production',
-            sameSite: env.server.nodeEnv === 'production' ? 'strict' : 'lax',
+            // 'auto' avoids accidental logouts when production runs behind HTTP or TLS-terminating proxies.
+            // It sets Secure cookies only when the request is actually secure (req.secure / X-Forwarded-Proto).
+            secure: env.server.nodeEnv === 'production' ? 'auto' : false,
+            // 'strict' can break legitimate flows in some deployments; 'lax' is a safer default for session cookies.
+            sameSite: 'lax',
         },
     })
 );
@@ -573,10 +576,17 @@ app.use((req, res, next) => {
 
         const logLevel = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'debug';
 
+        // Expected noise: admin UI polls before/after login; 401s here are normal and can be very chatty.
+        const isAdminAuthNoise =
+            res.statusCode === 401 &&
+            Boolean(req.path) &&
+            (req.path === '/api/admin' || req.path.startsWith('/api/admin/'));
+
         // Only log if it's not routine/monitoring AND (has issues OR is not a GET request OR took long time)
         const shouldLog =
             !isAdminMonitoring &&
             !isRoutineRequest &&
+            !isAdminAuthNoise &&
             (res.statusCode >= 400 || req.method !== 'GET' || duration > 1000);
 
         if (shouldLog) {
