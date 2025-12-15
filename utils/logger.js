@@ -3,17 +3,69 @@ const Transport = require('winston-transport');
 const { EventEmitter } = require('events');
 const path = require('path');
 const fs = require('fs');
+const fsp = fs.promises;
 
 // Create a single, long-lived EventEmitter for admin live events (SSE/WS)
 // This must NOT be re-created per log entry; subscribers rely on a stable instance.
 const events = new EventEmitter();
 
-// Ensure logs directory exists
+// Logs directory path
 const logsDir = path.join(__dirname, '..', 'logs');
-try {
-    fs.mkdirSync(logsDir, { recursive: true });
-} catch (_) {
-    // Ignore; logger will fall back to console if transports fail
+
+let logsDirReadyPromise = null;
+function ensureLogsDirReady() {
+    if (!logsDirReadyPromise) {
+        logsDirReadyPromise = fsp.mkdir(logsDir, { recursive: true });
+    }
+    return logsDirReadyPromise;
+}
+
+/**
+ * @param {ExtendedLogger} inst
+ */
+function addFileTransports(inst) {
+    // Guard: avoid duplicate file transports
+    const hasCombined = inst.transports.some(
+        t => t && t.filename && String(t.filename).endsWith(path.join('logs', 'combined.log'))
+    );
+    const hasError = inst.transports.some(
+        t => t && t.filename && String(t.filename).endsWith(path.join('logs', 'error.log'))
+    );
+    if (hasCombined && hasError) return;
+
+    inst.add(
+        new winston.transports.File({
+            filename: path.join(logsDir, 'error.log'),
+            level: 'error',
+            maxsize: 5242880,
+            maxFiles: 5,
+        })
+    );
+    inst.add(
+        new winston.transports.File({
+            filename: path.join(logsDir, 'combined.log'),
+            maxsize: 5242880,
+            maxFiles: 5,
+        })
+    );
+}
+
+/**
+ * Best-effort async setup for disk logging.
+ * Keeps logger initialization synchronous while avoiding fs.*Sync operations.
+ * @param {ExtendedLogger} inst
+ */
+function scheduleDiskLogging(inst) {
+    if (inst.__diskLoggingScheduled) return;
+    inst.__diskLoggingScheduled = true;
+
+    void ensureLogsDirReady()
+        .then(() => {
+            addFileTransports(inst);
+        })
+        .catch(() => {
+            // Ignore; logger remains console+memory-only
+        });
 }
 
 let cachedClockTimezone = null;
@@ -163,23 +215,6 @@ function buildTransports(inst, { forTest = false } = {}) {
         }),
         memoryTransport,
     ];
-    if (!forTest) {
-        base.splice(
-            1,
-            0,
-            new winston.transports.File({
-                filename: path.join(logsDir, 'error.log'),
-                level: 'error',
-                maxsize: 5242880,
-                maxFiles: 5,
-            }),
-            new winston.transports.File({
-                filename: path.join(logsDir, 'combined.log'),
-                maxsize: 5242880,
-                maxFiles: 5,
-            })
-        );
-    }
     return forTest ? [memoryTransport] : base;
 }
 
@@ -271,6 +306,10 @@ function createLoggerInstance(options = {}) {
     // Build transports after instance so memory transport can reference inst
     const transports = buildTransports(inst, { forTest });
     transports.forEach(t => inst.add(t));
+
+    if (!forTest) {
+        scheduleDiskLogging(inst);
+    }
     return inst;
 }
 

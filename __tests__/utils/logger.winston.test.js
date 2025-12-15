@@ -2,14 +2,14 @@
 
 // Spy on fs methods rather than full mock to avoid breaking nested dependencies
 const fs = require('fs');
-jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-jest.spyOn(fs, 'mkdirSync').mockImplementation(() => {});
 
 describe('Logger Module', () => {
     let logger;
+    let mkdirSyncSpy;
 
     beforeEach(() => {
         jest.clearAllMocks();
+        mkdirSyncSpy = jest.spyOn(fs, 'mkdirSync').mockImplementation(() => {});
         delete require.cache[require.resolve('../../utils/logger')];
         const mod = require('../../utils/logger');
         logger = mod.createTestLogger({ level: 'info', silent: true });
@@ -161,12 +161,9 @@ describe('Logger Module', () => {
     });
 
     describe('Directory creation', () => {
-        test('should have directory creation logic in module', () => {
-            const fs = require('fs');
-            // The logger module should handle directory creation during initialization
-            // We can't easily test the exact call due to module caching, but we can test the mock is set up
-            expect(typeof fs.existsSync).toBe('function');
-            expect(typeof fs.mkdirSync).toBe('function');
+        test('should not use fs.mkdirSync during initialization', () => {
+            // Logger disk logging should be initialized without sync fs calls.
+            expect(mkdirSyncSpy).not.toHaveBeenCalled();
         });
     });
 });
