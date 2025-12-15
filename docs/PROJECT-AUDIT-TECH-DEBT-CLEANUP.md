@@ -4,11 +4,10 @@
 
 ### 1) Legacy “groups” remnants
 
-- `lib/device-operations.js` still allows `groups` on device update payloads.
-- Cleanup plan:
-    1. Remove `groups` from the allowlist.
-    2. Add a one-time migration that deletes `groups` keys from `devices.json`.
-    3. Add a regression test proving it stays gone.
+- Status: fixed
+    1. `groups` removed from the allowlist and rejected on updates.
+    2. One-time migration deletes `groups` keys from stored devices.
+    3. Regression tests added.
 
 ### 2) Documentation drift
 

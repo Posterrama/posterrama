@@ -22,8 +22,8 @@ This audit is a concrete, repo-specific improvement plan focused on stability, s
 
 ## Questions to answer (to finalize decisions)
 
-- Should the legacy “groups” device field be fully removed (API + storage), or is it a hidden/back-compat field?
-- Should `/metrics` be public in production, or protected (token/IP allowlist/reverse-proxy auth)?
+- (Resolved) Legacy “groups” device field fully removed (API + storage).
+- (Resolved) `/metrics` protected (auth required).
 - Is local directory ZIP download intended for very large trees, or just small exports?
 
 Last updated: 2025-12-15

@@ -280,8 +280,27 @@ describe('Auth Helpers - isAuthenticated', () => {
             expect(mockRes.redirect).not.toHaveBeenCalled();
         });
 
+        it('should return 401 JSON for mounted API routers (baseUrl/originalUrl)', () => {
+            // Simulate: app.use('/api/admin', isAuthenticated, router)
+            mockReq.baseUrl = '/api/admin';
+            mockReq.path = '/logs/stream';
+            mockReq.originalUrl = '/api/admin/logs/stream';
+            mockReq.url = '/logs/stream';
+
+            isAuthenticated(mockReq, mockRes, mockNext);
+
+            expect(mockRes.status).toHaveBeenCalledWith(401);
+            expect(mockRes.json).toHaveBeenCalledWith({
+                error: expect.stringContaining('Authentication required'),
+            });
+            expect(mockRes.redirect).not.toHaveBeenCalled();
+        });
+
         it('should redirect to login for non-API paths', () => {
             mockReq.path = '/admin/dashboard';
+            mockReq.originalUrl = '/admin/dashboard';
+            mockReq.url = '/admin/dashboard';
+            delete mockReq.baseUrl;
 
             isAuthenticated(mockReq, mockRes, mockNext);
 

@@ -1006,6 +1006,8 @@ module.exports = function createDevicesRouter({
      *     responses:
      *       200:
      *         description: Device updated successfully
+     *       400:
+     *         description: Invalid request (e.g., legacy fields not supported)
      *       404:
      *         description: Device not found
      *       401:
@@ -1057,6 +1059,10 @@ module.exports = function createDevicesRouter({
         } catch (e) {
             if (e.message === 'device_not_found') {
                 return res.status(404).json({ error: e.message });
+            }
+
+            if (e.message === 'groups_not_supported') {
+                return res.status(400).json({ error: e.message });
             }
 
             logger.error('[Device PATCH] Unexpected error', { error: e.message, stack: e.stack });

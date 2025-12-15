@@ -16,12 +16,10 @@
     - Fix: stream ZIP output (e.g., using a streaming archiver) and enforce size/entry limits.
 
 2. Public `/metrics` exposure in production
-    - Metrics can leak environment, internal paths, and operational details.
-    - Fix: protect with auth (token), IP allowlist, or reverse-proxy auth; or make it configurable.
+    - Status: fixed — `/metrics` now requires authentication (admin session or API token).
 
 3. Legacy “groups” remnants after feature removal
-    - Device update logic still whitelists a `groups` field.
-    - Fix: remove from accepted update payloads, scrub from stored devices, and align schema/OpenAPI.
+    - Status: fixed — `groups` is rejected on device updates and scrubbed from stored devices.
 
 ### P1 (medium risk / correctness and maintainability)
 
@@ -49,8 +47,8 @@
 
 ## Quick wins (1–3 days)
 
-- Remove legacy groups handling (API + storage cleanup).
-- Guard `/metrics` in production (config flag + middleware).
+- Remove legacy groups handling (API + storage cleanup). (done)
+- Guard `/metrics` in production (config flag + middleware). (done)
 - Add limits + streaming for ZIP downloads (or disable ZIP for large directories).
 - Replace config migration `console.log` with logger calls and a concise summary.
 

@@ -4,19 +4,19 @@ This is a pragmatic execution plan. Adjust based on how widely Posterrama is dep
 
 ## 0–30 days (high ROI)
 
-1. Protect `/metrics` in production
-    - Add config flag + middleware.
-    - Add a regression test.
+1. Protect `/metrics` in production (done)
+    - Auth middleware added.
+    - Regression test added.
 
 2. Fix ZIP download-all memory risk
     - Stream ZIP output.
     - Enforce limits (max bytes/files/depth).
     - Add tests for large exports and truncation.
 
-3. Remove legacy “groups” remnants
-    - Remove from device update allowlist.
-    - One-time migration to scrub stored devices.
-    - Update OpenAPI/schema/tests.
+3. Remove legacy “groups” remnants (done)
+    - Device update rejects legacy `groups`.
+    - One-time migration scrubs stored devices.
+    - Tests updated.
 
 4. Unify runtime logging
     - Convert `config/validate-env.js` migration logs to `logger.*`.
