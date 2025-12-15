@@ -70,6 +70,15 @@ npm run test:regression:e2e
 
 ---
 
+## Security Regression Invariants
+
+These tests are intended to prevent accidental security regressions when refactoring routes.
+
+- **Admin auth boundary:** `__tests__/security/admin-auth-boundary.test.js` asserts that every `/api/admin/*` route definition includes admin auth middleware.
+    - Optional tightening: require the auth middleware to appear before the handler (not just present in the argument list).
+
+---
+
 ## Live Environment Validation
 
 These scripts hit a running Posterrama server. Set `TEST_URL` if it’s not `http://localhost:4000`.

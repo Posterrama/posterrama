@@ -762,8 +762,8 @@ window.__wallartModeVerified = true;
 
 ## Resources
 
-- **Backend Analysis:** [docs/BACKEND-ANALYSIS-2025-11-13-README.md](./BACKEND-ANALYSIS-2025-11-13-README.md)
-- **Frontend Analysis:** [docs/FRONTEND-ANALYSIS-CONSOLIDATED.md](./FRONTEND-ANALYSIS-CONSOLIDATED.md)
+- **Architecture (diagrams):** [docs/ARCHITECTURE-DIAGRAMS.md](./ARCHITECTURE-DIAGRAMS.md)
+- **Frontend Analysis:** [docs/FRONTEND-ANALYSIS.md](./FRONTEND-ANALYSIS.md)
 - **API Documentation:** http://localhost:4000/api-docs
 - **GitHub Repository:** https://github.com/Posterrama/posterrama
 

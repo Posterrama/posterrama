@@ -72,6 +72,6 @@ du -sh public/
 
 ## Related Docs
 
-- `FRONTEND-ANALYSIS-CONSOLIDATED.md`
+- `FRONTEND-ANALYSIS.md`
 - `DEPLOYMENT-GUIDE.md`
 - `SCRIPTS-OVERVIEW.md`

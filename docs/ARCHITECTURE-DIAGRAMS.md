@@ -719,12 +719,20 @@ graph LR
 
 ---
 
+## Ongoing Refactors (Tracked Here)
+
+- **Shrink `server.js`:** continue moving route wiring and special-cases into route factories (`routes/`) and services (`services/`) to reduce regression risk.
+- **Cache modularity (`utils/cache.js`):** split by concern first, then add JSDoc typedefs incrementally; keep changes small and test-backed.
+
+---
+
 ## Related Documentation
 
-- [MODULE-ARCHITECTURE.md](./MODULE-ARCHITECTURE.md) - Detailed module structure
 - [DEPENDENCY-GRAPH.md](./DEPENDENCY-GRAPH.md) - Module dependency mapping
-- [DEVELOPMENT.md](./DEVELOPMENT.md) - Development setup
-- [SERVER-REFACTORING-PLAN.md](./SERVER-REFACTORING-PLAN.md) - Refactoring history
+- [DEPLOYMENT-GUIDE.md](./DEPLOYMENT-GUIDE.md) - Production deployment guide
+- [API-PRODUCTION-READINESS.md](./API-PRODUCTION-READINESS.md) - Production readiness checklist
+- [OPENAPI-WORKFLOW.md](./OPENAPI-WORKFLOW.md) - OpenAPI export/sync/validation
+- [TESTING.md](./TESTING.md) - Test commands and release readiness
 
 ---
 
@@ -749,5 +757,5 @@ graph LR
 ---
 
 **Document Version**: 1.0.0
-**Last Review**: 2025-01-20
-**Next Review**: When adding new major features
+**Last Review**: 2025-12-15
+**Next Review**: When changing major architecture
