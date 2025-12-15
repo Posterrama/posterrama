@@ -52,6 +52,30 @@ module.exports = function createLocalDirectoryRouter({
 
     const zipJoin = (...parts) => parts.filter(Boolean).join('/').replace(/\\/g, '/');
 
+    const withinBasePath = (baseDir, candidatePath) => {
+        const base = path.resolve(baseDir);
+        const full = path.resolve(candidatePath);
+        return full === base || (full + path.sep).startsWith(base + path.sep);
+    };
+
+    const resolveRequestedPathWithinBase = (
+        baseDir,
+        requestedPath,
+        { allowAbsolute = true } = {}
+    ) => {
+        const base = path.resolve(baseDir);
+        const raw = String(requestedPath || '').trim();
+
+        if (!raw) return null;
+
+        if (allowAbsolute && path.isAbsolute(raw)) {
+            const abs = path.resolve(raw);
+            return abs.startsWith(base) ? abs : path.resolve(base, raw.replace(/^\/+/, ''));
+        }
+
+        return path.resolve(base, raw);
+    };
+
     const isSkippableLocalEntry = dirent => {
         if (!dirent || !dirent.name) return false;
         if (dirent.name === '.posterrama') return true;
@@ -385,38 +409,50 @@ module.exports = function createLocalDirectoryRouter({
         asyncHandler(async (req, res) => {
             const requestedPath = String(req.query.path || '').trim();
             if (!requestedPath) {
-                return res.status(400).json({ error: 'Missing path' });
+                return res.status(400).json({ error: 'Missing path', code: 'invalid_request' });
             }
 
             try {
                 const base = path.resolve(config.localDirectory.rootPath);
-                let fullPath;
-                if (path.isAbsolute(requestedPath)) {
-                    const abs = path.resolve(requestedPath);
-                    fullPath = abs.startsWith(base)
-                        ? abs
-                        : path.resolve(base, requestedPath.replace(/^\/+/, ''));
-                } else {
-                    fullPath = path.resolve(base, requestedPath);
+                const fullPath = resolveRequestedPathWithinBase(base, requestedPath);
+                if (!fullPath) {
+                    return res.status(400).json({ error: 'Missing path', code: 'invalid_request' });
                 }
-                // ensure within base
-                const within =
-                    fullPath === base || (fullPath + path.sep).startsWith(base + path.sep);
-                if (!within) return res.status(400).json({ error: 'Invalid path' });
+                if (!withinBasePath(base, fullPath)) {
+                    return res.status(400).json({ error: 'Invalid path', code: 'invalid_path' });
+                }
 
-                const st = await fs.promises.stat(fullPath).catch(() => null);
-                if (!st || !st.isFile()) return res.status(404).json({ error: 'File not found' });
+                const lst = await fs.promises.lstat(fullPath).catch(() => null);
+                if (!lst) {
+                    return res.status(404).json({ error: 'File not found', code: 'not_found' });
+                }
+                if (lst.isSymbolicLink && lst.isSymbolicLink()) {
+                    return res
+                        .status(400)
+                        .json({ error: 'Invalid path', code: 'symlink_not_allowed' });
+                }
+
+                const baseReal = await fs.promises.realpath(base).catch(() => base);
+                const fullReal = await fs.promises.realpath(fullPath).catch(() => null);
+                if (!fullReal || !withinBasePath(baseReal, fullReal)) {
+                    return res.status(400).json({ error: 'Invalid path', code: 'invalid_path' });
+                }
+
+                const st = await fs.promises.stat(fullReal).catch(() => null);
+                if (!st || !st.isFile()) {
+                    return res.status(404).json({ error: 'File not found', code: 'not_found' });
+                }
 
                 const mime = require('mime-types');
-                const type = mime.lookup(fullPath) || 'application/octet-stream';
+                const type = mime.lookup(fullReal) || 'application/octet-stream';
                 res.setHeader('Content-Type', type);
                 // Set content-disposition using filename only
-                const filename = path.basename(fullPath);
+                const filename = path.basename(fullReal);
                 res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-                return res.sendFile(fullPath);
+                return res.sendFile(fullReal);
             } catch (error) {
                 logger.error('Local file download error:', error);
-                return res.status(500).json({ error: 'download_failed' });
+                return res.status(500).json({ error: 'download_failed', code: 'internal_error' });
             }
         })
     );
@@ -459,30 +495,30 @@ module.exports = function createLocalDirectoryRouter({
 
             const requestedPath = String(req.query.path || '').trim();
             if (!requestedPath) {
-                return res.status(400).json({ error: 'Missing path' });
+                return res.status(400).json({ error: 'Missing path', code: 'invalid_request' });
             }
             try {
                 const base = path.resolve(config.localDirectory.rootPath);
-                let dirPath;
-                if (path.isAbsolute(requestedPath)) {
-                    const abs = path.resolve(requestedPath);
-                    dirPath = abs.startsWith(base)
-                        ? abs
-                        : path.resolve(base, requestedPath.replace(/^\/+/, ''));
-                } else {
-                    dirPath = path.resolve(base, requestedPath);
+                const dirPath = resolveRequestedPathWithinBase(base, requestedPath);
+                if (!dirPath || !withinBasePath(base, dirPath)) {
+                    return res.status(400).json({ error: 'Invalid path', code: 'invalid_path' });
                 }
-                // ensure within base
-                const within = dirPath === base || (dirPath + path.sep).startsWith(base + path.sep);
-                if (!within) return res.status(400).json({ error: 'Invalid path' });
 
-                const st = await fs.promises.stat(dirPath).catch(() => null);
+                const baseReal = await fs.promises.realpath(base).catch(() => base);
+                const dirReal = await fs.promises.realpath(dirPath).catch(() => null);
+                if (!dirReal || !withinBasePath(baseReal, dirReal)) {
+                    return res.status(400).json({ error: 'Invalid path', code: 'invalid_path' });
+                }
+
+                const st = await fs.promises.stat(dirReal).catch(() => null);
                 if (!st || !st.isDirectory())
-                    return res.status(404).json({ error: 'Directory not found' });
+                    return res
+                        .status(404)
+                        .json({ error: 'Directory not found', code: 'not_found' });
 
-                const folderName = path.basename(dirPath) || 'download';
+                const folderName = path.basename(dirReal) || 'download';
                 const limits = getZipLimits();
-                const createIterator = createDirectoryFileWalker(dirPath, {
+                const createIterator = createDirectoryFileWalker(dirReal, {
                     ...limits,
                     shouldAbort: () => aborted,
                 });
@@ -494,6 +530,7 @@ module.exports = function createLocalDirectoryRouter({
                     if (e && e.code === 'zip_limits_exceeded') {
                         return res.status(413).json({
                             error: 'zip_limits_exceeded',
+                            code: 'zip_limits_exceeded',
                             reason: e.reason,
                             limit: e.limit,
                             file: e.file,
@@ -533,7 +570,7 @@ module.exports = function createLocalDirectoryRouter({
                 archive.on('error', err => {
                     logger.error('Local directory zip error:', err);
                     if (!res.headersSent) {
-                        res.status(500).json({ error: 'zip_failed' });
+                        res.status(500).json({ error: 'zip_failed', code: 'internal_error' });
                     } else {
                         res.destroy(err);
                     }
@@ -550,7 +587,7 @@ module.exports = function createLocalDirectoryRouter({
                 }
             } catch (error) {
                 logger.error('Local directory zip download error:', error);
-                return res.status(500).json({ error: 'zip_failed' });
+                return res.status(500).json({ error: 'zip_failed', code: 'internal_error' });
             }
         })
     );
@@ -601,11 +638,14 @@ module.exports = function createLocalDirectoryRouter({
             const { paths = [] } = req.body;
 
             if (!Array.isArray(paths) || paths.length === 0) {
-                return res.status(400).json({ error: 'No paths provided' });
+                return res
+                    .status(400)
+                    .json({ error: 'No paths provided', code: 'invalid_request' });
             }
 
             try {
                 const base = path.resolve(config.localDirectory.rootPath);
+                const baseReal = await fs.promises.realpath(base).catch(() => base);
                 const limits = getZipLimits();
 
                 const files = [];
@@ -625,8 +665,7 @@ module.exports = function createLocalDirectoryRouter({
                         fullPath = path.resolve(base, trimmedPath);
                     }
 
-                    const within =
-                        fullPath === base || (fullPath + path.sep).startsWith(base + path.sep);
+                    const within = withinBasePath(base, fullPath);
                     if (!within) {
                         logger.warn('Bulk download: skipping invalid path', {
                             path: requestedPath,
@@ -634,7 +673,21 @@ module.exports = function createLocalDirectoryRouter({
                         continue;
                     }
 
-                    const st = await fs.promises.stat(fullPath).catch(() => null);
+                    const lst = await fs.promises.lstat(fullPath).catch(() => null);
+                    if (lst && lst.isSymbolicLink && lst.isSymbolicLink()) {
+                        logger.warn('Bulk download: skipping symlink', { path: requestedPath });
+                        continue;
+                    }
+
+                    const real = await fs.promises.realpath(fullPath).catch(() => null);
+                    if (!real || !withinBasePath(baseReal, real)) {
+                        logger.warn('Bulk download: skipping path outside base after realpath', {
+                            path: requestedPath,
+                        });
+                        continue;
+                    }
+
+                    const st = await fs.promises.stat(real).catch(() => null);
                     if (!st || !st.isFile()) {
                         logger.warn('Bulk download: file not found or not a file', {
                             path: requestedPath,
@@ -652,8 +705,8 @@ module.exports = function createLocalDirectoryRouter({
                     }
 
                     files.push({
-                        fullPath,
-                        name: path.relative(base, fullPath).replace(/\\/g, '/'),
+                        fullPath: real,
+                        name: path.relative(baseReal, real).replace(/\\/g, '/'),
                         size: st.size,
                     });
                     totalBytes += st.size;
@@ -675,7 +728,9 @@ module.exports = function createLocalDirectoryRouter({
                 }
 
                 if (files.length === 0) {
-                    return res.status(404).json({ error: 'No valid files found' });
+                    return res
+                        .status(404)
+                        .json({ error: 'No valid files found', code: 'not_found' });
                 }
 
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
@@ -706,7 +761,7 @@ module.exports = function createLocalDirectoryRouter({
                 archive.on('error', err => {
                     logger.error('Bulk download zip error:', err);
                     if (!res.headersSent) {
-                        res.status(500).json({ error: 'zip_failed' });
+                        res.status(500).json({ error: 'zip_failed', code: 'internal_error' });
                     } else {
                         res.destroy(err);
                     }

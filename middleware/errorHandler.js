@@ -1,5 +1,29 @@
 const logger = require('../utils/logger');
 
+function toErrorCode(err, statusCode) {
+    if (err && typeof err.code === 'string' && err.code.trim()) return err.code.trim();
+
+    switch (statusCode) {
+        case 400:
+            return 'invalid_request';
+        case 401:
+            return 'unauthorized';
+        case 403:
+            return 'forbidden';
+        case 404:
+            return 'not_found';
+        case 413:
+            return 'payload_too_large';
+        case 429:
+            return 'rate_limited';
+        case 503:
+            return 'service_unavailable';
+        case 500:
+        default:
+            return 'internal_error';
+    }
+}
+
 class AppError extends Error {
     constructor(message, statusCode, details = null) {
         super(message);
@@ -156,11 +180,13 @@ function error(err, req, res, _next) {
     // Build error response
     const baseMessage =
         !err || err.message === 'Unknown error occurred' ? 'Unknown error occurred' : err.message;
+    const code = toErrorCode(err, statusCode);
     const errorResponse = {
         error:
             isProduction && statusCode === 500 && baseMessage !== 'Unknown error occurred'
                 ? 'Internal Server Error'
                 : baseMessage,
+        code,
         timestamp,
         path: req.path,
         method: req.method,
@@ -200,6 +226,7 @@ function notFoundHandler(req, res, _next) {
 
     const errorResponse = {
         error: 'Not Found',
+        code: 'not_found',
         timestamp,
         path,
         method,
