@@ -468,7 +468,7 @@ class LocalDirectorySource {
             }
 
             // Check if directory exists, create it if it doesn't (for standard directories)
-            if (!fs.existsSync(targetPath)) {
+            if (!(await fs.pathExists(targetPath))) {
                 // Only auto-create known media directories
                 const knownDirs = [
                     this.directories.posters,
@@ -1585,7 +1585,7 @@ class LocalDirectorySource {
                 throw new Error('Path traversal not allowed');
             }
 
-            if (!fs.existsSync(resolvedPath)) {
+            if (!(await fs.pathExists(resolvedPath))) {
                 throw new Error('File not found');
             }
 
@@ -1627,7 +1627,7 @@ class LocalDirectorySource {
             for (const base of this.rootPaths) {
                 for (const dirName of Object.values(this.directories)) {
                     const dirPath = path.join(base, dirName);
-                    if (fs.existsSync(dirPath)) {
+                    if (await fs.pathExists(dirPath)) {
                         const dirStats = await this.getDirectoryStatsRecursive(dirPath);
                         stats.totalDirectories += dirStats.directories;
                         stats.totalFiles += dirStats.files;
