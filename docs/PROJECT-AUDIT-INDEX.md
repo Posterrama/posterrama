@@ -1,18 +1,16 @@
 # Project Audit Index (December 2025)
 
-This audit is a concrete, repo-specific improvement plan focused on stability, security, and long-term maintainability.
+The project audit has been consolidated.
 
-## Documents
+## Read this
 
-1. [PROJECT-AUDIT-EXECUTIVE-SUMMARY.md](PROJECT-AUDIT-EXECUTIVE-SUMMARY.md) — prioritized top issues + quick wins
-2. [PROJECT-AUDIT-STABILITY.md](PROJECT-AUDIT-STABILITY.md) — reliability risks and hardening checklist
-3. [PROJECT-AUDIT-SECURITY.md](PROJECT-AUDIT-SECURITY.md) — threat model, high-risk endpoints, concrete mitigations
-4. [PROJECT-AUDIT-PERFORMANCE.md](PROJECT-AUDIT-PERFORMANCE.md) — hot paths, memory risks, caching and streaming
-5. [PROJECT-AUDIT-OBSERVABILITY.md](PROJECT-AUDIT-OBSERVABILITY.md) — logging/metrics, cardinality, operational guardrails
-6. [PROJECT-AUDIT-TESTING-QA.md](PROJECT-AUDIT-TESTING-QA.md) — test gaps and pragmatic additions
-7. [PROJECT-AUDIT-CODE-HEALTH.md](PROJECT-AUDIT-CODE-HEALTH.md) — modularity, typing, dependency injection consistency
-8. [PROJECT-AUDIT-TECH-DEBT-CLEANUP.md](PROJECT-AUDIT-TECH-DEBT-CLEANUP.md) — removals, deprecations, doc drift
-9. [PROJECT-AUDIT-ROADMAP.md](PROJECT-AUDIT-ROADMAP.md) — 30/60/90-day execution plan
+- [PROJECT-AUDIT.md](PROJECT-AUDIT.md) — single source of truth: current status + open items
+
+## Archived (historical detail)
+
+Older audit documents were archived to keep the docs folder focused.
+
+- `docs/archive/project-audit/`
 
 ## How this was produced
 
