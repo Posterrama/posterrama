@@ -226,16 +226,34 @@ check_code_quality() {
     print_subheader "Code Hygiene"
     
     check "No backup files" "quality"
-    BACKUP_FILES=$(find . -name "*.backup" -o -name "*.bak" -o -name "*.tmp" -o -name "*.old" 2>/dev/null | grep -v node_modules | grep -v "backups/config" | grep -v "devices.json.backup" | grep -v "config.json.backup" | grep -v ".env.backup" | head -5)
-    if [[ -z "$BACKUP_FILES" ]]; then
+    BACKUP_FILES_ALL=$(find . -type f \
+        \( -name "*.backup" -o -name "*.bak" -o -name "*.tmp" -o -name "*.old" \) \
+        ! -path "./node_modules/*" \
+        ! -path "./coverage/*" \
+        ! -path "./cache/*" \
+        ! -path "./image_cache/*" \
+        ! -path "./backups/config/*" \
+        ! -path "./devices.json.backup" \
+        ! -path "./config.json.backup" \
+        ! -path "./.env.backup" \
+        2>/dev/null)
+    if [[ -z "$BACKUP_FILES_ALL" ]]; then
         pass
         echo -e "    ${GREEN}✓${NC} Automatic backup files are acceptable"
     else
-        COUNT=$(echo "$BACKUP_FILES" | grep -c "." 2>/dev/null || echo 0)
-        if [[ $COUNT -eq 0 ]]; then
+        COUNT=$(echo "$BACKUP_FILES_ALL" | sed '/^$/d' | wc -l | tr -d ' ')
+        if [[ "$COUNT" == "0" ]]; then
             pass
         else
             warn "Found backup files: $COUNT files"
+            echo -e "    ${YELLOW}Files:${NC}"
+            echo "$BACKUP_FILES_ALL" | sed 's|^\./||' | head -20 | while IFS= read -r file; do
+                [[ -z "$file" ]] && continue
+                echo -e "      - $file"
+            done
+            if [[ "$COUNT" -gt 20 ]]; then
+                echo -e "      ... and $((COUNT - 20)) more"
+            fi
         fi
     fi
     
