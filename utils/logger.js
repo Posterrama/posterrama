@@ -10,9 +10,27 @@ const events = new EventEmitter();
 
 // Ensure logs directory exists
 const logsDir = path.join(__dirname, '..', 'logs');
-if (!fs.existsSync(logsDir)) {
+try {
     fs.mkdirSync(logsDir, { recursive: true });
+} catch (_) {
+    // Ignore; logger will fall back to console if transports fail
 }
+
+let cachedClockTimezone = null;
+function getClockTimezone() {
+    if (cachedClockTimezone != null) return cachedClockTimezone;
+    try {
+        const config = require('../config.json');
+        cachedClockTimezone = config.clockTimezone || 'auto';
+        return cachedClockTimezone;
+    } catch (e) {
+        cachedClockTimezone = 'auto';
+        return cachedClockTimezone;
+    }
+}
+
+// Preload once so the first request log doesn't pay sync IO.
+getClockTimezone();
 
 // Redaction patterns (case-insensitive) for sensitive tokens/keys
 const REDACTION_PATTERNS = [
@@ -62,8 +80,7 @@ function buildTimestampFormat() {
     return winston.format.timestamp({
         format: () => {
             try {
-                const config = require('../config.json');
-                const timezone = config.clockTimezone || 'auto';
+                const timezone = getClockTimezone();
                 const baseOpts = {
                     hour12: false,
                     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
