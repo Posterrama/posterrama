@@ -1580,44 +1580,77 @@
             singleRow.style.display = ct.selectionMode === 'single' ? '' : 'none';
         }
 
-        // Preview transition button (re-triggers selected transition inside the live preview iframe)
-        const previewTransitionBtn = document.getElementById('cinemaPreviewTransitionBtn');
-        if (previewTransitionBtn && !previewTransitionBtn.__posterramaWired) {
-            previewTransitionBtn.__posterramaWired = true;
-            previewTransitionBtn.addEventListener('click', () => {
-                try {
-                    const frame = document.getElementById('display-preview-frame');
-                    const previewWin = frame && frame.contentWindow ? frame.contentWindow : null;
-                    if (!previewWin) return;
+        // Per-transition preview buttons (tiny play icon per transition)
+        const previewTransition = transition => {
+            try {
+                const frame = document.getElementById('display-preview-frame');
+                const previewWin = frame && frame.contentWindow ? frame.contentWindow : null;
+                if (!previewWin) return;
+                previewWin.postMessage(
+                    {
+                        type: 'CINEMA_PREVIEW_TRANSITION',
+                        transition,
+                    },
+                    window.location.origin
+                );
+            } catch (_) {
+                /* preview trigger is best-effort */
+            }
+        };
 
-                    const mode = document.getElementById('cinemaTransitionMode')?.value || 'random';
-                    const single =
-                        document.getElementById('cinemaSingleTransition')?.value || 'fade';
+        const transitionsGrid = document.getElementById('enabledTransitionsGrid');
+        if (transitionsGrid && !transitionsGrid.__posterramaPreviewWired) {
+            transitionsGrid.__posterramaPreviewWired = true;
 
-                    let transition = single;
-                    if (mode !== 'single') {
-                        const enabled = Array.from(
-                            document.querySelectorAll(
-                                '#enabledTransitionsGrid input[type="checkbox"]:checked'
-                            )
-                        ).map(el => el.value);
-                        if (enabled.length > 0) {
-                            transition =
-                                enabled[Math.floor(Math.random() * enabled.length)] || transition;
-                        }
-                    }
+            // Ensure each toggle-row gets a small preview button
+            transitionsGrid.querySelectorAll('label.toggle-row').forEach(row => {
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                const transition = checkbox?.value;
+                if (!transition) return;
+                if (row.querySelector('button.transition-preview-btn')) return;
 
-                    previewWin.postMessage(
-                        {
-                            type: 'CINEMA_PREVIEW_TRANSITION',
-                            transition,
-                        },
-                        window.location.origin
-                    );
-                } catch (_) {
-                    /* preview trigger is best-effort */
-                }
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'transition-preview-btn';
+                btn.setAttribute('data-transition', transition);
+                btn.setAttribute('aria-label', `Preview ${transition}`);
+                btn.title = 'Preview this transition in the live display preview';
+                btn.textContent = '▶';
+                row.appendChild(btn);
             });
+
+            // Delegate clicks to avoid label/checkbox toggling side-effects
+            transitionsGrid.addEventListener('click', evt => {
+                const btn = evt.target?.closest?.('button.transition-preview-btn');
+                if (!btn) return;
+                evt.preventDefault();
+                evt.stopPropagation();
+                const transition = btn.getAttribute('data-transition');
+                if (!transition) return;
+                previewTransition(transition);
+            });
+        }
+
+        // Single-transition mode: add a small preview button next to the dropdown
+        if (singleRow) {
+            const selectWrap = singleRow.querySelector('.select-wrap');
+            const selectEl = document.getElementById('cinemaSingleTransition');
+            if (selectWrap && selectEl && !singleRow.__posterramaSinglePreviewWired) {
+                singleRow.__posterramaSinglePreviewWired = true;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'transition-preview-btn single-transition-preview-btn';
+                btn.setAttribute('aria-label', 'Preview selected single transition');
+                btn.title = 'Preview the selected single transition in the live display preview';
+                btn.textContent = '▶';
+                selectWrap.insertAdjacentElement('afterend', btn);
+                btn.addEventListener('click', evt => {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                    const transition = selectEl.value || 'fade';
+                    previewTransition(transition);
+                });
+            }
         }
 
         // Set enabled transitions checkboxes
