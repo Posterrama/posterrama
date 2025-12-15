@@ -53,20 +53,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             }
         }
 
-        function render(btn) {
-            const enabled = isEnabled();
-            btn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-            btn.title = enabled
-                ? 'Display Loader: ON (click to disable)'
-                : 'Display Loader: OFF (click to enable)';
-
-            const ic = btn.querySelector('i');
-            if (ic) {
-                ic.classList.toggle('fa-spinner', enabled);
-                ic.classList.toggle('fa-eye-slash', !enabled);
-            }
-        }
-
         function renderMenuItem(item) {
             const enabled = isEnabled();
             item.setAttribute('aria-pressed', enabled ? 'true' : 'false');
@@ -81,37 +67,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             if (ic) {
                 ic.classList.toggle('fa-spinner', enabled);
                 ic.classList.toggle('fa-eye-slash', !enabled);
-            }
-        }
-
-        function boot() {
-            try {
-                const host = document.querySelector('.navbar .nav-actions');
-                if (!host) return;
-                if (document.getElementById('display-loader-toggle')) return;
-
-                const btn = document.createElement('button');
-                btn.id = 'display-loader-toggle';
-                btn.className = 'btn btn-icon';
-                btn.type = 'button';
-                btn.innerHTML = '<i class="fas fa-spinner" aria-hidden="true"></i>';
-                btn.style.marginLeft = '6px';
-
-                btn.addEventListener('click', () => {
-                    const enabledNow = isEnabled();
-                    const nextEnabled = !enabledNow;
-                    setEnabled(nextEnabled);
-                    render(btn);
-                    toast(nextEnabled);
-
-                    const menuItem = document.getElementById('display-loader-toggle-menu');
-                    if (menuItem) renderMenuItem(menuItem);
-                });
-
-                render(btn);
-                host.appendChild(btn);
-            } catch (_) {
-                // ignore
             }
         }
 
@@ -136,9 +91,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     setEnabled(nextEnabled);
                     renderMenuItem(item);
 
-                    const btn = document.getElementById('display-loader-toggle');
-                    if (btn) render(btn);
-
                     toast(nextEnabled);
                 });
 
@@ -160,13 +112,11 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             document.addEventListener(
                 'DOMContentLoaded',
                 () => {
-                    boot();
                     bootMenuItem();
                 },
                 { once: true }
             );
         } else {
-            boot();
             bootMenuItem();
         }
     }
