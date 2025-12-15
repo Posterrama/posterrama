@@ -154,10 +154,13 @@ function validateDocsData() {
     // Extract schema defaults for future validation
     if (configSchema) {
         const schemaDefaults = extractSchemaDefaults(configSchema);
-        // Store count for summary
-        warnings.push(
-            `Found ${schemaDefaults.size} properties with defaults in config.schema.json`
-        );
+        // This is informational and can be noisy in CI/quality runs.
+        // Enable explicitly via DOCS_VALIDATE_WARN_SCHEMA_DEFAULTS=1.
+        if (process.env.DOCS_VALIDATE_WARN_SCHEMA_DEFAULTS === '1') {
+            warnings.push(
+                `Found ${schemaDefaults.size} properties with defaults in config.schema.json`
+            );
+        }
     }
 
     return { errors, warnings };
