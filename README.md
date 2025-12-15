@@ -10,7 +10,7 @@
 
 <p style="margin: 0; line-height: 1.1;">
   <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-2.9.9-blue.svg"></a>
-  <a href="https://nodejs.org/"><img alt="Node.js" src="https://img.shields.io/badge/node.js-%E2%89%A520.0.0-blue"></a>
+  <a href="https://nodejs.org/"><img alt="Node.js" src="https://img.shields.io/badge/node.js-%E2%89%A518.0.0-blue"></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue"></a>
 </p>
 <p style="margin: 2px 0 8px 0; line-height: 1.1;">
@@ -268,12 +268,12 @@ Setup is straightforward—just enable MQTT in Posterrama settings, point it to 
 - **RAM**: 2GB minimum, 4GB+ recommended for larger libraries (5000+ items)
 - **Storage**: 2GB for application + cache space for images
 - **OS**: Linux (Ubuntu, Debian, CentOS, RHEL), macOS, or Windows with Node.js support
-- **Node.js**: v20 LTS or higher
+- **Node.js**: v18+ supported (v20 LTS recommended)
 - **Network**: Stable connection to media servers (Plex/Jellyfin)
 
 **Performance notes:**
 
-- Posterrama automatically uses up to 8GB heap memory for large libraries
+- When running via PM2 (ecosystem.config.js), Posterrama uses up to 8GB heap memory for large libraries
 - Image caching reduces bandwidth after initial load
 
 ## Get started
@@ -291,7 +291,7 @@ curl -fsSL https://raw.githubusercontent.com/Posterrama/posterrama/main/install.
 sudo apt-get update
 sudo apt-get install -y git curl build-essential
 
-# Install Node.js (v20 LTS recommended)
+# Install Node.js (v18+ supported, v20 LTS recommended)
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
