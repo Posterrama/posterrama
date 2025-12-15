@@ -35,12 +35,12 @@ Checklist:
 Quick dev checks:
 
 - GET `/health`, `/get-config` to validate server and config
-- Open `/api-docs` for Swagger
+- Open `/api-docs` for API docs (Scalar UI)
 - Logs: `logs/combined.log` (tests keep logs in-memory via `logger.memoryLogs`)
 
 Notes:
 
-- `server.js` auto-creates `.env` and `config.json` and never overrides `NODE_ENV`.
+- `server.js` reads runtime env from your `.env` (and does not create it for you).
 - Posters are cached to `image_cache/`. Respect existing cache headers and paths.
 
 Minimal usage sketch (inside your adapter constructor call site):
@@ -62,5 +62,5 @@ source = new MyNewSource(
 
 ---
 
-**Last updated:** November 16, 2025
-**Version:** 2.9.8
+**Last updated:** December 14, 2025
+**Version:** 2.9.9

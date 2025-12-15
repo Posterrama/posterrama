@@ -1,7 +1,7 @@
 # Posterrama Frontend Architecture
 
-**Version:** 2.9.8
-**Last Updated:** November 28, 2025
+**Version:** 2.9.9
+**Last Updated:** December 14, 2025
 
 ---
 
@@ -26,7 +26,7 @@ Posterrama's frontend is a **Multi-Page Application (MPA)** built with **vanilla
 
 **Key Characteristics:**
 
-- **No Build Step (Legacy):** Raw files served directly (now transitioning to Vite)
+- **No Build Step:** Static assets are served directly from `public/`
 - **Vanilla JS:** No React/Vue/Angular - pure JavaScript with IIFE module pattern
 - **Event-Driven:** CustomEvents, BroadcastChannel, WebSocket for inter-component communication
 - **PWA-Enabled:** Service Worker for offline caching and installability
@@ -39,8 +39,6 @@ Posterrama's frontend is a **Multi-Page Application (MPA)** built with **vanilla
 | Technology             | Purpose                   | Version |
 | ---------------------- | ------------------------- | ------- |
 | **Vanilla JavaScript** | Core logic (ES6+)         | -       |
-| **Vite**               | Build system (new)        | 7.2.2   |
-| **Terser**             | JavaScript minification   | Latest  |
 | **CSS3**               | Styling (no preprocessor) | -       |
 | **Service Worker**     | Offline caching, PWA      | v2.2.6  |
 | **WebSocket**          | Real-time device control  | -       |
@@ -390,60 +388,12 @@ window.PosterramaScreensaver; // Screensaver module
 
 ## Build System
 
-### Legacy (Pre-Vite)
+Posterrama serves frontend assets directly from `public/`.
 
-**No build step** - Files served directly from `public/` directory
+- No bundler-driven build pipeline is required to run or deploy.
+- JavaScript is a mix of legacy IIFE-style globals (`window.*`) and newer module-style patterns in a few places.
 
-**Issues:**
-
-- No minification (3.6MB bundles)
-- No code splitting
-- No tree shaking
-- No TypeScript support
-- No HMR (hot module replacement)
-
-### New (Vite) - 2025-11-15
-
-**Setup:** `vite.config.js` with multi-page configuration
-
-**Entry Points:**
-
-- `admin.html`
-- `wallart.html`
-- `cinema.html`
-- `screensaver.html`
-- `setup.html`
-- `index.html`
-- `login.html`
-- `2fa-verify.html`
-
-**Build Command:**
-
-```bash
-npm run build
-```
-
-**Output:** `dist/public/` (minified, hashed assets)
-
-**Dev Server:**
-
-```bash
-npm run dev
-```
-
-**Features:**
-
-- Terser minification (5-7x size reduction)
-- Asset hashing (cache busting)
-- Source maps
-- API proxy to backend (`:4000`)
-- Module bundling (scripts not yet `type="module"`)
-
-**Next Steps:**
-
-1. Convert all `<script src="">` to `<script type="module">`
-2. Convert core.js, device-mgmt.js to ES modules
-3. Enable code splitting for admin.js
+If you need minification or bundling, treat it as an optional future enhancement rather than an assumed part of the runtime.
 
 ---
 
@@ -452,35 +402,17 @@ npm run dev
 ### Local Development
 
 ```bash
-# 1. Start backend server
-npm start # Port 4000
+# Start backend server (serves frontend from public/)
+npm start
 
-# 2. Start Vite dev server (optional, for HMR)
-npm run dev # Port 5173
-
-# 3. Access app
-http://localhost:4000 # Direct (no build)
-http://localhost:5173 # Vite dev server (with HMR)
-```
-
-### Production Build
-
-```bash
-# 1. Build frontend
-npm run build # Output: dist/public/
-
-# 2. Deploy dist/public/ to server
-# (server.js should serve from dist/public/ in production)
+# Access app
+http://localhost:4000
 ```
 
 ### Testing
 
 ```bash
-npm run test:frontend # Unit tests (Vitest) - 88 tests passing
-# npm run test:e2e # E2E tests (Playwright) - Planned
-
-# Future:
-# npm run test:e2e # E2E tests (Playwright)
+npm test
 ```
 
 ---
@@ -530,8 +462,8 @@ export function isPreviewMode() {
 </script>
 ```
 
-**Pros:** Clean exports, tree shaking, better IDE support
-**Cons:** Requires `type="module"` in HTML, build step for optimization
+**Pros:** Clean exports, better IDE support
+**Cons:** Requires `type="module"` in HTML
 
 ---
 
@@ -611,38 +543,18 @@ ws.send(JSON.stringify({ type: 'heartbeat', deviceId: 'abc123' }));
 
 ### Current State
 
-**Frontend Tests:** 88 tests passing (Screensaver, Wallart, Cinema modes covered)
+**Test runner:** Jest (`npm test`)
 
-**Backend Tests:** 2,400+ tests, 92%+ coverage
+**Frontend-related coverage:** tests under `__tests__/public/` (focused on browser-facing JS/CSS behaviors).
 
 ---
 
 ### Recommended Testing Strategy
 
-**Unit Tests (Vitest):**
+**Unit/Integration Tests (Jest):**
 
-```javascript
-// __tests__/frontend/unit/mode-redirect.test.js
-import { describe, test, expect } from 'vitest';
-import { getActiveMode } from '../../../public/mode-redirect.js';
-
-describe('getActiveMode', () => {
-    test('returns cinema when cinemaMode is true', () => {
-        const config = { cinemaMode: true };
-        expect(getActiveMode(config)).toBe('cinema');
-    });
-
-    test('returns wallart when wallartMode.enabled is true', () => {
-        const config = { wallartMode: { enabled: true } };
-        expect(getActiveMode(config)).toBe('wallart');
-    });
-
-    test('returns screensaver by default', () => {
-        const config = {};
-        expect(getActiveMode(config)).toBe('screensaver');
-    });
-});
-```
+- Prefer testing public-facing behavior via JSDOM where feasible.
+- Keep tests close to the existing structure under `__tests__/public/`.
 
 **E2E Tests (Playwright):**
 
@@ -675,16 +587,7 @@ test('should switch from screensaver to wallart', async ({ page }) => {
 1. Create `public/new-mode.html`
 2. Create `public/new-mode/new-mode-display.js`
 3. Create `public/new-mode/new-mode.css`
-4. Add entry point to `vite.config.js`:
-
-```javascript
-input: {
-// ... existing entries
-'new-mode': resolve(__dirname, 'public/new-mode.html'),
-}
-```
-
-5. Add mode detection to `core.js`:
+4. Add mode detection to `core.js`:
 
 ```javascript
 Core.getActiveMode = function (cfg) {
@@ -693,7 +596,7 @@ Core.getActiveMode = function (cfg) {
 };
 ```
 
-6. Add route in `server.js`:
+5. Add route in `server.js`:
 
 ```javascript
 app.get('/new-mode', (req, res) => {
@@ -769,7 +672,7 @@ Then import where needed:
 
 ### Quick Wins
 
-1. **Enable Minification:** Done (Vite setup)
+1. **Enable Minification:** Optional (no build step today)
 2. **Extract Inline Scripts:** Done (mode-redirect.js, error-handler.js)
 3. **Add `type="module"` to scripts:** TODO
 4. **Code splitting:** TODO (requires admin.js split)

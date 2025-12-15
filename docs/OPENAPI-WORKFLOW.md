@@ -41,7 +41,7 @@ npm run openapi:export # Same thing
 graph LR
  A[swagger.js] -->|npm run openapi:export| B[docs/openapi-latest.json]
  B -->|npm run openapi:validate| C[Validation Report]
- A -->|/api-docs/swagger.json| D[ReDoc Live Docs]
+ A -->|/api-docs/swagger.json| D[/api-docs (Scalar UI)]
 ```
 
 ## Making Changes
@@ -96,7 +96,7 @@ Checks for:
 | `swagger.js`               | Source of truth | Yes            |
 | `docs/openapi-latest.json` | Static snapshot | Auto-generated |
 | `/api-docs/swagger.json`   | Live endpoint   | Dynamic        |
-| `/api-docs`                | ReDoc UI        | Uses live spec |
+| `/api-docs`                | Scalar UI       | Uses live spec |
 
 ## Tips
 
@@ -107,5 +107,5 @@ Checks for:
 
 ---
 
-**Last updated:** November 16, 2025
-**Version:** 2.9.8
+**Last updated:** December 14, 2025
+**Version:** 2.9.9

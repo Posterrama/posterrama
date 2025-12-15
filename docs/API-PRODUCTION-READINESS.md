@@ -1,6 +1,6 @@
 # API Production Readiness
 
-**Version:** 2.9.8
+**Version:** 2.9.9
 **Production Readiness:** 95%
 **Last Updated:** November 28, 2025
 
@@ -15,7 +15,7 @@ The Posterrama API is **95% production-ready**. All core v1 endpoints are implem
 - OpenAPI compliance complete (100% examples, consolidated security)
 - RESTful v1 endpoints implemented (14 endpoints including metrics)
 - Full backwards compatibility maintained
-- 🟡 Frontend migration optional (both old and new paths work indefinitely)
+- 🟡 Frontend migration optional (legacy + v1 paths coexist)
 
 **Available v1 Endpoints:**
 
@@ -47,7 +47,10 @@ GET /api/v1/metrics/* → System & Performance metrics
 
 ### Frontend Migration (Optional)
 
-**Status:** Not started (not required for production readiness)
+**Status:** Partially adopted
+
+- `/api/v1/metrics/*` is used by parts of the UI.
+- `/get-config` and `/get-media` are still used widely by display/admin pages.
 
 Frontend code currently uses legacy endpoints:
 
@@ -148,7 +151,7 @@ Must verify after any API changes:
 **Added:**
 
 - 9 new Metrics endpoints (`/api/v1/metrics/*`)
-- Updated documentation to reflect v2.9.8 status
+- Updated documentation to reflect v2.9.9 status
 
 **Not Changed:**
 
@@ -186,7 +189,7 @@ If/when frontend migration is desired:
 
 **Documentation:**
 
-- `/api-docs` - Interactive API documentation (ReDoc)
+- `/api-docs` - Interactive API documentation (Scalar UI)
 - `swagger.js` - OpenAPI specification generator
 
 ---

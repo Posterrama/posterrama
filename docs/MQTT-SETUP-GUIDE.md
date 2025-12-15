@@ -2,15 +2,15 @@
 
 Complete guide for integrating Posterrama with Home Assistant via MQTT.
 
-**Version**: 2.9.8
-**Last Updated**: 2025-11-28
+**Version**: 2.9.9
+**Last Updated**: 2025-12-14
 **Prerequisites**: Posterrama v2.9.3+, Home Assistant with MQTT broker
 
 **Quick Troubleshooting:**
 
 - Not connecting? Check broker IP and credentials in config.json
 - 🟡 Entities not appearing? Ensure discovery.enabled: true and restart Posterrama
-- 🟢 Works but slow? Increase publishInterval to 60 seconds
+- 🟢 Works but slow? Expect up to ~30s periodic refresh; most updates are event-driven
 
 ---
 
@@ -121,14 +121,12 @@ nano config.json
             "port": 1883,
             "username": "posterrama",
             "passwordEnvVar": "MQTT_PASSWORD",
-            "tls": false
+            "password": ""
         },
         "discovery": {
-            "enabled": true,
-            "prefix": "homeassistant"
+            "enabled": true
         },
-        "topicPrefix": "posterrama",
-        "publishInterval": 30,
+        "externalUrl": "http://192.168.1.100:4000",
         "availability": {
             "enabled": true,
             "timeout": 60
@@ -148,14 +146,11 @@ MQTT_PASSWORD=YOUR_SECURE_PASSWORD
 **Configuration parameters:**
 
 - `host`: IP address of your MQTT broker (Home Assistant IP)
-- `port`: Default 1883 (8883 for TLS)
+- `port`: Default 1883
 - `username`: MQTT username
 - `passwordEnvVar`: Environment variable name containing password
-- `tls`: Set `true` if using encrypted connection
 - `discovery.enabled`: Auto-create entities in Home Assistant
-- `discovery.prefix`: Usually "homeassistant" (don't change)
-- `topicPrefix`: MQTT topic prefix (default "posterrama")
-- `publishInterval`: State update frequency in seconds
+- `externalUrl`: URL Home Assistant can reach Posterrama on
 - `availability.timeout`: Mark device offline after X seconds
 
 ### Step 4: Restart Posterrama
@@ -226,7 +221,7 @@ Minimal working config:
 
 ### Advanced Configuration
 
-Full configuration with all options:
+Full configuration (schema-supported options):
 
 ```json
 {
@@ -234,53 +229,36 @@ Full configuration with all options:
         "enabled": true,
         "broker": {
             "host": "homeassistant.local",
-            "port": 8883,
+            "port": 1883,
             "username": "posterrama",
-            "passwordEnvVar": "MQTT_PASSWORD",
-            "tls": true,
-            "ca": "/path/to/ca.crt",
-            "cert": "/path/to/client.crt",
-            "key": "/path/to/client.key",
-            "rejectUnauthorized": true
+            "passwordEnvVar": "MQTT_PASSWORD"
         },
+        "externalUrl": "http://posterrama.local:4000",
         "discovery": {
-            "enabled": true,
-            "prefix": "homeassistant"
+            "enabled": true
         },
-        "topicPrefix": "posterrama",
-        "publishInterval": 15,
         "availability": {
             "enabled": true,
             "timeout": 90
-        },
-        "qos": 1,
-        "retain": true
+        }
     }
 }
 ```
 
 **Parameter reference:**
 
-| Parameter                   | Default         | Description                          |
-| --------------------------- | --------------- | ------------------------------------ |
-| `enabled`                   | `false`         | Enable/disable MQTT integration      |
-| `broker.host`               | `localhost`     | MQTT broker hostname or IP           |
-| `broker.port`               | `1883`          | MQTT broker port (8883 for TLS)      |
-| `broker.username`           | -               | MQTT username (optional)             |
-| `broker.passwordEnvVar`     | -               | Environment variable with password   |
-| `broker.tls`                | `false`         | Enable TLS/SSL encryption            |
-| `broker.ca`                 | -               | Path to CA certificate               |
-| `broker.cert`               | -               | Path to client certificate           |
-| `broker.key`                | -               | Path to client private key           |
-| `broker.rejectUnauthorized` | `true`          | Verify TLS certificates              |
-| `discovery.enabled`         | `true`          | Auto-create Home Assistant entities  |
-| `discovery.prefix`          | `homeassistant` | HA discovery prefix                  |
-| `topicPrefix`               | `posterrama`    | Base topic for all messages          |
-| `publishInterval`           | `30`            | State publish frequency (seconds)    |
-| `availability.enabled`      | `true`          | Track device online/offline          |
-| `availability.timeout`      | `60`            | Offline timeout (seconds)            |
-| `qos`                       | `0`             | MQTT Quality of Service (0, 1, or 2) |
-| `retain`                    | `false`         | Retain messages on broker            |
+| Parameter               | Default     | Description                         |
+| ----------------------- | ----------- | ----------------------------------- |
+| `enabled`               | `false`     | Enable/disable MQTT integration     |
+| `broker.host`           | `localhost` | MQTT broker hostname or IP          |
+| `broker.port`           | `1883`      | MQTT broker port                    |
+| `broker.username`       | -           | MQTT username (optional)            |
+| `broker.passwordEnvVar` | -           | Environment variable with password  |
+| `broker.password`       | `""`        | MQTT password (direct; less secure) |
+| `externalUrl`           | `baseUrl`   | URL HA can use to reach Posterrama  |
+| `discovery.enabled`     | `true`      | Auto-create Home Assistant entities |
+| `availability.enabled`  | `true`      | Track device online/offline         |
+| `availability.timeout`  | `60`        | Offline timeout (seconds)           |
 
 ### Network Configuration
 
@@ -302,7 +280,6 @@ hostname -I
 ```bash
 # Allow MQTT port on Home Assistant
 sudo ufw allow 1883/tcp comment 'MQTT'
-sudo ufw allow 8883/tcp comment 'MQTT TLS'
 ```
 
 ---
@@ -348,10 +325,7 @@ If devices don't appear in Home Assistant:
 pm2 restart posterrama
 
 # Method 2: Force republish (in Posterrama admin)
-# Go to Admin → MQTT Integration → Click "Reconnect"
-
-# Method 3: Manual MQTT republish
-mosquitto_pub -h localhost -t "posterrama/discovery/refresh" -m "1"
+# Go to Admin → Configuration → Save (this triggers an in-process MQTT bridge restart if MQTT settings changed)
 ```
 
 ---
@@ -1037,8 +1011,7 @@ mosquitto_pub -h YOUR_HA_IP -u posterrama -P YOUR_PASSWORD -t "homeassistant/+/p
 {
     "mqtt": {
         "discovery": {
-            "enabled": true,
-            "prefix": "homeassistant" // Must match HA MQTT integration
+            "enabled": true
         }
     }
 }
@@ -1079,22 +1052,21 @@ curl http://localhost:4000/admin/api/devices
 
 ```bash
 # Monitor availability
-mosquitto_sub -h YOUR_HA_IP -u posterrama -P YOUR_PASSWORD -t "posterrama/+/availability" -v
+mosquitto_sub -h YOUR_HA_IP -u posterrama -P YOUR_PASSWORD -t "posterrama/device/+/availability" -v
 
 # Should show:
-# posterrama/device-id/availability online
+# posterrama/device/device-id/availability online
 ```
 
-**Solution 3: Verify publishInterval**
+**Solution 3: Tune availability timeout**
 
 ```json
 // In config.json:
 {
     "mqtt": {
-        "publishInterval": 30, // Try lower value like 15
         "availability": {
             "enabled": true,
-            "timeout": 60 // Try higher value like 90
+            "timeout": 90
         }
     }
 }
@@ -1104,15 +1076,10 @@ mosquitto_sub -h YOUR_HA_IP -u posterrama -P YOUR_PASSWORD -t "posterrama/+/avai
 
 #### Problem: "MQTT consuming too many resources"
 
-**Solution 1: Increase publishInterval**
+**Solution 1: Reduce entity count and refresh churn**
 
-```json
-{
-    "mqtt": {
-        "publishInterval": 60 // From 30 to 60 seconds
-    }
-}
-```
+- Disable MQTT if you don't need HA entities for all devices.
+- Prefer fewer devices and fewer frequent UI changes.
 
 **Solution 2: Disable camera if not needed**
 
@@ -1120,9 +1087,7 @@ Camera entity sends base64 images (can be large):
 
 ```bash
 # Monitor camera topic size
-mosquitto_sub -h YOUR_HA_IP -u posterrama -P YOUR_PASSWORD -t "posterrama/+/camera" -v | head -c 100
-
-# If too frequent, modify publishInterval or disable camera in code
+mosquitto_sub -h YOUR_HA_IP -u posterrama -P YOUR_PASSWORD -t "posterrama/device/+/camera" -v | head -c 100
 ```
 
 **Solution 3: Check broker load**
@@ -1136,15 +1101,10 @@ docker logs -f addon_core_mosquitto
 
 #### Problem: "State updates delayed"
 
-**Solution 1: Lower publishInterval**
+**Solution 1: Confirm expected refresh behavior**
 
-```json
-{
-    "mqtt": {
-        "publishInterval": 10 // More frequent updates
-    }
-}
-```
+- Posterrama publishes most updates event-driven.
+- It also does a periodic "catch-up" publish (internally defaults to ~30s).
 
 **Solution 2: Check network latency**
 
@@ -1155,15 +1115,10 @@ ping YOUR_HA_IP
 # Should be <10ms on local network
 ```
 
-**Solution 3: Verify QoS settings**
+**Solution 3: Check broker + HA health**
 
-```json
-{
-    "mqtt": {
-        "qos": 1 // Guaranteed delivery (vs 0 = fire and forget)
-    }
-}
-```
+- Restart the Mosquitto add-on / MQTT integration.
+- Check for broker disconnects and auth errors.
 
 ### Common Error Messages
 
@@ -1227,39 +1182,6 @@ Error: Connection refused: Unacceptable protocol version
 }
 ```
 
-#### Error: "Certificate verification failed"
-
-```
-Error: unable to verify the first certificate
-```
-
-**Causes:**
-
-- Self-signed certificate
-- CA not trusted
-
-**Solutions:**
-
-```json
-// Disable verification (testing only):
-{
- "mqtt": {
- "broker": {
- "rejectUnauthorized": false
- }
- }
-}
-
-// Or provide CA certificate:
-{
- "mqtt": {
- "broker": {
- "ca": "/path/to/ca.crt"
- }
- }
-}
-```
-
 ### Debug Mode
 
 Enable verbose MQTT logging:
@@ -1307,111 +1229,13 @@ curl http://localhost:4000/api/admin/mqtt/status
 
 ## Advanced Configuration
 
-### TLS/SSL Encryption
+### Notes (v2.9.9)
 
-For secure MQTT connections:
+- Home Assistant discovery prefix is fixed to `homeassistant`.
+- Posterrama topics are fixed to the `posterrama/...` prefix.
+- The bridge publishes most updates event-driven, with a periodic catch-up publish (~30s).
 
-```json
-{
-    "mqtt": {
-        "broker": {
-            "host": "homeassistant.local",
-            "port": 8883,
-            "tls": true,
-            "ca": "/etc/ssl/certs/ca.crt",
-            "cert": "/etc/ssl/certs/client.crt",
-            "key": "/etc/ssl/private/client.key",
-            "rejectUnauthorized": true
-        }
-    }
-}
-```
-
-**Generate certificates:**
-
-```bash
-# Self-signed CA (testing only)
-openssl req -new -x509 -days 365 -extensions v3_ca -keyout ca.key -out ca.crt
-
-# Server certificate
-openssl genrsa -out server.key 2048
-openssl req -out server.csr -key server.key -new
-openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 365
-
-# Client certificate
-openssl genrsa -out client.key 2048
-openssl req -out client.csr -key client.key -new
-openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt -days 365
-```
-
-**Configure Mosquitto for TLS:**
-
-```conf
-# /config/mosquitto/mosquitto.conf
-listener 8883
-cafile /ssl/ca.crt
-certfile /ssl/server.crt
-keyfile /ssl/server.key
-require_certificate true
-```
-
-### Custom Topic Structure
-
-Override default topic structure:
-
-```json
-{
-    "mqtt": {
-        "topicPrefix": "home/displays",
-        "topics": {
-            "state": "home/displays/{device_id}/state",
-            "command": "home/displays/{device_id}/command",
-            "availability": "home/displays/{device_id}/online"
-        }
-    }
-}
-```
-
-### Quality of Service (QoS)
-
-Configure MQTT message reliability:
-
-```json
-{
-    "mqtt": {
-        "qos": 1, // 0 = At most once, 1 = At least once, 2 = Exactly once
-        "retain": true // Retain last message on broker
-    }
-}
-```
-
-**QoS levels:**
-
-- **QoS 0**: Fire and forget (fastest, least reliable)
-- **QoS 1**: Guaranteed delivery (default, balanced)
-- **QoS 2**: Exactly once (slowest, most reliable)
-
-### Multiple MQTT Brokers
-
-Not currently supported, but can be achieved with MQTT bridge:
-
-```conf
-# Mosquitto bridge config
-connection bridge-to-cloud
-address cloud.mqtt.broker:1883
-topic posterrama/# both 0
-```
-
-### Custom Device Naming
-
-Override device names in Home Assistant:
-
-```bash
-# Publish custom device config
-mosquitto_pub -h YOUR_HA_IP -u posterrama -P YOUR_PASSWORD \
- -t "posterrama/living-room/command/settings" \
- -m '{"deviceName": "Living Room TV Display"}'
-```
+TLS, QoS/retain tuning, and custom topic templates are not exposed via the validated configuration schema in v2.9.9. If you need TLS, terminate it at the broker/proxy layer.
 
 ---
 
@@ -1426,7 +1250,7 @@ A: No, Posterrama works with any MQTT broker. Home Assistant discovery is option
 A: Yes, configure `broker.host` to point to external broker. Ensure network access and credentials are correct.
 
 **Q: How many devices can I connect?**
-A: No hard limit. Tested with 20+ devices. Performance depends on `publishInterval` and broker capacity.
+A: No hard limit. Tested with 20+ devices. Performance depends on device count, camera usage, and broker capacity.
 
 **Q: Does MQTT work offline?**
 A: Devices need network access to MQTT broker. If broker is local (Home Assistant), works on LAN without internet.
@@ -1440,7 +1264,7 @@ A: Yes, send MQTT commands directly using mosquitto_pub or any MQTT client.
 A: MQTT 3.1.1 and 5.0 (auto-negotiated).
 
 **Q: Are messages retained?**
-A: Discovery configs are retained. State messages can be configured with `retain: true`.
+A: Home Assistant discovery configs are published so HA can recreate entities. State/camera publishing is handled by the bridge; if you need broker-side retain tuning, that’s not exposed via the validated config schema in v2.9.9.
 
 **Q: What happens if MQTT disconnects?**
 A: Bridge auto-reconnects with exponential backoff. Devices continue working via WebSocket.
@@ -1454,7 +1278,7 @@ A: Minimal. ~1KB per state update. Camera entity ~50-200KB per update (base64 im
 ### Security Questions
 
 **Q: Is MQTT traffic encrypted?**
-A: Only if using TLS (port 8883). Plain MQTT (1883) is unencrypted. Use TLS for external brokers.
+A: Plain MQTT (1883) is unencrypted. In v2.9.9, TLS options are not exposed via the validated config schema; use a trusted LAN broker or terminate TLS at the broker/proxy.
 
 **Q: Should I use authentication?**
 A: Yes, always use username/password, especially if broker is exposed to internet.
@@ -1463,12 +1287,12 @@ A: Yes, always use username/password, especially if broker is exposed to interne
 A: Yes, configure Mosquitto ACLs or firewall rules.
 
 **Q: Where are passwords stored?**
-A: In environment variables (`.env` file), never in config.json. Ensure `.env` is not committed to git.
+A: Prefer environment variables (`.env` via `broker.passwordEnvVar`). A direct `broker.password` is supported but less secure; keep secrets out of source control.
 
 ### Troubleshooting Questions
 
 **Q: Why don't entities appear in Home Assistant?**
-A: Check discovery enabled, correct prefix, MQTT integration configured, and restart Posterrama.
+A: Check `mqtt.enabled`, `discovery.enabled`, MQTT integration configured in HA, and restart Posterrama.
 
 **Q: Why are entities unavailable?**
 A: Device offline, MQTT disconnected, or availability timeout too low. Check device heartbeat and increase timeout.
@@ -1477,12 +1301,12 @@ A: Device offline, MQTT disconnected, or availability timeout too low. Check dev
 A: Verify device online, check command topic, monitor logs for errors, test with mosquitto_pub manually.
 
 **Q: Camera not updating?**
-A: Check `publishInterval`, verify device has poster loaded, monitor camera topic size.
+A: Verify the device is online and has a poster loaded, then monitor the camera topic size.
 
 ### Configuration Questions
 
-**Q: What's the optimal publishInterval?**
-A: 30 seconds for most use cases. Lower (10-15s) for real-time dashboards. Higher (60s+) for battery/bandwidth savings.
+**Q: How often does state update?**
+A: Most updates are event-driven. The bridge also performs a periodic catch-up publish (internally defaults to ~30s).
 
 **Q: Should I enable availability tracking?**
 A: Yes, shows device online/offline status in Home Assistant. Disable if causing false offline alerts.
@@ -1490,8 +1314,8 @@ A: Yes, shows device online/offline status in Home Assistant. Disable if causing
 **Q: Do I need discovery enabled?**
 A: No, but highly recommended. Without it, you must manually create entities in Home Assistant.
 
-**Q: Can I change topicPrefix after setup?**
-A: Yes, but requires rediscovery. Old entities will become unavailable. Delete old entities manually in HA.
+**Q: Can I change the MQTT topic prefixes?**
+A: Not via the validated configuration schema in v2.9.9. Topics use the `posterrama/...` prefix and discovery uses `homeassistant/...`.
 
 ---
 
@@ -1500,8 +1324,7 @@ A: Yes, but requires rediscovery. Old entities will become unavailable. Delete o
 ### Official Documentation
 
 - **Posterrama Docs**: `/var/www/posterrama/docs/`
-- **MQTT Plan**: `docs/HOME-ASSISTANT-MQTT-PLAN.md`
-- **API Reference**: http://localhost:4000/api-docs
+- **API Reference**: http://localhost:4000/api-docs (Scalar UI)
 - **Admin Panel**: http://localhost:4000/admin
 
 ### MQTT Resources
@@ -1513,7 +1336,7 @@ A: Yes, but requires rediscovery. Old entities will become unavailable. Delete o
 
 ### Community & Support
 
-- **GitHub Issues**: [Report bugs or request features]
+- **GitHub Issues**: Use your repository issue tracker
 - **Home Assistant Community**: https://community.home-assistant.io/
 - **MQTT Cheat Sheet**: https://github.com/hobbyquaker/mqtt-cheatsheet
 

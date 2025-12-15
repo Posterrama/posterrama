@@ -1,8 +1,8 @@
 # Posterrama Architecture Diagrams
 
-**Version**: 2.9.8
-**Last Updated**: 2025-11-28
-**Server Size**: 7,367 lines (Refactored from ~20k lines)
+**Version**: 2.9.9
+**Last Updated**: 2025-12-14
+**Server Size**: 7,666 lines (Refactored from ~20k lines)
 
 ---
 
@@ -22,7 +22,7 @@ graph TB
  A3[External APIs]
  end
 
- subgraph "Application Layer - server.js (7,367 lines)"
+ subgraph "Application Layer - server.js (7,666 lines)"
  B1[Express Server]
  B2[WebSocket Hub]
  B3[Session Manager]
@@ -206,14 +206,13 @@ graph LR
  end
 
  subgraph "Device Management"
- DS[Device Store]
- DH[lib/websocket-handlers.js]
- PR[lib/preset-helpers.js]
+ DS[utils/deviceStore.js]
+ DO[lib/device-operations.js]
  end
 
  subgraph "Admin Control"
  AC[Admin Commands]
- GC[Group Commands]
+ PC[Profile Commands]
  BC[Broadcast System]
  end
 
@@ -226,11 +225,10 @@ graph LR
  CM --> ACK
 
  CM <--> DS
- CM --> DH
- DH --> PR
+ CM --> DO
 
  AC --> CM
- GC --> BC
+ PC --> CM
  BC --> CM
 
  CM --> |Commands| D1
@@ -254,7 +252,7 @@ sequenceDiagram
  participant Server as routes/devices.js
  participant WSHub as utils/wsHub.js
  participant Device as Display Device
- participant Handler as lib/websocket-handlers.js
+ participant DeviceOps as lib/device-operations.js
 
  Admin->>Server: POST /api/devices/{id}/reboot
  Server->>WSHub: sendCommandAwait(deviceId, {type: 'reboot'})
@@ -274,7 +272,7 @@ sequenceDiagram
  Server->>Admin: 504 Gateway Timeout
  end
 
- Note over Admin,Handler: Command types: reboot, reload, applySettings,<br/>mode, playlist, navigate
+ Note over Admin,DeviceOps: Command types: reboot, reload, applySettings,<br/>mode, playlist, navigate
 ```
 
 ---
@@ -286,12 +284,12 @@ Layered view of the codebase structure:
 ```mermaid
 graph TB
  subgraph "Layer 0: Core Server"
- L0[server.js<br/>7,367 lines<br/>~25% of codebase]
+ L0[server.js<br/>7,666 lines<br/>~25% of codebase]
  end
 
  subgraph "Layer 1: Routes (21 modules, ~13k lines, ~45%)"
  L1A[Admin Routes<br/>config, libraries, system]
- L1B[Device Routes<br/>devices, groups, QR]
+ L1B[Device Routes<br/>devices, profiles, QR]
  L1C[Media Routes<br/>media, playlists, local]
  L1D[Auth Routes<br/>auth, sessions, profile]
  L1E[Public Routes<br/>API, health, pages]
@@ -300,7 +298,7 @@ graph TB
  subgraph "Layer 2: Business Logic (14 modules, 4,479 lines, 23.8%)"
  L2A[Helpers<br/>plex, jellyfin, config]
  L2B[Aggregation<br/>media-aggregator, playlist-cache]
- L2C[WebSocket<br/>websocket-handlers]
+ L2C[Realtime<br/>wsHub, device-operations]
  L2D[Utilities<br/>init, auth, utils]
  end
 

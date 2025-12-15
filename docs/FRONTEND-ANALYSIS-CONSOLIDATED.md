@@ -1,7 +1,7 @@
 # Frontend Analysis - Consolidated Report
 
-**Date:** November 28, 2025
-**Version:** 2.9.8
+**Date:** December 14, 2025
+**Version:** 2.9.9
 **Status:** Analysis Complete + Performance Optimizations Implemented
 
 ---
@@ -31,12 +31,12 @@ public/
  ├── critical.css (1KB) # Inline critical CSS
  └── *.css # Component styles
 
-js/ (Vite-built)
+js/ (served from public/)
  screensaver.js # Core rotation logic
  wallart.js # Grid calculation
  cinema.js # Now Playing integration
  device-client.js # WebSocket client
- admin.js (1.3MB IIFE) # Monolithic admin (needs split)
+ admin.js (IIFE) # Monolithic admin (needs split)
 
 utils/
  frontend-helpers.js # Shared utilities
@@ -191,7 +191,7 @@ Cinema 2.66 MB 293 15 52 567 ms
 - WebSocket lifecycle
 - Error handling
 
-**Coverage Target:** 3% per-file threshold (vitest.config.js)
+**Coverage Target:** Keep browser-facing paths covered (see `__tests__/public/`)
 
 ### Test Execution
 
@@ -410,9 +410,7 @@ npm test
 
 ### Environment Variables
 
-- `VITE_API_URL` - Backend API endpoint
-- `VITE_WS_URL` - WebSocket endpoint
-- `NODE_ENV=production` - Production build
+- `NODE_ENV` - Runtime mode (affects logging/behavior; static assets are still served from `public/`)
 
 ---
 
@@ -430,8 +428,7 @@ npm test
 **Target State:**
 
 - 12 ES modules (~100KB each)
-- Vite-bundled with tree-shaking
-- Modern minification (Terser)
+- Optional bundling/minification as a future enhancement
 - Clean module scope
 
 **Migration Strategy:**
@@ -458,5 +455,5 @@ npm test
 **Document History:**
 
 - **Created:** November 15, 2025
-- **Last Updated:** November 28, 2025
+- **Last Updated:** December 14, 2025
 - **Status:** Active - Single source of truth for frontend analysis

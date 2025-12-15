@@ -251,25 +251,18 @@ Complete guide to all scripts in the `scripts/` directory, what they do, and how
 
 ### Build & Deploy (4 scripts)
 
-#### `build-production.sh`
-
-**Purpose:** Production build script (cleans dist, copies public, removes console.logs)
-**npm command:** `npm run build:prod`
-**Standalone:** Yes
-**Used by:** Deployment workflow
-**Features:** Console log stripping, backup generation
-
 #### `deploy-production.sh`
 
-**Purpose:** Production deployment (build + PM2 restart)
+**Purpose:** Restart PM2 using `ecosystem.config.js` (loads `.env`)
 **npm command:** None
 **Standalone:** Yes
 **Usage:** `./scripts/deploy-production.sh`
 **Steps:**
 
-1. `npm run build` (Vite)
-2. Copy `dist/public` to `public`
-3. `pm2 reload posterrama` or `pm2 start ecosystem.config.js`
+1. Stop PM2 process (if running)
+2. Delete old PM2 process
+3. Start fresh with `ecosystem.config.js`
+4. Save PM2 configuration
 
 #### `generate-icons.js`
 
@@ -628,5 +621,5 @@ These scripts were removed during the November 2025 cleanup:
 
 ---
 
-**Last updated:** November 16, 2025
-**Version:** 2.9.8
+**Last updated:** December 14, 2025
+**Version:** 2.9.9
