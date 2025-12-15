@@ -106,7 +106,10 @@ module.exports = function createAuthRouter({
                 `admin.css?v=${versions['admin.css'] || ASSET_VERSION}`
             );
 
-            res.setHeader('Cache-Control', 'no-cache'); // always fetch latest HTML shell
+            // Never cache the admin login HTML shell (CDNs/proxies/browsers).
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
             res.send(stamped);
         });
     });

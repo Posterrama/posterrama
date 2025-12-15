@@ -19,19 +19,25 @@
                 z-index: 50;
                 font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
                     'Courier New', monospace;
-                font-size: 12px;
-                letter-spacing: 0.2px;
-                color: rgba(229, 231, 235, 0.92);
-                padding: 6px 10px;
+                font-size: 10px;
+                letter-spacing: 0.15px;
+                color: rgba(229, 231, 235, 0.7);
+                padding: 4px 8px;
                 border-radius: 999px;
-                background: rgba(0, 0, 0, 0.35);
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                box-shadow:
-                    0 6px 18px rgba(0, 0, 0, 0.35),
-                    0 1px 0 rgba(255, 255, 255, 0.06) inset;
-                backdrop-filter: blur(6px);
-                -webkit-backdrop-filter: blur(6px);
+                background: rgba(0, 0, 0, 0.18);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                opacity: 0;
+                transform: translateY(2px);
+                transition:
+                    opacity 140ms ease,
+                    transform 140ms ease;
                 user-select: none;
+                pointer-events: none;
+            }
+
+            .login-version-badge.is-visible {
+                opacity: 1;
+                transform: translateY(0);
             }
         </style>
         <link
@@ -97,7 +103,7 @@
             </div>
         </div>
 
-        <div class="login-version-badge" aria-label="Posterrama version">v__POSTERRAMA_VERSION__</div>
+        <div class="login-version-badge" id="loginVersionBadge" aria-label="Posterrama version"></div>
 
         <script>
             // Toggle password visibility
@@ -213,6 +219,25 @@
             // Focus on username field when page loads
             document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('username').focus();
+            });
+
+            // Populate version badge without relying on server-side HTML stamping.
+            // X-API-Version is always set by the /api middleware.
+            document.addEventListener('DOMContentLoaded', async () => {
+                const badge = document.getElementById('loginVersionBadge');
+                if (!badge) return;
+
+                try {
+                    const response = await fetch('/api/v1/config', { cache: 'no-store' });
+                    const apiVersion = response.headers.get('x-api-version');
+
+                    if (apiVersion) {
+                        badge.textContent = `v${apiVersion}`;
+                        badge.classList.add('is-visible');
+                    }
+                } catch {
+                    // Hide badge on any error
+                }
             });
         </script>
     </body>
