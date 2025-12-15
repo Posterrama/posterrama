@@ -229,15 +229,15 @@ Where it shines:
 
 <img src="./screenshots/home_assistant_mqtt.png" alt="Home Assistant MQTT Integration" width="370" align="left" style="margin-right: 20px;">
 
-Connect your Posterrama displays to Home Assistant via MQTT and make them part of your smart home. Each display appears as a media player with full controls and customizable settings—all through the Home Assistant interface you already know.
+Connect your Posterrama displays to Home Assistant via MQTT and make them part of your smart home. Each display is exposed via Home Assistant MQTT Discovery as a set of entities (controls, sensors, settings, and a live poster preview), so you can automate and control screens from the HA UI you already use.
 
 What you get:
 
-- **Media player controls**: Play, pause, next/previous poster, and see what's currently showing
-- **50+ customization options**: Change display mode, animation style, transition speed, poster info visibility, and more—all exposed as switches, selects, and numbers in Home Assistant
-- **Smart home integration**: Trigger display changes with scenes, automations, or schedules. Pause displays when movies start, switch to cinema mode for movie night, or rotate content based on time of day
-- **Real-time sync**: Changes in Posterrama instantly update in Home Assistant, and vice versa
-- **Multiple displays**: Manage all your screens individually or group them together
+- **Live poster preview**: A camera entity shows the current poster thumbnail per screen (useful for dashboards and wall tablets)
+- **Instant controls**: Buttons/switches for play/pause, next/previous, power, pin/unpin, and quick actions
+- **Deep customization**: Dozens of per-device settings exposed as switches, selects, numbers, and text inputs (mode, animations, overlays, timings, and more)
+- **Real-time sync**: State updates and commands publish continuously, so HA stays in sync with what each screen is doing
+- **Multi-screen friendly**: Each display becomes its own entity set, making it easy to automate one screen or orchestrate many
 
 <br clear="left"/>
 
@@ -248,7 +248,7 @@ Perfect for:
 - **Scheduling**: Show different content during daytime vs. evening
 - **Voice control**: "Hey Google, next poster" or "Alexa, pause the display"
 
-Setup is straightforward—just enable MQTT in Posterrama settings, point it to your MQTT broker, and your displays appear in Home Assistant automatically. No manual configuration needed.
+Setup is straightforward—enable MQTT in Posterrama settings, point it to your broker, and Home Assistant will discover the entities automatically (via MQTT Discovery). No manual YAML is required for basic control.
 
 ---
 
