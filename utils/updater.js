@@ -8,7 +8,6 @@ const AdmZip = require('adm-zip');
 const semver = require('semver');
 const logger = require('./logger');
 const githubService = require('./github');
-const fsSync = require('fs');
 
 class AutoUpdater {
     constructor() {
