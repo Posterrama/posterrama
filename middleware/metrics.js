@@ -22,6 +22,26 @@ function getRequestSize(req) {
     return headerVal ? parseInt(headerVal) : 0;
 }
 
+function getMetricsPathLabel(req) {
+    const baseUrl = typeof req.baseUrl === 'string' ? req.baseUrl : '';
+    const routePath = req.route && req.route.path;
+
+    let pathPart;
+    if (typeof routePath === 'string') {
+        pathPart = routePath;
+    } else if (Array.isArray(routePath) && typeof routePath[0] === 'string') {
+        pathPart = routePath[0];
+    } else {
+        pathPart = null;
+    }
+
+    const combined = `${baseUrl}${pathPart || req.path || ''}`;
+    const normalized = combined.replace(/\/+/g, '/');
+
+    if (!normalized) return '/';
+    return normalized.startsWith('/') ? normalized : `/${normalized}`;
+}
+
 // Middleware to collect request metrics
 const metricsMiddleware = (req, res, next) => {
     const startTime = Date.now();
@@ -36,7 +56,7 @@ const metricsMiddleware = (req, res, next) => {
         const responseTime = endTime - startTime;
         const statusCode = res.statusCode;
         const method = req.method;
-        const path = req.route ? req.route.path : req.path;
+        const path = getMetricsPathLabel(req);
         const cached = res.get?.('X-Cache') === 'HIT';
         const endMemory = process.memoryUsage();
 
@@ -50,6 +70,12 @@ const metricsMiddleware = (req, res, next) => {
         // Record the request metrics
         try {
             metricsManager.recordRequest(method, path, responseTime, statusCode, cached);
+            metricsManager.recordPrometheusHttpRequest(
+                method,
+                path,
+                statusCode,
+                responseTime / 1000
+            );
 
             // Enhanced performance logging - only log notable issues
             const performanceData = {
