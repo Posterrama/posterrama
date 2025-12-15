@@ -16,6 +16,91 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
 
+    // Display auto-loader toggle (affects cinema/wallart/screensaver pages)
+    // Uses the same localStorage kill-switch checked by public/error-handler.js
+    function installDisplayLoaderToggle() {
+        const KEY = 'POSTERRAMA_DISABLE_AUTO_LOADER';
+
+        function isEnabled() {
+            try {
+                return localStorage.getItem(KEY) !== '1';
+            } catch (_) {
+                return true;
+            }
+        }
+
+        function setEnabled(enabled) {
+            try {
+                if (enabled) localStorage.removeItem(KEY);
+                else localStorage.setItem(KEY, '1');
+            } catch (_) {
+                // ignore
+            }
+        }
+
+        function render(btn) {
+            const enabled = isEnabled();
+            btn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+            btn.title = enabled
+                ? 'Display Loader: ON (click to disable)'
+                : 'Display Loader: OFF (click to enable)';
+
+            const ic = btn.querySelector('i');
+            if (ic) {
+                ic.classList.toggle('fa-spinner', enabled);
+                ic.classList.toggle('fa-eye-slash', !enabled);
+            }
+        }
+
+        function boot() {
+            try {
+                const host = document.querySelector('.navbar .nav-actions');
+                if (!host) return;
+                if (document.getElementById('display-loader-toggle')) return;
+
+                const btn = document.createElement('button');
+                btn.id = 'display-loader-toggle';
+                btn.className = 'btn btn-icon';
+                btn.type = 'button';
+                btn.innerHTML = '<i class="fas fa-spinner" aria-hidden="true"></i>';
+                btn.style.marginLeft = '6px';
+
+                btn.addEventListener('click', () => {
+                    const enabledNow = isEnabled();
+                    const nextEnabled = !enabledNow;
+                    setEnabled(nextEnabled);
+                    render(btn);
+
+                    try {
+                        window.notify?.toast({
+                            type: nextEnabled ? 'success' : 'warning',
+                            title: 'Display Loader',
+                            message: nextEnabled
+                                ? 'Enabled for cinema/wallart/screensaver.'
+                                : 'Disabled for cinema/wallart/screensaver.',
+                            duration: 2600,
+                        });
+                    } catch (_) {
+                        // ignore
+                    }
+                });
+
+                render(btn);
+                host.appendChild(btn);
+            } catch (_) {
+                // ignore
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', boot, { once: true });
+        } else {
+            boot();
+        }
+    }
+
+    installDisplayLoaderToggle();
+
     // If the admin session expires (or the user is loading /admin via a one-off token URL),
     // repeated polling calls can spam the browser console with 401s.
     let __adminAuthLost = false;

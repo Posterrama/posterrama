@@ -127,3 +127,43 @@ export function logError(error, context = {}) {
 
 // Auto-initialize when module is imported
 initErrorHandlers();
+
+// Auto-loader for display pages (screensaver/wallart/cinema)
+// Use a gated dynamic import so admin pages never pay the cost or risk.
+async function maybeInitAutoLoader() {
+    try {
+        if (window.__POSTERRAMA_DISABLE_AUTO_LOADER__ === true) return;
+
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            if (params.get('disableAutoLoader') === '1') return;
+        } catch (_) {
+            // ignore
+        }
+
+        try {
+            if (localStorage.getItem('POSTERRAMA_DISABLE_AUTO_LOADER') === '1') return;
+        } catch (_) {
+            // ignore
+        }
+
+        const mode = document.body?.dataset?.mode;
+        if (!mode) return;
+        if (!['screensaver', 'wallart', 'cinema'].includes(mode)) return;
+
+        const mod = await import('./ui/auto-loader.js');
+        if (typeof mod.initAutoLoader === 'function') {
+            mod.initAutoLoader();
+        }
+    } catch (_) {
+        // Never let loader logic break the app
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        maybeInitAutoLoader();
+    });
+} else {
+    maybeInitAutoLoader();
+}

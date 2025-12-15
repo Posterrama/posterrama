@@ -274,11 +274,6 @@ body.promo-site #promo-box.promo-overlay {
     left: 50% !important;
 }
 
-/* Hide loader on promo site */
-body.promo-site #loader {
-    display: none !important;
-}
-
 /* FORCE cinema mode controls to stay hidden on promo site */
 body.promo-site.cinema-mode #controls-container,
 body.promo-site.cinema-mode #controls-container.visible {

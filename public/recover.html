@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Posterrama Recovery</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #0b0d12;
+      color: rgba(255,255,255,0.9);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    .card {
+      width: min(720px, calc(100vw - 32px));
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      padding: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+    }
+    h1 { font-size: 18px; margin: 0 0 10px; }
+    p { margin: 0 0 12px; color: rgba(255,255,255,0.72); line-height: 1.4; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    button {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(99,102,241,0.22);
+      color: rgba(255,255,255,0.95);
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.secondary { background: rgba(255,255,255,0.06); }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .status {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: rgba(255,255,255,0.80);
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Recovery Mode</h1>
+    <p>If Posterrama pages are freezing, this page can clear Service Worker caches. You can also disable/enable the display auto-loader.</p>
+    <p>After cleanup, you can return to <code>/admin.html</code> or a display mode.</p>
+
+    <div class="row">
+      <button id="btn-fix">Clear SW + caches, then go to Admin</button>
+      <button id="btn-fix-disable" class="secondary">Clear SW + caches + disable loader</button>
+      <button id="btn-enable" class="secondary">Enable loader</button>
+      <button id="btn-admin" class="secondary">Go to Admin (no cleanup)</button>
+    </div>
+
+    <div class="status" id="status">Idle.</div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    function setStatus(msg) { statusEl.textContent = msg; }
+
+    async function clearEverything({ disableLoader } = {}) {
+      if (disableLoader) {
+        setStatus('Disabling loader for next load…');
+        try {
+          // The new error-handler.js checks this.
+          localStorage.setItem('POSTERRAMA_DISABLE_AUTO_LOADER', '1');
+        } catch (_) {}
+      } else {
+        setStatus('Ensuring loader is enabled…');
+        try {
+          localStorage.removeItem('POSTERRAMA_DISABLE_AUTO_LOADER');
+        } catch (_) {}
+      }
+
+      setStatus('Unregistering service workers…');
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      setStatus('Clearing caches…');
+      try {
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      setStatus('Done. Redirecting to /admin.html …');
+      location.href = '/admin.html?recovered=1';
+    }
+
+    document.getElementById('btn-fix').addEventListener('click', () => {
+      clearEverything({ disableLoader: false });
+    });
+
+    document.getElementById('btn-fix-disable').addEventListener('click', () => {
+      clearEverything({ disableLoader: true });
+    });
+
+    document.getElementById('btn-enable').addEventListener('click', () => {
+      try { localStorage.removeItem('POSTERRAMA_DISABLE_AUTO_LOADER'); } catch (_) {}
+      setStatus('Loader enabled. You can now open /wallart.html or /screensaver.html.');
+    });
+
+    document.getElementById('btn-admin').addEventListener('click', () => {
+      location.href = '/admin.html';
+    });
+  </script>
+</body>
+</html>
