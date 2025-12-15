@@ -243,10 +243,11 @@ What you get:
 
 Perfect for:
 
-- **Home theaters**: Automatically switch displays when you start a movie
-- **Smart scenes**: Adjust poster displays as part of "Movie Night" or "Party Mode" scenes
-- **Scheduling**: Show different content during daytime vs. evening
-- **Voice control**: "Hey Google, next poster" or "Alexa, pause the display"
+- **Movie Night scenes**: Switch a hallway/foyer screen to Cinema mode when you start a movie
+- **Presence automations**: Turn displays on when someone’s home, off at night (or when the house is away)
+- **Dashboards & wall tablets**: See a live poster preview and control screens from a Lovelace view
+- **Time-based routines**: Change modes/settings by schedule (daytime Wallart → evening Cinema → late-night dim)
+- **Party / event mode**: Pin a specific poster, rotate faster, and keep multiple screens in sync
 
 Setup is straightforward—enable MQTT in Posterrama settings, point it to your broker, and Home Assistant will discover the entities automatically (via MQTT Discovery). No manual YAML is required for basic control.
 
