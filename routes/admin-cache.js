@@ -22,6 +22,36 @@ module.exports = function createAdminCacheRouter({ logger: _logger, asyncHandler
     let cacheManager = null;
     let apiCache = null;
 
+    const getImageCacheStats = async () => {
+        const fs = require('fs').promises;
+        const path = require('path');
+        const imageCacheDir = path.join(process.cwd(), 'image_cache');
+
+        const stats = {
+            files: 0,
+            totalSizeMB: 0,
+            totalSizeBytes: 0,
+        };
+
+        try {
+            const files = await fs.readdir(imageCacheDir);
+            stats.files = files.length;
+
+            let totalBytes = 0;
+            for (const file of files) {
+                const st = await fs.stat(path.join(imageCacheDir, file)).catch(() => null);
+                if (st && st.isFile()) totalBytes += st.size;
+            }
+
+            stats.totalSizeBytes = totalBytes;
+            stats.totalSizeMB = Math.round((totalBytes / 1024 / 1024) * 100) / 100;
+        } catch (_) {
+            // Image cache directory might not exist
+        }
+
+        return stats;
+    };
+
     /**
      * Initialize cache references
      * Called from server.js after cache instances are created
@@ -87,31 +117,7 @@ module.exports = function createAdminCacheRouter({ logger: _logger, asyncHandler
             const memoryStats = cacheManager.getDetailedStats();
             const apiStats = apiCache ? apiCache.getDetailedStats() : null;
 
-            // Get image cache stats
-            const fs = require('fs');
-            const path = require('path');
-            const imageCacheDir = path.join(process.cwd(), 'image_cache');
-            const imageCacheStats = {
-                files: 0,
-                totalSizeMB: 0,
-                totalSizeBytes: 0,
-            };
-
-            try {
-                const files = fs.readdirSync(imageCacheDir);
-                imageCacheStats.files = files.length;
-
-                // Calculate total size
-                let totalBytes = 0;
-                for (const file of files) {
-                    const stats = fs.statSync(path.join(imageCacheDir, file));
-                    totalBytes += stats.size;
-                }
-                imageCacheStats.totalSizeBytes = totalBytes;
-                imageCacheStats.totalSizeMB = Math.round((totalBytes / 1024 / 1024) * 100) / 100;
-            } catch (err) {
-                // Image cache directory might not exist
-            }
+            const imageCacheStats = await getImageCacheStats();
 
             // Calculate combined metrics
             const combinedMetrics = {
@@ -176,26 +182,9 @@ module.exports = function createAdminCacheRouter({ logger: _logger, asyncHandler
             const memStats = cacheManager.getStats();
             const apiStats = apiCache ? apiCache.getStats() : null;
 
-            // Get image cache stats
-            const fs = require('fs');
-            const path = require('path');
-            const imageCacheDir = path.join(process.cwd(), 'image_cache');
-            let imageCacheFiles = 0;
-            let imageCacheSizeMB = 0;
-
-            try {
-                const files = fs.readdirSync(imageCacheDir);
-                imageCacheFiles = files.length;
-
-                let totalBytes = 0;
-                for (const file of files) {
-                    const stats = fs.statSync(path.join(imageCacheDir, file));
-                    totalBytes += stats.size;
-                }
-                imageCacheSizeMB = Math.round((totalBytes / 1024 / 1024) * 100) / 100;
-            } catch (err) {
-                // Image cache directory might not exist
-            }
+            const imageCacheStats = await getImageCacheStats();
+            const imageCacheFiles = imageCacheStats.files;
+            const imageCacheSizeMB = imageCacheStats.totalSizeMB;
 
             const memHitRatio = Math.round(memStats.hitRate * 10000) / 100;
             const apiHitRatio = apiStats ? Math.round(apiStats.hitRate * 10000) / 100 : 0;
@@ -298,12 +287,12 @@ module.exports = function createAdminCacheRouter({ logger: _logger, asyncHandler
         // @ts-ignore - Express router overload issue with asyncHandler
         adminAuth,
         asyncHandler(async (req, res) => {
-            const fs = require('fs');
+            const fsp = require('fs').promises;
             const path = require('path');
             const imageCacheDir = path.join(process.cwd(), 'image_cache');
 
             try {
-                const files = fs.readdirSync(imageCacheDir);
+                const files = await fsp.readdir(imageCacheDir);
                 const imageFiles = files.filter(f =>
                     ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(
                         path.extname(f).toLowerCase()
@@ -314,7 +303,8 @@ module.exports = function createAdminCacheRouter({ logger: _logger, asyncHandler
                 const fileStats = [];
                 for (const filename of imageFiles) {
                     try {
-                        const stats = fs.statSync(path.join(imageCacheDir, filename));
+                        const stats = await fsp.stat(path.join(imageCacheDir, filename));
+                        if (!stats.isFile()) continue;
                         fileStats.push({
                             filename,
                             size: stats.size,
@@ -490,7 +480,7 @@ module.exports = function createAdminCacheRouter({ logger: _logger, asyncHandler
         // @ts-ignore - Express router overload issue with asyncHandler
         adminAuth,
         asyncHandler(async (req, res) => {
-            const fs = require('fs');
+            const fsp = require('fs').promises;
             const path = require('path');
             const imageCacheDir = path.join(process.cwd(), 'image_cache');
 
@@ -499,7 +489,7 @@ module.exports = function createAdminCacheRouter({ logger: _logger, asyncHandler
             const sort = req.query.sort || 'newest';
 
             try {
-                const files = fs.readdirSync(imageCacheDir);
+                const files = await fsp.readdir(imageCacheDir);
                 const imageFiles = files.filter(f =>
                     ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(
                         path.extname(f).toLowerCase()
@@ -507,22 +497,22 @@ module.exports = function createAdminCacheRouter({ logger: _logger, asyncHandler
                 );
 
                 // Get file stats for sorting and analysis
-                const fileStats = imageFiles
-                    .map(filename => {
-                        try {
-                            const stats = fs.statSync(path.join(imageCacheDir, filename));
-                            return {
-                                filename,
-                                size: stats.size,
-                                sizeKB: Math.round(stats.size / 1024),
-                                mtime: stats.mtime.getTime(),
-                                mtimeISO: stats.mtime.toISOString(),
-                            };
-                        } catch {
-                            return null;
-                        }
-                    })
-                    .filter(Boolean);
+                const fileStats = [];
+                for (const filename of imageFiles) {
+                    try {
+                        const stats = await fsp.stat(path.join(imageCacheDir, filename));
+                        if (!stats.isFile()) continue;
+                        fileStats.push({
+                            filename,
+                            size: stats.size,
+                            sizeKB: Math.round(stats.size / 1024),
+                            mtime: stats.mtime.getTime(),
+                            mtimeISO: stats.mtime.toISOString(),
+                        });
+                    } catch {
+                        // ignore
+                    }
+                }
 
                 // Sort files
                 switch (sort) {

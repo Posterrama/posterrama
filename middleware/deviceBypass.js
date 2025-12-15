@@ -3,6 +3,8 @@ const path = require('path');
 const ipaddr = require('ipaddr.js');
 const logger = require('../utils/logger');
 
+const CFG_PATH = path.join(__dirname, '..', 'config.json');
+
 /**
  * Parse an IP or CIDR entry. Returns a predicate fn(ip: string)=>boolean.
  * Supports single IPv4/IPv6 addresses or CIDR ranges (e.g. 192.168.0.0/16, 2001:db8::/32).
@@ -48,40 +50,68 @@ function buildMatcher(entry) {
     }
 }
 
-function loadAllowList() {
+async function loadAllowListFromDisk() {
     try {
-        const cfgPath = path.join(__dirname, '..', 'config.json');
-        const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+        const raw = await fs.promises.readFile(CFG_PATH, 'utf8');
+        const cfg = JSON.parse(raw);
         const list = cfg?.deviceMgmt?.bypass?.ipAllowList;
         if (Array.isArray(list)) return list.filter(x => typeof x === 'string');
     } catch (e) {
-        logger.debug('[DeviceBypass] Failed to load config', { error: e.message });
+        logger.debug('[DeviceBypass] Failed to load config', { error: e?.message || String(e) });
     }
     return [];
 }
 
 let matchers = [];
 let lastLoad = 0;
+let refreshInFlight = null;
 const deviceBypassLog = new Map(); // Track logged devices to avoid spam
 const RELOAD_INTERVAL_MS = 30_000; // Refresh every 30s to pick up edits
+
+function seedAllowListFromConfigModule() {
+    try {
+        // Prefer the module cache (server.js requires config.json early), avoiding extra disk IO.
+        // This runs at module init/startup, not on request path.
+        const cfg = require('../config.json');
+        const list = cfg?.deviceMgmt?.bypass?.ipAllowList;
+        if (Array.isArray(list)) {
+            matchers = list.filter(x => typeof x === 'string').map(buildMatcher);
+            lastLoad = Date.now();
+        }
+    } catch (_e) {
+        // ignore
+    }
+}
+
+seedAllowListFromConfigModule();
 
 function refreshIfNeeded() {
     const now = Date.now();
     if (now - lastLoad < RELOAD_INTERVAL_MS) return;
     lastLoad = now;
-    const allow = loadAllowList();
-    const previousCount = matchers.length;
-    matchers = allow.map(buildMatcher);
+    if (refreshInFlight) return;
 
-    // Clear device log cache on refresh to re-log devices with new config
-    if (previousCount !== matchers.length) {
-        deviceBypassLog.clear();
-        logger.debug('[DeviceBypass] Whitelist refreshed, device log cache cleared', {
-            entries: allow.length,
-            previousCount,
-            allowList: allow,
+    refreshInFlight = loadAllowListFromDisk()
+        .then(allow => {
+            const previousCount = matchers.length;
+            matchers = allow.map(buildMatcher);
+
+            // Clear device log cache on refresh to re-log devices with new config
+            if (previousCount !== matchers.length) {
+                deviceBypassLog.clear();
+                logger.debug('[DeviceBypass] Whitelist refreshed, device log cache cleared', {
+                    entries: allow.length,
+                    previousCount,
+                    allowList: allow,
+                });
+            }
+        })
+        .catch(() => {
+            /* swallow - keep last known allowlist */
+        })
+        .finally(() => {
+            refreshInFlight = null;
         });
-    }
 }
 
 function extractClientIp(req) {

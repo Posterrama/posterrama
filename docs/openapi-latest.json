@@ -2610,7 +2610,7 @@
             "get": {
                 "tags": ["Monitoring"],
                 "summary": "Prometheus metrics endpoint",
-                "description": "Exposes server metrics in Prometheus format for monitoring and alerting.\nIncludes default metrics (CPU, memory, event loop) and custom metrics\n(cache, HTTP, WebSocket, source APIs, devices).\n",
+                "description": "Exposes server metrics in Prometheus format for monitoring and alerting.\nIncludes default metrics (CPU, memory, event loop) and custom metrics\n(cache, HTTP, WebSocket, source APIs, devices).\n\nAuthentication required: admin session or API token (Bearer / X-API-Key).\n",
                 "responses": {
                     "200": {
                         "description": "Prometheus metrics in text format",
@@ -2619,6 +2619,9 @@
                                 "example": "# HELP posterrama_http_requests_total Total HTTP requests\n# TYPE posterrama_http_requests_total counter\nposterrama_http_requests_total{method=\"GET\",path=\"/api/media\",status=\"200\"} 42\n"
                             }
                         }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
                     }
                 },
                 "security": []
@@ -10558,18 +10561,7 @@
                         "description": "Device updated successfully"
                     },
                     "400": {
-                        "description": "Invalid request parameters",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/StandardErrorResponse"
-                                },
-                                "example": {
-                                    "error": "Invalid request parameters",
-                                    "statusCode": 400
-                                }
-                            }
-                        }
+                        "description": "Invalid request (e.g., legacy fields not supported)"
                     },
                     "401": {
                         "description": "Unauthorized"

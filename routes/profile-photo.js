@@ -36,12 +36,7 @@ module.exports = function createProfilePhotoRouter({ adminAuth, getAvatarPath, a
     // Configure multer for small avatar uploads (PNG/JPEG/WebP; 2MB limit)
     const avatarStorage = multer.diskStorage({
         destination: function (_req, _file, cb) {
-            try {
-                fs.mkdirSync(avatarDir, { recursive: true });
-            } catch (_) {
-                /* noop */
-            }
-            cb(null, avatarDir);
+            fs.mkdir(avatarDir, { recursive: true }, () => cb(null, avatarDir));
         },
         filename: function (req, file, cb) {
             // Use a deterministic filename per user (session username) to keep one file

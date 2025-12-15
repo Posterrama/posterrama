@@ -100,6 +100,7 @@ module.exports = function createLocalDirectoryRouter({
             totalBytes += Number(file.size) || 0;
 
             if (file.size > limits.maxSingleFileBytes) {
+                /** @type {any} */
                 const err = new Error('zip_limits_exceeded');
                 err.code = 'zip_limits_exceeded';
                 err.reason = 'max_single_file_bytes';
@@ -108,6 +109,7 @@ module.exports = function createLocalDirectoryRouter({
                 throw err;
             }
             if (files > limits.maxFiles) {
+                /** @type {any} */
                 const err = new Error('zip_limits_exceeded');
                 err.code = 'zip_limits_exceeded';
                 err.reason = 'max_files';
@@ -115,6 +117,7 @@ module.exports = function createLocalDirectoryRouter({
                 throw err;
             }
             if (totalBytes > limits.maxBytes) {
+                /** @type {any} */
                 const err = new Error('zip_limits_exceeded');
                 err.code = 'zip_limits_exceeded';
                 err.reason = 'max_bytes';

@@ -226,12 +226,12 @@ module.exports = function createMetricsTestingRouter({ metricsManager }) {
             : [];
 
         // Get image cache stats for poster health
-        const fs = require('fs');
+        const fsp = require('fs').promises;
         const path = require('path');
         const imageCacheDir = path.join(process.cwd(), 'image_cache');
         const posterStats = { total: 0, totalSize: 0, analyzed: false };
         try {
-            const files = fs.readdirSync(imageCacheDir);
+            const files = await fsp.readdir(imageCacheDir);
             posterStats.total = files.length;
             posterStats.analyzed = true;
 
@@ -241,7 +241,8 @@ module.exports = function createMetricsTestingRouter({ metricsManager }) {
             for (const file of files.slice(0, 500)) {
                 // Sample first 500 for performance
                 try {
-                    const stat = fs.statSync(path.join(imageCacheDir, file));
+                    const stat = await fsp.stat(path.join(imageCacheDir, file));
+                    if (!stat.isFile()) continue;
                     totalBytes += stat.size;
                     if (stat.size > 100 * 1024) highQuality++; // > 100KB = high quality
                 } catch {

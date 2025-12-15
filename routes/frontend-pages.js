@@ -390,11 +390,13 @@ module.exports = function createFrontendPagesRouter({
         try {
             let cfg = null;
             try {
-                const rawCfg = fs.readFileSync(
-                    path.join(path.dirname(publicDir), 'config.json'),
-                    'utf8'
-                );
-                cfg = JSON.parse(rawCfg);
+                const raw = typeof getConfig === 'function' ? getConfig() : null;
+                // server.js passes the Config singleton; unwrap to the raw config object for
+                // fields (like rootRoute) that are not exposed as direct getters.
+                cfg =
+                    raw && typeof raw === 'object' && raw.config && typeof raw.config === 'object'
+                        ? raw.config
+                        : raw;
             } catch (_) {
                 cfg = null;
             }

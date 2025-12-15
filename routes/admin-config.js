@@ -88,14 +88,17 @@ module.exports = function createAdminConfigRouter({
      *         description: Unauthorized
      */
     router.get('/api/admin/config-schema', isAuthenticated, (req, res) => {
-        try {
-            const schemaPath = path.join(__dirname, '..', 'config.schema.json');
-            const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
-            res.json(schema);
-        } catch (e) {
-            logger.error('[Admin Config] Failed to read config schema:', e);
-            res.status(500).json({ error: 'failed_to_read_schema' });
-        }
+        return asyncHandler(async (_req, _res) => {
+            try {
+                const schemaPath = path.join(__dirname, '..', 'config.schema.json');
+                const raw = await fs.promises.readFile(schemaPath, 'utf8');
+                const schema = JSON.parse(raw);
+                _res.json(schema);
+            } catch (e) {
+                logger.error('[Admin Config] Failed to read config schema:', e);
+                _res.status(500).json({ error: 'failed_to_read_schema' });
+            }
+        })(req, res);
     });
 
     router.get(

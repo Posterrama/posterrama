@@ -2288,7 +2288,7 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
     logger.info('[WALLART ROUTE] Serving wallart.html with asset versioning');
     const filePath = path.join(publicDir, 'wallart.html');
 
-    fs.readFile(filePath, 'utf8', (err, contents) => {
+    fs.readFile(filePath, 'utf8', async (err, contents) => {
         if (err) {
             logger.error('Error reading wallart.html:', err);
             return res.sendFile(filePath); // Fallback to static file
@@ -2296,10 +2296,10 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
 
         // Generate versions inline for immediate availability
         const crypto = require('crypto');
-        const generateVersion = assetPath => {
+        const generateVersion = async assetPath => {
             try {
                 const fullPath = path.join(publicDir, assetPath);
-                const stats = fs.statSync(fullPath);
+                const stats = await fs.promises.stat(fullPath);
                 const hash = crypto
                     .createHash('sha1')
                     .update(stats.mtime.getTime().toString())
@@ -2310,17 +2310,22 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
             }
         };
 
-        const versions = {
-            'wallart/wallart-display.js': generateVersion('wallart/wallart-display.js'),
-            'wallart/artist-cards.js': generateVersion('wallart/artist-cards.js'),
-            'wallart/film-cards.js': generateVersion('wallart/film-cards.js'),
-            'wallart/wallart.css': generateVersion('wallart/wallart.css'),
-            'core.js': generateVersion('core.js'),
-            'lazy-loading.js': generateVersion('lazy-loading.js'),
-            'device-mgmt.js': generateVersion('device-mgmt.js'),
-            'debug-logger.js': generateVersion('debug-logger.js'),
-            'client-logger.js': generateVersion('client-logger.js'),
-        };
+        const versionAssets = [
+            'wallart/wallart-display.js',
+            'wallart/artist-cards.js',
+            'wallart/film-cards.js',
+            'wallart/wallart.css',
+            'core.js',
+            'lazy-loading.js',
+            'device-mgmt.js',
+            'debug-logger.js',
+            'client-logger.js',
+        ];
+        const versions = Object.fromEntries(
+            await Promise.all(
+                versionAssets.map(async assetPath => [assetPath, await generateVersion(assetPath)])
+            )
+        );
 
         // Simple replacement of all {{ASSET_VERSION}} placeholders with actual versions
         const stamped = contents
@@ -3144,74 +3149,74 @@ app.get('/admin', (req, res) => {
         const cssPath = path.join(publicDir, 'admin.css');
         const jsPath = path.join(publicDir, 'admin.js');
 
-        try {
-            const cssStats = fs.statSync(cssPath);
-            const jsStats = fs.statSync(jsPath);
-            const cssCacheBuster = cssStats.mtime.getTime();
-            const jsCacheBuster = jsStats.mtime.getTime();
+        Promise.all([fs.promises.stat(cssPath), fs.promises.stat(jsPath)])
+            .then(([cssStats, jsStats]) => {
+                const cssCacheBuster = cssStats.mtime.getTime();
+                const jsCacheBuster = jsStats.mtime.getTime();
 
-            // Read admin.html and inject cache busters
-            fs.readFile(path.join(publicDir, 'admin.html'), 'utf8', (err, data) => {
-                if (err) {
-                    logger.error('Error reading admin.html:', err);
-                    return res.status(500).send('Internal Server Error');
-                }
+                // Read admin.html and inject cache busters
+                fs.readFile(path.join(publicDir, 'admin.html'), 'utf8', (err, data) => {
+                    if (err) {
+                        logger.error('Error reading admin.html:', err);
+                        return res.status(500).send('Internal Server Error');
+                    }
 
-                // Replace version parameters with file-based cache busters
-                const updatedHtml = data
-                    // Replace any existing query string after admin.css?v=... (including extra params)
-                    .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${cssCacheBuster}`)
-                    // Replace any existing query string after admin.js?v=... (including extra params)
-                    .replace(/admin\.js\?v=[^"&\s]+/g, `admin.js?v=${jsCacheBuster}`)
-                    // Replace all remaining {{ASSET_VERSION}} placeholders with app version
-                    .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION);
+                    // Replace version parameters with file-based cache busters
+                    const updatedHtml = data
+                        // Replace any existing query string after admin.css?v=... (including extra params)
+                        .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${cssCacheBuster}`)
+                        // Replace any existing query string after admin.js?v=... (including extra params)
+                        .replace(/admin\.js\?v=[^"&\s]+/g, `admin.js?v=${jsCacheBuster}`)
+                        // Replace all remaining {{ASSET_VERSION}} placeholders with app version
+                        .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION);
 
-                res.setHeader('Content-Type', 'text/html');
-                // AGGRESSIVE cache headers to force reload
-                res.setHeader(
-                    'Cache-Control',
-                    'no-cache, no-store, must-revalidate, max-age=0, proxy-revalidate'
+                    res.setHeader('Content-Type', 'text/html');
+                    // AGGRESSIVE cache headers to force reload
+                    res.setHeader(
+                        'Cache-Control',
+                        'no-cache, no-store, must-revalidate, max-age=0, proxy-revalidate'
+                    );
+                    res.setHeader('Pragma', 'no-cache');
+                    res.setHeader('Expires', '0');
+                    // Use JS mtime as ETag to detect when files change
+                    res.setHeader('ETag', `"admin-js-${jsCacheBuster}"`);
+                    // Force browsers to check with server even if cached
+                    res.setHeader('Vary', 'Accept-Encoding');
+                    res.send(updatedHtml);
+                });
+            })
+            .catch(error => {
+                // Fallback to timestamp-based cache buster if file stats fail
+                logger.warn(
+                    'Could not read file stats for cache busting, using timestamp fallback:',
+                    error.message
                 );
-                res.setHeader('Pragma', 'no-cache');
-                res.setHeader('Expires', '0');
-                // Use JS mtime as ETag to detect when files change
-                res.setHeader('ETag', `"admin-js-${jsCacheBuster}"`);
-                // Force browsers to check with server even if cached
-                res.setHeader('Vary', 'Accept-Encoding');
-                res.send(updatedHtml);
+                const fallbackCacheBuster = Date.now();
+
+                fs.readFile(path.join(publicDir, 'admin.html'), 'utf8', (err, data) => {
+                    if (err) {
+                        logger.error('Error reading admin.html:', err);
+                        return res.status(500).send('Internal Server Error');
+                    }
+
+                    const updatedHtml = data
+                        .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${fallbackCacheBuster}`)
+                        .replace(/admin\.js\?v=[^"&\s]+/g, `admin.js?v=${fallbackCacheBuster}`)
+                        // Replace all remaining {{ASSET_VERSION}} placeholders with app version
+                        .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION);
+
+                    res.setHeader('Content-Type', 'text/html');
+                    res.setHeader(
+                        'Cache-Control',
+                        'no-cache, no-store, must-revalidate, max-age=0, proxy-revalidate'
+                    );
+                    res.setHeader('Pragma', 'no-cache');
+                    res.setHeader('Expires', '0');
+                    res.setHeader('ETag', `"admin-fallback-${fallbackCacheBuster}"`);
+                    res.setHeader('Vary', 'Accept-Encoding');
+                    res.send(updatedHtml);
+                });
             });
-        } catch (error) {
-            // Fallback to timestamp-based cache buster if file stats fail
-            logger.warn(
-                'Could not read file stats for cache busting, using timestamp fallback:',
-                error.message
-            );
-            const fallbackCacheBuster = Date.now();
-
-            fs.readFile(path.join(publicDir, 'admin.html'), 'utf8', (err, data) => {
-                if (err) {
-                    logger.error('Error reading admin.html:', err);
-                    return res.status(500).send('Internal Server Error');
-                }
-
-                const updatedHtml = data
-                    .replace(/admin\.css\?v=[^"&\s]+/g, `admin.css?v=${fallbackCacheBuster}`)
-                    .replace(/admin\.js\?v=[^"&\s]+/g, `admin.js?v=${fallbackCacheBuster}`)
-                    // Replace all remaining {{ASSET_VERSION}} placeholders with app version
-                    .replace(/\{\{ASSET_VERSION\}\}/g, ASSET_VERSION);
-
-                res.setHeader('Content-Type', 'text/html');
-                res.setHeader(
-                    'Cache-Control',
-                    'no-cache, no-store, must-revalidate, max-age=0, proxy-revalidate'
-                );
-                res.setHeader('Pragma', 'no-cache');
-                res.setHeader('Expires', '0');
-                res.setHeader('ETag', `"admin-fallback-${fallbackCacheBuster}"`);
-                res.setHeader('Vary', 'Accept-Encoding');
-                res.send(updatedHtml);
-            });
-        }
     });
 });
 
@@ -5046,11 +5051,12 @@ app.get(
             // If not actively updating in this process, try to read the last known status
             if (!isUpdating) {
                 const path = require('path');
-                const fs = require('fs');
+                const fsp = require('fs').promises;
                 const statusFile = path.resolve(__dirname, 'logs', 'updater-status.json');
                 try {
-                    if (fs.existsSync(statusFile)) {
-                        const parsed = JSON.parse(fs.readFileSync(statusFile, 'utf8'));
+                    const st = await fsp.stat(statusFile).catch(() => null);
+                    if (st && st.isFile()) {
+                        const parsed = JSON.parse(await fsp.readFile(statusFile, 'utf8'));
                         status = {
                             phase: parsed.phase || status.phase,
                             progress: parsed.progress ?? status.progress,
@@ -5078,7 +5084,7 @@ app.get(
                                         message: status.message,
                                         ts: new Date().toISOString(),
                                     };
-                                    fs.writeFileSync(statusFile, JSON.stringify(normalized));
+                                    await fsp.writeFile(statusFile, JSON.stringify(normalized));
                                 } catch (_e) {
                                     // ignore
                                 }
@@ -6559,26 +6565,32 @@ app.post(
                 logger.debug('[Admin API] Starting cache cleanup with maxSize:', maxSizeGB, 'GB');
 
             for (const cacheDir of cacheDirectories) {
-                if (fs.existsSync(cacheDir)) {
+                const fsp = fs.promises;
+                const cacheDirStat = await fsp.stat(cacheDir).catch(() => null);
+                if (cacheDirStat && cacheDirStat.isDirectory()) {
                     try {
-                        const files = fs
-                            .readdirSync(cacheDir)
-                            .filter(
-                                file =>
-                                    file.endsWith('.json') ||
-                                    file.endsWith('.jpg') ||
-                                    file.endsWith('.png') ||
-                                    file.endsWith('.webp')
-                            );
+                        const files = (await fsp.readdir(cacheDir)).filter(
+                            file =>
+                                file.endsWith('.json') ||
+                                file.endsWith('.jpg') ||
+                                file.endsWith('.png') ||
+                                file.endsWith('.webp')
+                        );
 
                         // Sort files by modification time (oldest first)
-                        const fileStats = files
-                            .map(file => {
-                                const filePath = path.join(cacheDir, file);
-                                const stats = fs.statSync(filePath);
-                                return { file, filePath, mtime: stats.mtime, size: stats.size };
-                            })
-                            .sort((a, b) => a.mtime.getTime() - b.mtime.getTime());
+                        const fileStats = [];
+                        for (const file of files) {
+                            const filePath = path.join(cacheDir, file);
+                            const stats = await fsp.stat(filePath).catch(() => null);
+                            if (!stats || !stats.isFile()) continue;
+                            fileStats.push({
+                                file,
+                                filePath,
+                                mtime: stats.mtime,
+                                size: stats.size,
+                            });
+                        }
+                        fileStats.sort((a, b) => a.mtime.getTime() - b.mtime.getTime());
 
                         // Calculate current cache size
                         let currentSizeBytes = fileStats.reduce(
@@ -6591,7 +6603,7 @@ app.post(
                         while (currentSizeBytes > maxSizeBytes && fileStats.length > 0) {
                             const oldestFile = fileStats.shift();
                             try {
-                                fs.unlinkSync(oldestFile.filePath);
+                                await fsp.unlink(oldestFile.filePath);
                                 totalFilesRemoved++;
                                 totalSpaceSaved += oldestFile.size;
                                 currentSizeBytes -= oldestFile.size;
@@ -6616,7 +6628,7 @@ app.post(
 
                         for (const oldFile of oldFiles) {
                             try {
-                                fs.unlinkSync(oldFile.filePath);
+                                await fsp.unlink(oldFile.filePath);
                                 totalFilesRemoved++;
                                 totalSpaceSaved += oldFile.size;
                                 if (isDebug)

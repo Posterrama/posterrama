@@ -6,7 +6,7 @@
  * side-effects in Jest runs while preserving historical context.
  */
 
-describe.skip('Config Auto-Backup on Save (obsolete)', () => {
+describe('Config Auto-Backup on Save (obsolete)', () => {
     it('feature intentionally disabled', () => {
         // no-op
     });
