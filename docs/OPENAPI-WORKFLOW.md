@@ -41,7 +41,7 @@ npm run openapi:export # Same thing
 graph LR
  A[swagger.js] -->|npm run openapi:export| B[docs/openapi-latest.json]
  B -->|npm run openapi:validate| C[Validation Report]
- A -->|/api-docs/swagger.json| D[/api-docs (Scalar UI)]
+ A -->|/api-docs/swagger.json| D["/api-docs (Scalar UI)"]
 ```
 
 ## Making Changes
