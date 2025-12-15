@@ -2,7 +2,7 @@
   <img src="./public/logo.png" alt="Posterrama Logo" width="96">
   
   <h1 style="margin-bottom: 5px; font-size: 56px; line-height: 1.05;">posterrama</h1>
-  <p style="margin-top: 0;"><em>Transform any screen into your personal gallery</em></p>
+  <p style="margin-top: 0;"><em>Transform your screens into personal galleries</em></p>
   <br>
 </div>
 
@@ -27,9 +27,9 @@
 
 ---
 
-**Posterrama** is a self-hosted media server that transforms any screen into your personal gallery. Display dynamic posters from movies, series, music, games, and art — perfect for digital signage, ambient displays, or screensavers.
+**Posterrama** is a self-hosted display server that turns TVs, tablets, and wall-mounted monitors into living galleries for your media. It pulls artwork from Plex, Jellyfin, TMDB, and RomM and presents it in polished display modes built for ambient viewing, digital signage, and screensavers.
 
-Connect your Plex, Jellyfin, TMDB, or RomM library and let Posterrama showcase your collection with three elegant display modes, real-time device management, and comprehensive customization.
+Pick a mode (Cinema, Wallart, or Screensaver), connect your libraries, and manage devices in real time—then let Posterrama keep everything fresh with rich artwork, metadata, and deep customization.
 
 ---
 
