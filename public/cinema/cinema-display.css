@@ -1951,22 +1951,6 @@ body.cinema-anim-fade #poster {
     }
 }
 
-/* Zoom In transition */
-body.cinema-anim-zoomIn #poster {
-    animation: cinemaZoomIn var(--cinema-poster-transition) ease-out forwards;
-}
-
-@keyframes cinemaZoomIn {
-    from {
-        transform: scale(0.95);
-        opacity: 0;
-    }
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
 /* Slide Up transition */
 body.cinema-anim-slideUp #poster {
     animation: cinemaSlideUp var(--cinema-poster-transition) ease-out forwards;
@@ -2179,37 +2163,6 @@ body.cinema-anim-shatter #poster {
             0% 50%,
             0% 25%
         );
-    }
-}
-
-/* Spotlight - theatrical spotlight reveal */
-body.cinema-anim-spotlight #poster {
-    animation: cinemaSpotlight var(--cinema-poster-transition) ease-out forwards;
-}
-
-@keyframes cinemaSpotlight {
-    0% {
-        opacity: 0;
-        filter: brightness(0.1);
-        clip-path: circle(0% at 50% 50%);
-    }
-    30% {
-        opacity: 1;
-        filter: brightness(0.4);
-        clip-path: circle(25% at 50% 50%);
-    }
-    60% {
-        filter: brightness(0.8);
-        clip-path: circle(60% at 50% 50%);
-    }
-    80% {
-        filter: brightness(1.1);
-        clip-path: circle(85% at 50% 50%);
-    }
-    100% {
-        opacity: 1;
-        filter: brightness(1);
-        clip-path: circle(100% at 50% 50%);
     }
 }
 
@@ -2507,84 +2460,6 @@ body.cinema-anim-projectorFlicker #poster {
     }
 }
 
-/* Rack Focus - simulated focus pull (poster sharpens & settles) */
-body.cinema-anim-rackFocus #poster {
-    animation: cinemaRackFocus var(--cinema-poster-transition) ease-out forwards;
-    will-change: transform, opacity, filter;
-}
-
-@keyframes cinemaRackFocus {
-    0% {
-        opacity: 0;
-        transform: scale(1.03);
-        filter: blur(2px) brightness(0.75);
-    }
-    45% {
-        opacity: 1;
-        filter: blur(1px) brightness(0.95);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1);
-        filter: blur(0) brightness(1);
-    }
-}
-
-/* Light Sweep - softer, premium highlight pass */
-body.cinema-anim-lightSweep #poster {
-    animation: cinemaLightSweepBase var(--cinema-poster-transition) ease-out forwards;
-    position: relative;
-    overflow: hidden;
-}
-
-body.cinema-anim-lightSweep #poster::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -120%;
-    width: 60%;
-    height: 200%;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0) 30%,
-        rgba(255, 255, 255, 0.22) 50%,
-        rgba(255, 255, 255, 0) 70%,
-        transparent 100%
-    );
-    transform: skewX(-18deg);
-    animation: cinemaLightSweep var(--cinema-poster-transition) ease-out forwards;
-    pointer-events: none;
-    will-change: transform, opacity, left;
-}
-
-@keyframes cinemaLightSweepBase {
-    0% {
-        opacity: 0;
-        transform: scale(1.01);
-        filter: contrast(1.05) brightness(0.85);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1);
-        filter: contrast(1) brightness(1);
-    }
-}
-
-@keyframes cinemaLightSweep {
-    0% {
-        left: -120%;
-        opacity: 0;
-    }
-    18% {
-        opacity: 1;
-    }
-    100% {
-        left: 160%;
-        opacity: 0;
-    }
-}
-
 /* Parallax Float - depth-y float for portrait posters */
 body.cinema-anim-parallaxFloat #poster {
     animation: cinemaParallaxFloat var(--cinema-poster-transition) cubic-bezier(0.22, 1, 0.36, 1)
@@ -2654,57 +2529,6 @@ body.cinema-anim-splitFlap #poster {
         transform: scale(1);
         clip-path: inset(0 0 0 0);
         filter: brightness(1);
-    }
-}
-
-/* Smoke Fade - subtle haze drifts upward */
-body.cinema-anim-smokeFade #poster {
-    animation: cinemaSmokeFadeBase var(--cinema-poster-transition) ease-out forwards;
-    position: relative;
-    overflow: hidden;
-}
-
-body.cinema-anim-smokeFade #poster::after {
-    content: '';
-    position: absolute;
-    left: -10%;
-    right: -10%;
-    bottom: -30%;
-    top: -30%;
-    background:
-        radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 60%),
-        radial-gradient(circle at 70% 85%, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 65%);
-    opacity: 0;
-    transform: translateY(18px);
-    animation: cinemaSmokeDrift var(--cinema-poster-transition) ease-out forwards;
-    pointer-events: none;
-    will-change: transform, opacity;
-}
-
-@keyframes cinemaSmokeFadeBase {
-    0% {
-        opacity: 0;
-        transform: scale(1.01);
-        filter: brightness(0.8);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1);
-        filter: brightness(1);
-    }
-}
-
-@keyframes cinemaSmokeDrift {
-    0% {
-        opacity: 0;
-        transform: translateY(18px);
-    }
-    35% {
-        opacity: 0.85;
-    }
-    100% {
-        opacity: 0;
-        transform: translateY(-18px);
     }
 }
 
