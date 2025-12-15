@@ -559,18 +559,14 @@
 #modal-merge .btn-merge-accent > span:not(.spinner) {
     color: inherit !important;
 }
-#modal-group-assign .btn-remove-accent,
 #modal-assign-preset .btn-remove-accent,
 #modal-assign-location .btn-remove-accent,
 #modal-assign-profile .btn-remove-accent {
     --accent-color: var(--color-warning);
 }
-#modal-group-assign .btn-assign-accent,
 #modal-assign-profile .btn-assign-accent {
     --accent-color: var(--color-secondary);
 }
-#modal-group-assign .modal-footer .btn,
-#modal-group-assign .form-group .btn.btn-assign-accent,
 #modal-assign-profile .modal-footer .btn {
     border: none;
     border-radius: 4px;
@@ -594,10 +590,6 @@
         background 0.2s ease,
         box-shadow 0.25s ease;
 }
-#modal-group-assign .modal-footer .btn:hover,
-#modal-group-assign .form-group .btn.btn-assign-accent:hover,
-#modal-group-assign .modal-footer .btn:focus-visible,
-#modal-group-assign .form-group .btn.btn-assign-accent:focus-visible,
 #modal-assign-profile .modal-footer .btn:hover,
 #modal-assign-profile .modal-footer .btn:focus-visible {
     color: var(--color-text-primary);
@@ -605,8 +597,6 @@
         linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
         linear-gradient(180deg, var(--color-bg-card), var(--color-bg-tertiary));
 }
-#modal-group-assign .modal-footer .btn:active,
-#modal-group-assign .form-group .btn.btn-assign-accent:active,
 #modal-assign-profile .modal-footer .btn:active {
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.06)),
@@ -615,35 +605,23 @@
         0 1px 0 0 rgba(255, 255, 255, 0.05),
         0 1px 1px rgba(0, 0, 0, 0.25) inset;
 }
-#modal-group-assign .modal-footer .btn.btn-remove-accent,
 #modal-assign-profile .modal-footer .btn.btn-remove-accent {
     color: color-mix(in srgb, var(--color-warning) 78%, var(--color-text-secondary));
 }
-#modal-group-assign .modal-footer .btn.btn-remove-accent:hover,
-#modal-group-assign .modal-footer .btn.btn-remove-accent:focus-visible,
 #modal-assign-profile .modal-footer .btn.btn-remove-accent:hover,
 #modal-assign-profile .modal-footer .btn.btn-remove-accent:focus-visible {
     color: color-mix(in srgb, var(--color-warning) 90%, var(--color-text-secondary));
 }
-#modal-group-assign .modal-footer .btn.btn-remove-accent:active,
 #modal-assign-profile .modal-footer .btn.btn-remove-accent:active {
     color: color-mix(in srgb, var(--color-warning) 95%, var(--color-text-secondary));
 }
-#modal-group-assign .modal-footer .btn.btn-assign-accent,
-#modal-group-assign .form-group .btn.btn-assign-accent,
 #modal-assign-profile .modal-footer .btn.btn-assign-accent {
     color: color-mix(in srgb, var(--color-secondary) 78%, var(--color-text-secondary));
 }
-#modal-group-assign .modal-footer .btn.btn-assign-accent:hover,
-#modal-group-assign .form-group .btn.btn-assign-accent:hover,
-#modal-group-assign .modal-footer .btn.btn-assign-accent:focus-visible,
-#modal-group-assign .form-group .btn.btn-assign-accent:focus-visible,
 #modal-assign-profile .modal-footer .btn.btn-assign-accent:hover,
 #modal-assign-profile .modal-footer .btn.btn-assign-accent:focus-visible {
     color: color-mix(in srgb, var(--color-secondary) 90%, var(--color-text-secondary));
 }
-#modal-group-assign .modal-footer .btn.btn-assign-accent:active,
-#modal-group-assign .form-group .btn.btn-assign-accent:active,
 #modal-assign-profile .modal-footer .btn.btn-assign-accent:active {
     color: color-mix(in srgb, var(--color-secondary) 95%, var(--color-text-secondary));
 }
