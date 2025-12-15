@@ -1736,8 +1736,8 @@
         "transitionEffect": {
             "description": "Visual transition effect for background images and posters. Duration is automatically calculated based on transition interval.",
             "type": "string",
-            "enum": ["none", "kenburns", "fade", "slide", "tilt", "focus", "sweep", "analogzoom"],
-            "default": "kenburns"
+            "enum": ["kenburns", "fade", "slide"],
+            "default": "slide"
         },
         "effectPauseTime": {
             "description": "Time to pause after effect completes before next transition in seconds (not applied to Ken Burns effect).",

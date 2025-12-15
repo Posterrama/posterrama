@@ -225,7 +225,7 @@
         },
         "selectedPreset": ""
     },
-    "transitionEffect": "kenburns",
+    "transitionEffect": "slide",
     "effectPauseTime": 3,
     "uiScaling": {
         "global": 100,

@@ -437,6 +437,45 @@ describe('MQTT Bridge', () => {
             expect(config.options).toEqual(['screensaver', 'wallart', 'cinema']);
         });
 
+        test('generates discovery config for cinema cinematic single transition (select)', () => {
+            const device = mockDevices[0];
+            const capability = {
+                id: 'settings.cinema.poster.cinematicTransitions.singleTransition',
+                name: 'Cinematic Single Transition',
+                entityType: 'select',
+                icon: 'mdi:movie-open',
+                category: 'settings',
+                options: ['fade', 'dollyIn'],
+            };
+
+            const config = mqttBridge.buildDiscoveryConfig(device, capability, 'posterrama');
+
+            expect(config).toHaveProperty('entity_category', 'config');
+            expect(config).toHaveProperty('options');
+            expect(config.options).toEqual(['fade', 'dollyIn']);
+            expect(config).toHaveProperty('value_template');
+            expect(config.value_template).toContain("default('fade')");
+        });
+
+        test('generates discovery config for cinema enabled transition (switch)', () => {
+            const device = mockDevices[0];
+            const capability = {
+                id: 'settings.cinema.poster.cinematicTransitions.enabled.fade',
+                name: 'Enable Transition: Fade',
+                entityType: 'switch',
+                icon: 'mdi:movie-roll',
+                category: 'settings',
+            };
+
+            const config = mqttBridge.buildDiscoveryConfig(device, capability, 'posterrama');
+
+            expect(config).toHaveProperty('entity_category', 'config');
+            expect(config).toHaveProperty('value_template');
+            expect(config.value_template).toContain(
+                "value_json['settings.cinema.poster.cinematicTransitions.enabled.fade']"
+            );
+        });
+
         test('includes device info in config', () => {
             const device = mockDevices[0];
             const capability = mockCapabilities.get('playback.pause');

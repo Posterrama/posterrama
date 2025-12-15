@@ -142,6 +142,50 @@ describe('CapabilityRegistry - All Settings CommandHandlers', () => {
             expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev1', expect.any(Object));
         });
 
+        test('poster.cinematicTransitions.selectionMode commandHandler', async () => {
+            const device = { id: 'dev1', settingsOverride: {} };
+            const cap = capabilityRegistry.get(
+                'settings.cinema.poster.cinematicTransitions.selectionMode'
+            );
+
+            await cap.commandHandler(device.id, 'single');
+
+            expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev1', expect.any(Object));
+        });
+
+        test('poster.cinematicTransitions.singleTransition commandHandler', async () => {
+            const device = { id: 'dev2', settingsOverride: {} };
+            const cap = capabilityRegistry.get(
+                'settings.cinema.poster.cinematicTransitions.singleTransition'
+            );
+
+            // Use a legacy value to verify mapping via cinema-transition-compat
+            await cap.commandHandler(device.id, 'zoomIn');
+
+            expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev2', {
+                settingsOverride: {
+                    cinema: {
+                        poster: {
+                            cinematicTransitions: {
+                                singleTransition: 'dollyIn',
+                            },
+                        },
+                    },
+                },
+            });
+        });
+
+        test('poster.cinematicTransitions.enabled.fade commandHandler', async () => {
+            const device = { id: 'dev3', settingsOverride: {} };
+            const cap = capabilityRegistry.get(
+                'settings.cinema.poster.cinematicTransitions.enabled.fade'
+            );
+
+            await cap.commandHandler(device.id, true);
+
+            expect(deviceStore.patchDevice).toHaveBeenCalledWith('dev3', expect.any(Object));
+        });
+
         test('header.enabled commandHandler', async () => {
             const device = { id: 'dev2', settingsOverride: {} };
             const cap = capabilityRegistry.get('settings.cinema.header.enabled');

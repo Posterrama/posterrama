@@ -48,22 +48,8 @@
                 const poster = $('poster');
                 if (!poster) return;
 
-                const effect = String(
-                    window.appConfig?.transitionEffect || 'kenburns'
-                ).toLowerCase();
-                const intervalMs = Math.max(
-                    5000,
-                    Math.floor((window.appConfig?.transitionIntervalSeconds || 10) * 1000)
-                );
-
-                // Drive CSS durations via a single variable
-                try {
-                    document.body?.style?.setProperty('--ss-poster-ms', `${intervalMs}ms`);
-                } catch (_) {
-                    /* noop */
-                }
-
-                // Clear previous effect classes
+                // No poster-only transition effects (back to pre-new-animations behavior).
+                // Keep this as a safety cleanup in case an old client left classes behind.
                 poster.classList.remove(
                     'ss-poster-tilt',
                     'ss-poster-analogzoom',
@@ -71,28 +57,7 @@
                     'ss-poster-sweep'
                 );
 
-                // Continuous/idle effects
-                if (effect === 'tilt') {
-                    poster.classList.add('ss-poster-tilt');
-                } else if (effect === 'analogzoom') {
-                    poster.classList.add('ss-poster-analogzoom');
-                }
-
-                // One-shot effects on change
-                if (onChange) {
-                    if (effect === 'focus') {
-                        // Restart animation reliably
-                        poster.classList.remove('ss-poster-focus');
-                        requestAnimationFrame(() => {
-                            poster.classList.add('ss-poster-focus');
-                        });
-                    } else if (effect === 'sweep') {
-                        poster.classList.remove('ss-poster-sweep');
-                        requestAnimationFrame(() => {
-                            poster.classList.add('ss-poster-sweep');
-                        });
-                    }
-                }
+                void onChange;
             } catch (_) {
                 /* noop */
             }
@@ -995,7 +960,7 @@
                             Math.floor((window.appConfig?.transitionIntervalSeconds || 10) * 1000)
                         );
                         const effect = String(
-                            window.appConfig?.transitionEffect || 'kenburns'
+                            window.appConfig?.transitionEffect || 'slide'
                         ).toLowerCase();
 
                         // Keep non-KenBurns transitions short so the image is mostly static.
@@ -1028,12 +993,9 @@
                         try {
                             const { effect, intervalMs, transitionMs } = getTimings();
 
-                            // Map poster-only effects to a background fade.
-                            const bgEffect = ['tilt', 'focus', 'sweep', 'analogzoom'].includes(
-                                effect
-                            )
-                                ? 'fade'
-                                : effect;
+                            const bgEffect = ['kenburns', 'fade', 'slide'].includes(effect)
+                                ? effect
+                                : 'fade';
 
                             const effectMs = bgEffect === 'kenburns' ? intervalMs : transitionMs;
 
@@ -1561,6 +1523,24 @@
                     // Only restart cycler if timing/effect changed
                     if (needsRestart) {
                         api.startCycler();
+
+                        // Make the new effect visible immediately (don’t wait for the next interval).
+                        // Prefer not to advance to the next item; re-run a transition on the current.
+                        const maxAttempts = 10;
+                        let attempts = 0;
+                        const tryApplyNow = () => {
+                            attempts++;
+                            try {
+                                if (_state.isTransitioning) {
+                                    if (attempts < maxAttempts) setTimeout(tryApplyNow, 120);
+                                    return;
+                                }
+                                api.showNextBackground({ keepIndex: true });
+                            } catch (_) {
+                                /* noop */
+                            }
+                        };
+                        setTimeout(tryApplyNow, 60);
                     }
                 } catch (e) {
                     console.error('[Screensaver.applySettings] Error:', e);

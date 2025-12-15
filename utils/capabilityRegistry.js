@@ -13,6 +13,77 @@
 
 const logger = require('./logger');
 
+let _cachedCinemaCinematicTransitionOptions = null;
+let _cachedCinemaCinematicSelectionModeOptions = null;
+
+function getCinemaCinematicTransitionOptions() {
+    if (Array.isArray(_cachedCinemaCinematicTransitionOptions)) {
+        return _cachedCinemaCinematicTransitionOptions;
+    }
+    try {
+        const schema = require('../config.schema.json');
+        const enumList =
+            schema?.properties?.cinema?.properties?.poster?.properties?.cinematicTransitions
+                ?.properties?.singleTransition?.enum;
+        if (Array.isArray(enumList) && enumList.every(v => typeof v === 'string')) {
+            _cachedCinemaCinematicTransitionOptions = enumList;
+            return enumList;
+        }
+    } catch (_) {
+        // Schema not available
+    }
+
+    // Fallback (keep in sync with config.schema.json)
+    _cachedCinemaCinematicTransitionOptions = [
+        'fade',
+        'slideUp',
+        'cinematic',
+        'lightFlare',
+        'shatter',
+        'unfold',
+        'swing',
+        'ripple',
+        'curtainReveal',
+        'filmGate',
+        'projectorFlicker',
+        'parallaxFloat',
+        'dollyIn',
+        'splitFlap',
+        'lensIris',
+    ];
+    return _cachedCinemaCinematicTransitionOptions;
+}
+
+function getCinemaCinematicSelectionModeOptions() {
+    if (Array.isArray(_cachedCinemaCinematicSelectionModeOptions)) {
+        return _cachedCinemaCinematicSelectionModeOptions;
+    }
+    try {
+        const schema = require('../config.schema.json');
+        const enumList =
+            schema?.properties?.cinema?.properties?.poster?.properties?.cinematicTransitions
+                ?.properties?.selectionMode?.enum;
+        if (Array.isArray(enumList) && enumList.every(v => typeof v === 'string')) {
+            _cachedCinemaCinematicSelectionModeOptions = enumList;
+            return enumList;
+        }
+    } catch (_) {
+        // Schema not available
+    }
+
+    // Fallback (keep in sync with config.schema.json)
+    _cachedCinemaCinematicSelectionModeOptions = ['random', 'sequential', 'smart', 'single'];
+    return _cachedCinemaCinematicSelectionModeOptions;
+}
+
+function toTitleCaseFromCamel(s) {
+    if (typeof s !== 'string' || s.length === 0) return '';
+    const withSpaces = s
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2');
+    return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+}
+
 class CapabilityRegistry {
     constructor() {
         this.capabilities = new Map();
@@ -661,7 +732,7 @@ class CapabilityRegistry {
             category: 'settings',
             entityType: 'select',
             icon: 'mdi:transition',
-            options: ['fade', 'slide', 'zoom', 'kenburns', 'none'],
+            options: ['slide', 'kenburns', 'fade'],
             availableWhen: device => this.getDeviceMode(device) === 'screensaver',
             commandHandler: (deviceId, value) => {
                 return applyAndPersistSettings(deviceId, { transitionEffect: value });
@@ -678,7 +749,7 @@ class CapabilityRegistry {
                 } catch (_) {
                     // Config not available
                 }
-                return 'kenburns';
+                return 'slide';
             },
         });
 
@@ -1315,6 +1386,146 @@ class CapabilityRegistry {
                 return this.getCinemaSetting(device, 'orientation', 'auto');
             },
         });
+
+        // Cinema poster cinematic transitions
+        const cinemaTransitionOptions = getCinemaCinematicTransitionOptions();
+        const cinemaSelectionModeOptions = getCinemaCinematicSelectionModeOptions();
+
+        const mapLegacyCinemaTransition = t => {
+            try {
+                // Lazy require (keeps registry lightweight)
+                const { LEGACY_TRANSITION_MAP } = require('./cinema-transition-compat');
+                return LEGACY_TRANSITION_MAP && LEGACY_TRANSITION_MAP[t]
+                    ? LEGACY_TRANSITION_MAP[t]
+                    : t;
+            } catch (_) {
+                return t;
+            }
+        };
+
+        this.register('settings.cinema.poster.cinematicTransitions.selectionMode', {
+            name: 'Cinematic Transition Mode',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:shuffle-variant',
+            options: cinemaSelectionModeOptions,
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { poster: { cinematicTransitions: { selectionMode: value } } },
+                });
+            },
+            stateGetter: device => {
+                const value = this.getCinemaSetting(
+                    device,
+                    'poster.cinematicTransitions.selectionMode',
+                    'random'
+                );
+                return cinemaSelectionModeOptions.includes(value) ? value : 'random';
+            },
+        });
+
+        this.register('settings.cinema.poster.cinematicTransitions.singleTransition', {
+            name: 'Cinematic Single Transition',
+            category: 'settings',
+            entityType: 'select',
+            icon: 'mdi:movie-open',
+            options: cinemaTransitionOptions,
+            availableWhen: device => this.getDeviceMode(device) === 'cinema',
+            commandHandler: (deviceId, value) => {
+                const mapped = mapLegacyCinemaTransition(value);
+                const next = cinemaTransitionOptions.includes(mapped) ? mapped : 'fade';
+                return applyAndPersistSettings(deviceId, {
+                    cinema: { poster: { cinematicTransitions: { singleTransition: next } } },
+                });
+            },
+            stateGetter: device => {
+                const raw = this.getCinemaSetting(
+                    device,
+                    'poster.cinematicTransitions.singleTransition',
+                    'fade'
+                );
+                const mapped = mapLegacyCinemaTransition(raw);
+                return cinemaTransitionOptions.includes(mapped) ? mapped : 'fade';
+            },
+        });
+
+        // Individual enable toggles (Home Assistant has no native multi-select)
+        for (const transitionName of cinemaTransitionOptions) {
+            this.register(`settings.cinema.poster.cinematicTransitions.enabled.${transitionName}`, {
+                name: `Enable Transition: ${toTitleCaseFromCamel(transitionName)}`,
+                category: 'settings',
+                entityType: 'switch',
+                icon: 'mdi:movie-roll',
+                availableWhen: device => this.getDeviceMode(device) === 'cinema',
+                commandHandler: async (deviceId, value) => {
+                    const boolValue = value === true || value === 'ON' || value === 1;
+
+                    // Read current list from global config (fallback chain handled in stateGetter);
+                    // for commands we persist an explicit updated list into settingsOverride.
+                    const device = await deviceStore.getById(deviceId);
+                    if (!device) {
+                        throw new Error(`Device not found: ${deviceId}`);
+                    }
+                    let current = this.getCinemaSetting(
+                        device,
+                        'poster.cinematicTransitions.enabledTransitions',
+                        cinemaTransitionOptions
+                    );
+                    if (!Array.isArray(current)) current = cinemaTransitionOptions;
+
+                    const normalized = [];
+                    for (const t of current) {
+                        const mapped = mapLegacyCinemaTransition(t);
+                        if (
+                            typeof mapped === 'string' &&
+                            cinemaTransitionOptions.includes(mapped) &&
+                            !normalized.includes(mapped)
+                        ) {
+                            normalized.push(mapped);
+                        }
+                    }
+
+                    let next = normalized;
+                    if (boolValue) {
+                        if (!next.includes(transitionName)) next = [...next, transitionName];
+                    } else {
+                        next = next.filter(t => t !== transitionName);
+                    }
+
+                    if (next.length === 0) {
+                        next = ['dollyIn'];
+                    }
+
+                    // Preserve schema option ordering
+                    const order = new Map(cinemaTransitionOptions.map((t, idx) => [t, idx]));
+                    next.sort((a, b) => (order.get(a) ?? 999) - (order.get(b) ?? 999));
+
+                    return applyAndPersistSettings(deviceId, {
+                        cinema: {
+                            poster: {
+                                cinematicTransitions: {
+                                    enabledTransitions: next,
+                                },
+                            },
+                        },
+                    });
+                },
+                stateGetter: device => {
+                    let list = this.getCinemaSetting(
+                        device,
+                        'poster.cinematicTransitions.enabledTransitions',
+                        cinemaTransitionOptions
+                    );
+                    if (!Array.isArray(list)) list = cinemaTransitionOptions;
+                    const normalized = list
+                        .filter(t => typeof t === 'string')
+                        .map(mapLegacyCinemaTransition)
+                        .filter(t => cinemaTransitionOptions.includes(t));
+                    return normalized.includes(transitionName);
+                },
+            });
+        }
 
         // Screensaver orientation
         this.register('settings.screensaverMode.orientation', {
