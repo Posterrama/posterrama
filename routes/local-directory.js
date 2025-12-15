@@ -59,10 +59,15 @@ module.exports = function createLocalDirectoryRouter({
         return false;
     };
 
-    const createDirectoryFileWalker = (rootDir, { maxDepth }) => {
+    const createDirectoryFileWalker = (rootDir, options = {}) => {
         const root = path.resolve(rootDir);
 
+        const maxDepth = Number.isFinite(options.maxDepth) ? options.maxDepth : 25;
+        const shouldAbort = typeof options.shouldAbort === 'function' ? options.shouldAbort : null;
+        const isAborted = () => (shouldAbort ? !!shouldAbort() : false);
+
         async function* walk(currentDir, depth, relDir) {
+            if (isAborted()) return;
             if (depth > maxDepth) return;
 
             let handle;
@@ -72,19 +77,28 @@ module.exports = function createLocalDirectoryRouter({
                 return;
             }
 
-            for await (const dirent of handle) {
-                if (isSkippableLocalEntry(dirent)) continue;
-                if (dirent.isSymbolicLink?.()) continue;
+            try {
+                for await (const dirent of handle) {
+                    if (isAborted()) return;
+                    if (isSkippableLocalEntry(dirent)) continue;
+                    if (dirent.isSymbolicLink?.()) continue;
 
-                const absPath = path.join(currentDir, dirent.name);
-                const relPath = relDir ? zipJoin(relDir, dirent.name) : dirent.name;
+                    const absPath = path.join(currentDir, dirent.name);
+                    const relPath = relDir ? zipJoin(relDir, dirent.name) : dirent.name;
 
-                if (dirent.isDirectory?.()) {
-                    yield* walk(absPath, depth + 1, relPath);
-                } else if (dirent.isFile?.()) {
-                    const st = await fs.promises.stat(absPath).catch(() => null);
-                    if (!st || !st.isFile()) continue;
-                    yield { absPath, relPath, size: st.size };
+                    if (dirent.isDirectory?.()) {
+                        yield* walk(absPath, depth + 1, relPath);
+                    } else if (dirent.isFile?.()) {
+                        const st = await fs.promises.stat(absPath).catch(() => null);
+                        if (!st || !st.isFile()) continue;
+                        yield { absPath, relPath, size: st.size };
+                    }
+                }
+            } finally {
+                try {
+                    await handle.close();
+                } catch (_) {
+                    /* ignore */
                 }
             }
         }
@@ -433,6 +447,16 @@ module.exports = function createLocalDirectoryRouter({
         '/api/local/download-all',
         isAuthenticated,
         asyncHandler(async (req, res) => {
+            let aborted = false;
+            const markAborted = () => {
+                aborted = true;
+            };
+
+            req.on('aborted', markAborted);
+            res.on('close', () => {
+                if (!res.writableEnded) markAborted();
+            });
+
             const requestedPath = String(req.query.path || '').trim();
             if (!requestedPath) {
                 return res.status(400).json({ error: 'Missing path' });
@@ -458,11 +482,15 @@ module.exports = function createLocalDirectoryRouter({
 
                 const folderName = path.basename(dirPath) || 'download';
                 const limits = getZipLimits();
-                const createIterator = createDirectoryFileWalker(dirPath, limits);
+                const createIterator = createDirectoryFileWalker(dirPath, {
+                    ...limits,
+                    shouldAbort: () => aborted,
+                });
 
                 try {
                     await preflightZipLimits(createIterator, limits);
                 } catch (e) {
+                    if (aborted) return;
                     if (e && e.code === 'zip_limits_exceeded') {
                         return res.status(413).json({
                             error: 'zip_limits_exceeded',
@@ -474,6 +502,8 @@ module.exports = function createLocalDirectoryRouter({
                     throw e;
                 }
 
+                if (aborted) return;
+
                 const ts = new Date();
                 const pad = n => String(n).padStart(2, '0');
                 const date = `${ts.getFullYear()}${pad(ts.getMonth() + 1)}${pad(ts.getDate())}-${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}`;
@@ -482,6 +512,21 @@ module.exports = function createLocalDirectoryRouter({
                 res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
                 const archive = archiver('zip', { zlib: { level: 6 } });
+                const abortArchive = () => {
+                    if (aborted) return;
+                    aborted = true;
+                    try {
+                        archive.abort();
+                    } catch (_) {
+                        /* ignore */
+                    }
+                };
+
+                req.on('aborted', abortArchive);
+                res.on('close', () => {
+                    if (!res.writableEnded) abortArchive();
+                });
+
                 archive.on('warning', err => {
                     logger.warn('Local directory zip warning:', err);
                 });
@@ -496,9 +541,13 @@ module.exports = function createLocalDirectoryRouter({
 
                 archive.pipe(res);
                 for await (const file of createIterator()) {
+                    if (aborted) break;
                     archive.file(file.absPath, { name: zipJoin(folderName, file.relPath) });
                 }
-                archive.finalize();
+
+                if (!aborted) {
+                    archive.finalize();
+                }
             } catch (error) {
                 logger.error('Local directory zip download error:', error);
                 return res.status(500).json({ error: 'zip_failed' });
@@ -539,6 +588,16 @@ module.exports = function createLocalDirectoryRouter({
         isAuthenticated,
         express.json(),
         asyncHandler(async (req, res) => {
+            let aborted = false;
+            const markAborted = () => {
+                aborted = true;
+            };
+
+            req.on('aborted', markAborted);
+            res.on('close', () => {
+                if (!res.writableEnded) markAborted();
+            });
+
             const { paths = [] } = req.body;
 
             if (!Array.isArray(paths) || paths.length === 0) {
@@ -626,6 +685,21 @@ module.exports = function createLocalDirectoryRouter({
                 res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
                 const archive = archiver('zip', { zlib: { level: 6 } });
+                const abortArchive = () => {
+                    if (aborted) return;
+                    aborted = true;
+                    try {
+                        archive.abort();
+                    } catch (_) {
+                        /* ignore */
+                    }
+                };
+
+                req.on('aborted', abortArchive);
+                res.on('close', () => {
+                    if (!res.writableEnded) abortArchive();
+                });
+
                 archive.on('warning', err => {
                     logger.warn('Bulk download zip warning:', err);
                 });
@@ -640,9 +714,13 @@ module.exports = function createLocalDirectoryRouter({
 
                 archive.pipe(res);
                 for (const f of files) {
+                    if (aborted) break;
                     archive.file(f.fullPath, { name: f.name });
                 }
-                archive.finalize();
+
+                if (!aborted) {
+                    archive.finalize();
+                }
             } catch (error) {
                 logger.error('Bulk download error:', error);
                 res.status(500).json({ error: 'Download failed' });
@@ -1489,6 +1567,16 @@ module.exports = function createLocalDirectoryRouter({
         '/api/local/posterpacks/download-all',
         isAuthenticated,
         asyncHandler(async (req, res) => {
+            let aborted = false;
+            const markAborted = () => {
+                aborted = true;
+            };
+
+            req.on('aborted', markAborted);
+            res.on('close', () => {
+                if (!res.writableEnded) markAborted();
+            });
+
             try {
                 const source = String(req.query.source || '').toLowerCase();
                 if (!['plex', 'jellyfin', 'local'].includes(source)) {
@@ -1545,6 +1633,21 @@ module.exports = function createLocalDirectoryRouter({
                 res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
                 const archive = archiver('zip', { zlib: { level: 6 } });
+                const abortArchive = () => {
+                    if (aborted) return;
+                    aborted = true;
+                    try {
+                        archive.abort();
+                    } catch (_) {
+                        /* ignore */
+                    }
+                };
+
+                req.on('aborted', abortArchive);
+                res.on('close', () => {
+                    if (!res.writableEnded) abortArchive();
+                });
+
                 archive.on('warning', err => {
                     logger.warn('Posterpacks zip warning:', err);
                 });
@@ -1559,9 +1662,13 @@ module.exports = function createLocalDirectoryRouter({
 
                 archive.pipe(res);
                 for (const p of posterpacks) {
+                    if (aborted) break;
                     archive.file(p.full, { name: p.name });
                 }
-                archive.finalize();
+
+                if (!aborted) {
+                    archive.finalize();
+                }
             } catch (e) {
                 logger.error('Download-all posterpacks failed:', e);
                 res.status(500).json({ error: 'download_all_failed' });

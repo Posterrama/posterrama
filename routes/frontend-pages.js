@@ -47,6 +47,39 @@ module.exports = function createFrontendPagesRouter({
 }) {
     const router = express.Router();
 
+    const debugViewerPresence = {
+        value: null,
+        atMs: 0,
+        inFlight: null,
+        ttlMs: 60_000,
+    };
+
+    const debugViewerOnDisk = path.join(publicDir, 'debug-viewer.js');
+
+    function refreshDebugViewerPresence() {
+        const now = Date.now();
+        if (debugViewerPresence.inFlight) return;
+        if (
+            debugViewerPresence.value !== null &&
+            now - debugViewerPresence.atMs < debugViewerPresence.ttlMs
+        )
+            return;
+
+        debugViewerPresence.inFlight = fs.promises
+            .access(debugViewerOnDisk, fs.constants.F_OK)
+            .then(() => {
+                debugViewerPresence.value = true;
+                debugViewerPresence.atMs = Date.now();
+            })
+            .catch(() => {
+                debugViewerPresence.value = false;
+                debugViewerPresence.atMs = Date.now();
+            })
+            .finally(() => {
+                debugViewerPresence.inFlight = null;
+            });
+    }
+
     /**
      * Helper: Inject debug viewer script if enabled in config
      * @param {string} html - HTML content
@@ -66,8 +99,10 @@ module.exports = function createFrontendPagesRouter({
             return html;
         }
 
-        const debugViewerOnDisk = path.join(publicDir, 'debug-viewer.js');
-        if (!fs.existsSync(debugViewerOnDisk)) {
+        // Never block the request path: refresh in background and inject only if the
+        // cached presence says the file exists.
+        refreshDebugViewerPresence();
+        if (debugViewerPresence.value !== true) {
             return html;
         }
 
