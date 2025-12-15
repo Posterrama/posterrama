@@ -37,20 +37,33 @@ function ensureSessionSecret() {
             // Set in current process FIRST (prevents restart loop)
             process.env.SESSION_SECRET = newSecret;
 
-            // Then save to .env file for future restarts
-            let envContent = '';
-            if (fs.existsSync(envPath)) {
-                envContent = fs.readFileSync(envPath, 'utf8');
-                if (!envContent.endsWith('\n')) {
-                    envContent += '\n';
+            // Then save to .env file for future restarts (best-effort, async)
+            void (async () => {
+                let envContent = '';
+                try {
+                    envContent = await fs.promises.readFile(envPath, 'utf8');
+                    if (!envContent.endsWith('\n')) {
+                        envContent += '\n';
+                    }
+                } catch (err) {
+                    // Missing .env is fine; other errors should surface to logging
+                    if (err && err.code !== 'ENOENT') {
+                        throw err;
+                    }
                 }
-            }
 
-            envContent += `SESSION_SECRET="${newSecret}"\n`;
-            fs.writeFileSync(envPath, envContent, 'utf8');
+                envContent += `SESSION_SECRET="${newSecret}"\n`;
+                await fs.promises.writeFile(envPath, envContent, 'utf8');
 
-            logger.info('✅ SESSION_SECRET generated and saved to .env');
-            logger.info('✅ Using auto-generated SESSION_SECRET for this session');
+                logger.info('✅ SESSION_SECRET generated and saved to .env');
+            })()
+                .catch(err => {
+                    logger.error('Failed to save SESSION_SECRET to .env:', err.message);
+                    logger.warn('⚠️  Continuing with in-memory SESSION_SECRET (not persisted)');
+                })
+                .finally(() => {
+                    logger.info('✅ Using auto-generated SESSION_SECRET for this session');
+                });
         } catch (err) {
             logger.error('Failed to save SESSION_SECRET to .env:', err.message);
             logger.warn('⚠️  Continuing with in-memory SESSION_SECRET (not persisted)');
