@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Update README badges:
- *  - Coverage badge (from coverage-final.json total.lines.pct) with dynamic color
  *  - Version badge (from package.json)
+ *  - Coverage badge only if a coverage badge is present in README
  */
 const fs = require('fs');
 const path = require('path');
@@ -47,41 +47,42 @@ function run() {
     let readme = fs.readFileSync(readmePath, 'utf8');
     let changed = false;
 
-    // Update coverage badge (number and color). Prefer JSON total if available, otherwise fallback to LCOV.
-    let pct = null;
-    if (
-        coverageJson &&
-        coverageJson.total &&
-        coverageJson.total.lines &&
-        typeof coverageJson.total.lines.pct === 'number'
-    ) {
-        pct = formatPct(coverageJson.total.lines.pct);
-    } else if (fs.existsSync(lcovPath)) {
-        // Compute from LCOV (sum LH/LF across all records)
-        const content = fs.readFileSync(lcovPath, 'utf8');
-        let total = 0;
-        let covered = 0;
-        for (const line of content.split(/\r?\n/)) {
-            if (line.startsWith('LF:')) total += Number(line.slice(3)) || 0;
-            if (line.startsWith('LH:')) covered += Number(line.slice(3)) || 0;
+    // Update coverage badge only if README actually contains a coverage badge.
+    // This avoids unnecessary noise when the project no longer shows coverage in README.
+    const covUrlRe =
+        /(https:\/\/img\.shields\.io\/badge\/coverage-)\d+(?:\.\d+)?%25-[a-z]+(\.svg)/i;
+    if (covUrlRe.test(readme)) {
+        // Prefer JSON total if available, otherwise fallback to LCOV.
+        let pct = null;
+        if (
+            coverageJson &&
+            coverageJson.total &&
+            coverageJson.total.lines &&
+            typeof coverageJson.total.lines.pct === 'number'
+        ) {
+            pct = formatPct(coverageJson.total.lines.pct);
+        } else if (fs.existsSync(lcovPath)) {
+            // Compute from LCOV (sum LH/LF across all records)
+            const content = fs.readFileSync(lcovPath, 'utf8');
+            let total = 0;
+            let covered = 0;
+            for (const line of content.split(/\r?\n/)) {
+                if (line.startsWith('LF:')) total += Number(line.slice(3)) || 0;
+                if (line.startsWith('LH:')) covered += Number(line.slice(3)) || 0;
+            }
+            if (total > 0) pct = formatPct((covered / total) * 100);
         }
-        if (total > 0) pct = formatPct((covered / total) * 100);
-    }
 
-    if (pct !== null) {
-        console.log(`Computed aggregate line coverage: ${pct}%`);
-        const color = colorFor(pct);
-        // Replace full shields URL segment for coverage (handles HTML <img> src attributes)
-        const covUrlRe =
-            /(https:\/\/img\.shields\.io\/badge\/coverage-)\d+(?:\.\d+)?%25-[a-z]+(\.svg)/i;
-        const newSeg = `$1${pct}%25-${color}$2`;
-        if (covUrlRe.test(readme)) {
+        if (pct !== null) {
+            console.log(`Computed aggregate line coverage: ${pct}%`);
+            const color = colorFor(pct);
+            const newSeg = `$1${pct}%25-${color}$2`;
             readme = readme.replace(covUrlRe, newSeg);
             changed = true;
             console.log(`Updated coverage badge to ${pct}% (${color})`);
+        } else {
+            console.warn('Coverage inputs missing/malformed; skipping coverage badge update');
         }
-    } else {
-        console.warn('coverage-final.json missing or malformed; skipping coverage badge update');
     }
 
     // Tests badge removed by request; no longer updated
