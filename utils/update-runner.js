@@ -5,6 +5,7 @@
  */
 const path = require('path');
 const fs = require('fs');
+const fsp = fs.promises;
 
 // Ensure we run from repo root (utils/..)
 const appRoot = path.resolve(__dirname, '..');
@@ -12,17 +13,31 @@ process.chdir(appRoot);
 
 // Lightweight file logger to survive parent shutdown
 const logFile = path.join(appRoot, 'logs', 'updater-worker.log');
+let __logWriteChain = Promise.resolve();
 function log(level, msg, extra = {}) {
     const line = JSON.stringify({ level, msg, ...extra, ts: new Date().toISOString() }) + '\n';
-    try {
-        fs.mkdirSync(path.dirname(logFile), { recursive: true });
-        fs.appendFileSync(logFile, line);
-    } catch (e) {
+
+    __logWriteChain = __logWriteChain.then(async () => {
         try {
-            process.stderr.write(`[update-runner] log write failed: ${e && e.message}\n`);
-        } catch (e2) {
-            // last resort: swallow to avoid throwing in logger
+            await fsp.mkdir(path.dirname(logFile), { recursive: true });
+            await fsp.appendFile(logFile, line);
+        } catch (e) {
+            try {
+                process.stderr.write(`[update-runner] log write failed: ${e && e.message}\n`);
+            } catch (_e2) {
+                // last resort: swallow to avoid throwing in logger
+            }
         }
+    });
+
+    return __logWriteChain;
+}
+
+async function flushLogs() {
+    try {
+        await __logWriteChain;
+    } catch (_) {
+        // swallow
     }
 }
 
@@ -50,14 +65,16 @@ async function main() {
             }
         }
 
-        log('info', 'update-runner starting', { targetVersion, dryRun, force, deferStop });
+        await log('info', 'update-runner starting', { targetVersion, dryRun, force, deferStop });
         const autoUpdater = require('./updater');
 
         await autoUpdater.startUpdate(targetVersion, { dryRun, force, deferStop });
-        log('info', 'update-runner completed successfully');
+        await log('info', 'update-runner completed successfully');
+        await flushLogs();
         process.exit(0);
     } catch (err) {
-        log('error', 'update-runner failed', { error: err && err.message });
+        await log('error', 'update-runner failed', { error: err && err.message });
+        await flushLogs();
         // Best effort exit; rollback handled inside updater
         process.exit(1);
     }
