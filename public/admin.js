@@ -26412,9 +26412,6 @@ window.COLOR_PRESETS = COLOR_PRESETS;
     let haDashboardYAML = '';
 
     async function openHADashboardModal() {
-        console.log('[HA Dashboard] fetchJSON type:', typeof fetchJSON);
-        console.log('[HA Dashboard] fetchJSON defined?', typeof fetchJSON !== 'undefined');
-
         const modal = document.getElementById('modal-ha-dashboard');
         if (!modal) {
             console.error('[HA Dashboard] Modal not found');
@@ -26423,17 +26420,17 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 
         // Use the existing modal helper if available
         if (typeof openModal === 'function') {
-            console.log('[HA Dashboard] Using openModal helper');
             openModal('modal-ha-dashboard');
         } else {
-            console.log('[HA Dashboard] Using direct modal show');
             modal.classList.add('active');
             modal.removeAttribute('hidden');
         }
 
         // Load devices
         try {
-            console.log('[HA Dashboard] Fetching devices from /api/devices');
+            if (typeof fetchJSON !== 'function') {
+                throw new Error('fetchJSON helper is not available');
+            }
             const data = await fetchJSON('/api/devices');
 
             // API returns array directly, not {devices: [...]}
@@ -26476,8 +26473,9 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         container.innerHTML = haDashboardDevices
             .map((device, index) => {
                 const deviceName = device.name || 'Unnamed Device';
-                const deviceId = device.id;
-                const shortId = deviceId.substring(0, 8);
+                const deviceId = String(device.id || '');
+                const shortId = deviceId ? `${deviceId.substring(0, 8)}...` : 'no-id';
+                const safeDeviceId = String(device.id || '');
 
                 return `
                 <label class="ha-device-radio-label ${index === 0 ? 'selected' : ''}" data-label-id="${deviceId}">
@@ -26485,21 +26483,22 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         type="radio" 
                         name="ha-dashboard-device" 
                         class="ha-dashboard-device-radio" 
-                        data-device-id="${device.id}" 
+                        data-device-id="${safeDeviceId}" 
                         ${index === 0 ? 'checked' : ''}
                         onchange="updateRadioSelection(); generateHADashboard();"
                     />
-                    <div style="flex: 1;">
-                        <div style="font-weight: 600; font-size: 0.95rem;">${deviceName}</div>
-                        <div style="font-size: 0.75rem; opacity: 0.5; font-family: 'Courier New', monospace; margin-top: 2px;">${shortId}...</div>
+                    <div class="ha-device-meta">
+                        <div class="ha-device-name">${deviceName}</div>
+                        <div class="ha-device-id">${shortId}</div>
                     </div>
-                    <i class="fas fa-check-circle" style="color: #3b82f6; font-size: 16px; display: none;"></i>
+                    <i class="fas fa-check-circle ha-device-check" aria-hidden="true"></i>
                 </label>
             `;
             })
             .join('');
 
         // Auto-generate on initial load
+        updateRadioSelection();
         generateHADashboard();
     }
 
@@ -26564,7 +26563,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             window.notify?.toast({
                 type: 'success',
                 title: 'Section Generated',
-                message: `Generated for ${data.deviceCount} device`,
+                message: `Generated for ${data.deviceCount} device${data.deviceCount === 1 ? '' : 's'}`,
                 duration: 3000,
             });
         } catch (error) {

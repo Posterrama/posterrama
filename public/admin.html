@@ -5252,14 +5252,31 @@
       <div class="modal-body">
         
         <!-- Info section -->
-        <div style="background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
-          <div style="display: flex; align-items: start; gap: 10px;">
-            <i class="fas fa-info-circle" style="color: #3b82f6; font-size: 16px; margin-top: 2px;"></i>
-            <div style="flex: 1;">
-              <strong style="display: block; margin-bottom: 4px; font-size: 0.95rem;">Section Generator</strong>
-              <p style="margin: 0; font-size: 0.85rem; opacity: 0.85; line-height: 1.4;">
+        <div class="ha-dashboard-info-card">
+          <div class="ha-dashboard-info-row">
+            <i class="fas fa-info-circle ha-dashboard-info-icon" aria-hidden="true"></i>
+            <div class="ha-dashboard-info-content">
+              <strong class="ha-dashboard-info-title">Section Generator</strong>
+              <p class="ha-dashboard-info-text">
                 Generate a Home Assistant section for your device. Add it via <strong>Add Section → Edit in YAML</strong>.
               </p>
+
+              <!-- Installation Instructions (under Section Generator) -->
+              <details class="ha-dashboard-instructions">
+                <summary>
+                  <i class="fas fa-book" aria-hidden="true"></i> Installation Instructions
+                </summary>
+                <div class="ha-dashboard-instructions-body">
+                  <ol>
+                    <li>Open your dashboard in Home Assistant</li>
+                    <li>Click <strong>"Edit Dashboard"</strong> (pencil icon)</li>
+                    <li>Click <strong>"+ Add Section"</strong> at the bottom</li>
+                    <li>Click the <strong>pencil icon</strong> on the new section</li>
+                    <li>Click <strong>three dots (⋮)</strong> → <strong>"Edit in YAML"</strong></li>
+                    <li>Replace content with copied YAML and click <strong>"Save"</strong></li>
+                  </ol>
+                </div>
+              </details>
             </div>
           </div>
         </div>
@@ -5269,14 +5286,7 @@
           <h3 style="margin: 0 0 10px 0; font-size: 0.95rem; font-weight: 600; opacity: 0.8;">
             <i class="fas fa-laptop"></i> Select Device
           </h3>
-          <div id="ha-dashboard-device-list" style="
-            max-height: 200px;
-            overflow-y: auto;
-            background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 6px;
-            padding: 12px;
-          ">
+          <div id="ha-dashboard-device-list" class="ha-dashboard-device-list">
             <p style="text-align: center; opacity: 0.6;">Loading devices...</p>
           </div>
         </div>
@@ -5287,37 +5297,9 @@
             <i class="fas fa-code"></i> YAML Preview
           </h3>
           <div style="position: relative;">
-            <pre id="ha-dashboard-yaml-preview" style="
-              background: #1e1e1e;
-              color: #d4d4d4;
-              padding: 14px;
-              border-radius: 6px;
-              max-height: 300px;
-              overflow: auto;
-              font-family: 'Courier New', monospace;
-              font-size: 0.8rem;
-              line-height: 1.3;
-              margin: 0;
-            ">Loading...</pre>
+            <pre id="ha-dashboard-yaml-preview" class="ha-dashboard-yaml-preview">Loading...</pre>
           </div>
         </div>
-
-        <!-- Installation Instructions -->
-        <details style="margin-bottom: 16px;">
-          <summary style="cursor: pointer; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 0.9rem;">
-            <i class="fas fa-book"></i> Installation Instructions
-          </summary>
-          <div style="padding: 12px; background: rgba(255,255,255,0.02); border-radius: 0 0 6px 6px; border: 1px solid rgba(255,255,255,0.1); border-top: none;">
-            <ol style="margin: 0; padding-left: 20px; line-height: 1.6; font-size: 0.85rem;">
-              <li>Open your dashboard in Home Assistant</li>
-              <li>Click <strong>"Edit Dashboard"</strong> (pencil icon)</li>
-              <li>Click <strong>"+ Add Section"</strong> at the bottom</li>
-              <li>Click the <strong>pencil icon</strong> on the new section</li>
-              <li>Click <strong>three dots (⋮)</strong> → <strong>"Edit in YAML"</strong></li>
-              <li>Replace content with copied YAML and click <strong>"Save"</strong></li>
-            </ol>
-          </div>
-        </details>
 
       </div>
       
