@@ -97,81 +97,81 @@ describe('Utils Helpers', () => {
             }
         });
 
-        test('returns null when no avatar file exists', () => {
-            const result = getAvatarPath('testuser', testDir);
+        test('returns null when no avatar file exists', async () => {
+            const result = await getAvatarPath('testuser', testDir);
             expect(result).toBeNull();
         });
 
-        test('finds .png avatar', () => {
+        test('finds .png avatar', async () => {
             const avatarPath = path.join(testDir, 'testuser.png');
             fs.writeFileSync(avatarPath, 'fake-image-data');
 
-            const result = getAvatarPath('testuser', testDir);
+            const result = await getAvatarPath('testuser', testDir);
             expect(result).toBe(avatarPath);
         });
 
-        test('finds .webp avatar', () => {
+        test('finds .webp avatar', async () => {
             const avatarPath = path.join(testDir, 'testuser.webp');
             fs.writeFileSync(avatarPath, 'fake-image-data');
 
-            const result = getAvatarPath('testuser', testDir);
+            const result = await getAvatarPath('testuser', testDir);
             expect(result).toBe(avatarPath);
         });
 
-        test('finds .jpg avatar', () => {
+        test('finds .jpg avatar', async () => {
             const avatarPath = path.join(testDir, 'testuser.jpg');
             fs.writeFileSync(avatarPath, 'fake-image-data');
 
-            const result = getAvatarPath('testuser', testDir);
+            const result = await getAvatarPath('testuser', testDir);
             expect(result).toBe(avatarPath);
         });
 
-        test('finds .jpeg avatar', () => {
+        test('finds .jpeg avatar', async () => {
             const avatarPath = path.join(testDir, 'testuser.jpeg');
             fs.writeFileSync(avatarPath, 'fake-image-data');
 
-            const result = getAvatarPath('testuser', testDir);
+            const result = await getAvatarPath('testuser', testDir);
             expect(result).toBe(avatarPath);
         });
 
-        test('prefers .png over other formats', () => {
+        test('prefers .png over other formats', async () => {
             fs.writeFileSync(path.join(testDir, 'testuser.png'), 'png-data');
             fs.writeFileSync(path.join(testDir, 'testuser.jpg'), 'jpg-data');
 
-            const result = getAvatarPath('testuser', testDir);
+            const result = await getAvatarPath('testuser', testDir);
             expect(result).toBe(path.join(testDir, 'testuser.png'));
         });
 
-        test('sanitizes username with special characters', () => {
+        test('sanitizes username with special characters', async () => {
             // test@user! becomes test_user_ (@ and ! replaced with _)
             const avatarPath = path.join(testDir, 'test_user_.png');
             fs.writeFileSync(avatarPath, 'fake-image-data');
 
-            const result = getAvatarPath('test@user!', testDir);
+            const result = await getAvatarPath('test@user!', testDir);
             expect(result).toBe(avatarPath);
         });
 
-        test('defaults to admin when username is null', () => {
+        test('defaults to admin when username is null', async () => {
             const avatarPath = path.join(testDir, 'admin.png');
             fs.writeFileSync(avatarPath, 'fake-image-data');
 
-            const result = getAvatarPath(null, testDir);
+            const result = await getAvatarPath(null, testDir);
             expect(result).toBe(avatarPath);
         });
 
-        test('defaults to admin when username is undefined', () => {
+        test('defaults to admin when username is undefined', async () => {
             const avatarPath = path.join(testDir, 'admin.png');
             fs.writeFileSync(avatarPath, 'fake-image-data');
 
-            const result = getAvatarPath(undefined, testDir);
+            const result = await getAvatarPath(undefined, testDir);
             expect(result).toBe(avatarPath);
         });
 
-        test('handles empty string username', () => {
+        test('handles empty string username', async () => {
             const avatarPath = path.join(testDir, 'admin.png');
             fs.writeFileSync(avatarPath, 'fake-image-data');
 
-            const result = getAvatarPath('', testDir);
+            const result = await getAvatarPath('', testDir);
             expect(result).toBe(avatarPath);
         });
     });

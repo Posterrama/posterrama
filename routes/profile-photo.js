@@ -92,12 +92,16 @@ module.exports = function createProfilePhotoRouter({ adminAuth, getAvatarPath, a
      *         description: No avatar set
      */
     // @ts-ignore - Express router overload issue
-    router.get('/api/admin/profile/photo', adminAuth, (/** @type {ProfileRequest} */ req, res) => {
-        const username = req.session?.user?.username || 'admin';
-        const p = getAvatarPath(username, avatarDir);
-        if (!p) return res.status(204).end();
-        res.sendFile(p);
-    });
+    router.get(
+        '/api/admin/profile/photo',
+        adminAuth,
+        async (/** @type {ProfileRequest} */ req, res) => {
+            const username = req.session?.user?.username || 'admin';
+            const p = await getAvatarPath(username, avatarDir);
+            if (!p) return res.status(204).end();
+            res.sendFile(p);
+        }
+    );
 
     /**
      * @swagger
@@ -169,7 +173,7 @@ module.exports = function createProfilePhotoRouter({ adminAuth, getAvatarPath, a
         async (/** @type {ProfileRequest} */ req, res) => {
             try {
                 const username = req.session?.user?.username || 'admin';
-                const p = getAvatarPath(username, avatarDir);
+                const p = await getAvatarPath(username, avatarDir);
                 if (p) await fsp.unlink(p).catch(() => {});
                 res.json({ success: true });
             } catch (e) {
