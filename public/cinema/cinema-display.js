@@ -4950,6 +4950,23 @@
         const root = document.documentElement;
 
         switch (data.type) {
+            case 'CINEMA_PREVIEW_TRANSITION': {
+                const transition = String(data.transition || '').trim();
+                if (!transition) return;
+                if (!ALL_TRANSITIONS.includes(transition)) return;
+
+                const posterEl = document.getElementById('poster');
+                if (!posterEl) return;
+
+                const animClass = `cinema-anim-${transition}`;
+                ALL_TRANSITIONS.forEach(t => document.body.classList.remove(`cinema-anim-${t}`));
+                // Force reflow to restart animation (and any pseudo-element overlays tied to body class)
+                void posterEl.offsetWidth;
+                document.body.classList.add(animClass);
+
+                log('Previewed cinematic transition', { transition });
+                break;
+            }
             case 'CINEMA_TITLE_COLOR_UPDATE':
                 if (data.color) {
                     root.style.setProperty('--cinema-title-color', data.color);

@@ -1580,6 +1580,46 @@
             singleRow.style.display = ct.selectionMode === 'single' ? '' : 'none';
         }
 
+        // Preview transition button (re-triggers selected transition inside the live preview iframe)
+        const previewTransitionBtn = document.getElementById('cinemaPreviewTransitionBtn');
+        if (previewTransitionBtn && !previewTransitionBtn.__posterramaWired) {
+            previewTransitionBtn.__posterramaWired = true;
+            previewTransitionBtn.addEventListener('click', () => {
+                try {
+                    const frame = document.getElementById('display-preview-frame');
+                    const previewWin = frame && frame.contentWindow ? frame.contentWindow : null;
+                    if (!previewWin) return;
+
+                    const mode = document.getElementById('cinemaTransitionMode')?.value || 'random';
+                    const single =
+                        document.getElementById('cinemaSingleTransition')?.value || 'fade';
+
+                    let transition = single;
+                    if (mode !== 'single') {
+                        const enabled = Array.from(
+                            document.querySelectorAll(
+                                '#enabledTransitionsGrid input[type="checkbox"]:checked'
+                            )
+                        ).map(el => el.value);
+                        if (enabled.length > 0) {
+                            transition =
+                                enabled[Math.floor(Math.random() * enabled.length)] || transition;
+                        }
+                    }
+
+                    previewWin.postMessage(
+                        {
+                            type: 'CINEMA_PREVIEW_TRANSITION',
+                            transition,
+                        },
+                        window.location.origin
+                    );
+                } catch (_) {
+                    /* preview trigger is best-effort */
+                }
+            });
+        }
+
         // Set enabled transitions checkboxes
         const enabledList = ct.enabledTransitions || [
             'fade',
