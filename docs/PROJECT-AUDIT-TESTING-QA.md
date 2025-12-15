@@ -24,9 +24,11 @@
 ### 3) ZIP export tests
 
 - Ensure download-all:
-    - does not load entire files into memory (after refactor)
+    - streams output (no whole-file buffering)
     - enforces configured limits
-    - returns meaningful errors
+    - returns meaningful errors (413 with reason/limit)
+
+- Status: core streaming/limit behavior is covered by tests; expand with client-disconnect and very-large-tree scenarios if ZIP is a common workflow.
 
 ### 4) “Groups removed” cleanup test
 

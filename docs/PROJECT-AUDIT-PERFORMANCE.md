@@ -2,22 +2,23 @@
 
 ## Biggest performance risks
 
-### 1) ZIP download-all builds ZIP in memory
+### 1) ZIP export scalability
 
 - Location: `routes/local-directory.js` (download-all)
 - Why it matters:
-    - `readFile()` per entry means memory usage scales with directory size.
-    - Long event-loop blocks degrade the whole app.
-- Concrete fix:
-    - Stream ZIP creation and stream the response.
-    - Add server-side limits and return a clear error when exceeded.
+    - Directory exports can be long-running and disk-heavy.
+    - If handled poorly, they can cause latency spikes for unrelated requests.
+- Status: improved — ZIP creation is streamed and protected by limits.
+- Next hardening:
+    - Stop work on client disconnect.
+    - Consider caching/indexing for repeated large exports (or declare “small exports only”).
 
-### 2) Expensive disk checks via shell pipelines
+### 2) Disk free space checks
 
-- Location: `utils/cache.js` (`df -k ... | tail -1 | awk ...`)
-- Concrete fix:
-    - Move to background sampling and cache results.
-    - Use `spawn` with strict args and timeout.
+- Location: `utils/cache.js` (`fs.promises.statfs()` + TTL cache)
+- Status: improved — avoids shell pipelines and avoids per-call duplication via in-flight caching.
+- Next hardening:
+    - Consider increasing TTL if free-space checks show up in hot paths.
 
 ### 3) Metrics and logs can become high-cardinality or too chatty
 

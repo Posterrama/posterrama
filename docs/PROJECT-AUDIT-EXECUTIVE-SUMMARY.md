@@ -12,8 +12,9 @@
 ### P0 (high risk / likely to bite)
 
 1. Memory/OOM risk in local directory ZIP download
-    - Current pattern reads every file into memory before writing ZIP (recursive download).
-    - Fix: stream ZIP output (e.g., using a streaming archiver) and enforce size/entry limits.
+    - Status: fixed — ZIP endpoints stream output (no whole-file buffering).
+    - Guardrails: preflight limits enforce max total bytes, max files, max depth, and max single-file size.
+    - Tests: streaming and limit enforcement covered (download-all/bulk-download/posterpacks).
 
 2. Public `/metrics` exposure in production
     - Status: fixed — `/metrics` now requires authentication (admin session or API token).
@@ -23,9 +24,9 @@
 
 ### P1 (medium risk / correctness and maintainability)
 
-4. Event-loop blocking shell calls (`execSync`) for disk free space
-    - Found in cache free-space logic; if invoked on request paths it can stall the server.
-    - Fix: move to background interval caching, or use non-blocking child-process spawn and timeouts.
+4. Disk free space sampling implementation
+    - Status: improved — free disk space uses `fs.promises.statfs()` with short TTL caching (no shell pipeline / `execSync`).
+    - Remaining consideration: ensure it’s not over-sampled on very busy instances (tune TTL if needed).
 
 5. Config self-healing logs bypass the logger pipeline
     - `config/validate-env.js` uses `console.log` heavily.
@@ -49,7 +50,7 @@
 
 - Remove legacy groups handling (API + storage cleanup). (done)
 - Guard `/metrics` in production (config flag + middleware). (done)
-- Add limits + streaming for ZIP downloads (or disable ZIP for large directories).
+- Add limits + streaming for ZIP downloads (or disable ZIP for large directories). (done)
 - Replace config migration `console.log` with logger calls and a concise summary.
 
 ## Medium investments (1–3 weeks)

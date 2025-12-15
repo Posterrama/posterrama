@@ -8,10 +8,10 @@ This is a pragmatic execution plan. Adjust based on how widely Posterrama is dep
     - Auth middleware added.
     - Regression test added.
 
-2. Fix ZIP download-all memory risk
-    - Stream ZIP output.
-    - Enforce limits (max bytes/files/depth).
-    - Add tests for large exports and truncation.
+2. Fix ZIP download-all memory risk (done)
+    - ZIP endpoints stream output via a streaming archiver.
+    - Limits enforced (max bytes/files/depth/max single file) with clear 413 errors.
+    - Tests cover streaming behavior and limit enforcement.
 
 3. Remove legacy “groups” remnants (done)
     - Device update rejects legacy `groups`.
@@ -24,8 +24,9 @@ This is a pragmatic execution plan. Adjust based on how widely Posterrama is dep
 
 ## 31–60 days (stability and maintainability)
 
-5. Remove/replace `execSync` usage in server paths
-    - Replace with background sampling or non-blocking spawn + caching.
+5. Remove/replace `execSync` usage in server paths (mostly done)
+    - Runtime disk free space checks use `fs.promises.statfs()` (no shell pipeline).
+    - Follow-up: audit remaining `execSync` usage in non-request utilities and keep it off hot paths.
 
 6. Add a small “error taxonomy” and enforce it
     - Stable error codes + consistent HTTP mapping.
