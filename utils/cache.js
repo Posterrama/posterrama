@@ -1201,6 +1201,15 @@ class CacheDiskManager {
         this.maxSizeBytes = (config.maxSizeGB || 2) * 1024 * 1024 * 1024; // Convert GB to bytes
         this.minFreeDiskSpaceBytes = (config.minFreeDiskSpaceMB || 500) * 1024 * 1024; // Convert MB to bytes
         this.autoCleanup = config.autoCleanup !== false;
+
+        // Cache free-space lookups to avoid repeated filesystem syscalls in hot paths.
+        const rawTtl = Number.parseInt(String(process.env.CACHE_DISK_FREE_TTL_MS || ''), 10);
+        this._freeDiskSpaceCacheTtlMs = Number.isFinite(rawTtl) ? Math.max(0, rawTtl) : 2000;
+        this._freeDiskSpaceCache = {
+            valueBytes: null,
+            atMs: 0,
+            inFlight: null,
+        };
     }
 
     /**
@@ -1252,27 +1261,42 @@ class CacheDiskManager {
      * Get available disk space
      */
     async getFreeDiskSpace() {
-        try {
-            const { execSync } = require('child_process');
-            const command =
-                process.platform === 'win32'
-                    ? `powershell "Get-PSDrive C | Select-Object Free"`
-                    : `df -k "${this.imageCacheDir}" | tail -1 | awk '{print $4}'`;
+        const now = Date.now();
+        const cached = this._freeDiskSpaceCache;
 
-            const output = execSync(command, { encoding: 'utf8' });
-
-            if (process.platform === 'win32') {
-                // Parse PowerShell output for Windows
-                const match = output.match(/(\d+)/);
-                return match ? parseInt(match[1]) : 0;
-            } else {
-                // Parse df output for Unix-like systems (result in KB)
-                return parseInt(output.trim()) * 1024; // Convert KB to bytes
-            }
-        } catch (error) {
-            logger.warn('Failed to get free disk space', { error: error.message });
-            return 0;
+        if (
+            typeof cached.valueBytes === 'number' &&
+            now - cached.atMs < this._freeDiskSpaceCacheTtlMs
+        ) {
+            return cached.valueBytes;
         }
+
+        if (cached.inFlight) {
+            return cached.inFlight;
+        }
+
+        cached.inFlight = (async () => {
+            try {
+                const fsMod = require('fs');
+                const stat = await fsMod.promises.statfs(this.imageCacheDir);
+                const bavail = Number(stat?.bavail) || 0;
+                const bsize = Number(stat?.bsize) || 0;
+                const freeBytes = Math.max(0, bavail * bsize);
+
+                cached.valueBytes = freeBytes;
+                cached.atMs = Date.now();
+                return freeBytes;
+            } catch (error) {
+                logger.warn('Failed to get free disk space', { error: error?.message || error });
+                cached.valueBytes = 0;
+                cached.atMs = Date.now();
+                return 0;
+            } finally {
+                cached.inFlight = null;
+            }
+        })();
+
+        return cached.inFlight;
     }
 
     /**
