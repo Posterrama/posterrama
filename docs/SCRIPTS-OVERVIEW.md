@@ -572,4 +572,4 @@ node scripts/mqtt-republish-discovery.js # Force republish MQTT discovery
 ---
 
 **Last updated:** December 15, 2025
-**Version:** 2.9.9
+**Version:** 3.0.0

@@ -2,9 +2,9 @@
 
 Complete guide for integrating Posterrama with Home Assistant via MQTT.
 
-**Version**: 2.9.9
+**Version**: 3.0.0
 **Last Updated**: 2025-12-14
-**Prerequisites**: Posterrama v2.9.3+, Home Assistant with MQTT broker
+**Prerequisites**: Posterrama v3.0.0+, Home Assistant with MQTT broker
 
 **Quick Troubleshooting:**
 
@@ -51,7 +51,7 @@ pm2 restart posterrama
 
 ### Required
 
-- **Posterrama**: v2.8.1 or higher
+- **Posterrama**: v3.0.0 or higher
 - **Home Assistant**: Any recent version (2023.x+)
 - **MQTT Broker**: One of:
 - Mosquitto (built into Home Assistant)
@@ -1229,13 +1229,13 @@ curl http://localhost:4000/api/admin/mqtt/status
 
 ## Advanced Configuration
 
-### Notes (v2.9.9)
+### Notes (v3.0.0)
 
 - Home Assistant discovery prefix is fixed to `homeassistant`.
 - Posterrama topics are fixed to the `posterrama/...` prefix.
 - The bridge publishes most updates event-driven, with a periodic catch-up publish (~30s).
 
-TLS, QoS/retain tuning, and custom topic templates are not exposed via the validated configuration schema in v2.9.9. If you need TLS, terminate it at the broker/proxy layer.
+TLS, QoS/retain tuning, and custom topic templates are not exposed via the validated configuration schema in v3.0.0. If you need TLS, terminate it at the broker/proxy layer.
 
 ---
 
@@ -1264,7 +1264,7 @@ A: Yes, send MQTT commands directly using mosquitto_pub or any MQTT client.
 A: MQTT 3.1.1 and 5.0 (auto-negotiated).
 
 **Q: Are messages retained?**
-A: Home Assistant discovery configs are published so HA can recreate entities. State/camera publishing is handled by the bridge; if you need broker-side retain tuning, that’s not exposed via the validated config schema in v2.9.9.
+A: Home Assistant discovery configs are published so HA can recreate entities. State/camera publishing is handled by the bridge; if you need broker-side retain tuning, that’s not exposed via the validated config schema in v3.0.0.
 
 **Q: What happens if MQTT disconnects?**
 A: Bridge auto-reconnects with exponential backoff. Devices continue working via WebSocket.
@@ -1278,7 +1278,7 @@ A: Minimal. ~1KB per state update. Camera entity ~50-200KB per update (base64 im
 ### Security Questions
 
 **Q: Is MQTT traffic encrypted?**
-A: Plain MQTT (1883) is unencrypted. In v2.9.9, TLS options are not exposed via the validated config schema; use a trusted LAN broker or terminate TLS at the broker/proxy.
+A: Plain MQTT (1883) is unencrypted. In v3.0.0, TLS options are not exposed via the validated config schema; use a trusted LAN broker or terminate TLS at the broker/proxy.
 
 **Q: Should I use authentication?**
 A: Yes, always use username/password, especially if broker is exposed to internet.
@@ -1315,7 +1315,7 @@ A: Yes, shows device online/offline status in Home Assistant. Disable if causing
 A: No, but highly recommended. Without it, you must manually create entities in Home Assistant.
 
 **Q: Can I change the MQTT topic prefixes?**
-A: Not via the validated configuration schema in v2.9.9. Topics use the `posterrama/...` prefix and discovery uses `homeassistant/...`.
+A: Not via the validated configuration schema in v3.0.0. Topics use the `posterrama/...` prefix and discovery uses `homeassistant/...`.
 
 ---
 

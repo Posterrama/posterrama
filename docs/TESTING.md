@@ -1,6 +1,6 @@
 # Testing Guide
 
-**Version:** 2.9.9
+**Version:** 3.0.0
 **Last Updated:** 2025-12-14
 **Test runner:** Jest
 

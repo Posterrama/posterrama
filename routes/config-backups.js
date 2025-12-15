@@ -89,7 +89,7 @@ module.exports = function createConfigBackupsRouter({
      *               label:
      *                 type: string
      *                 maxLength: 100
-     *                 description: Optional label for the backup (e.g., "Before v2.9.5 update")
+     *                 description: Optional label for the backup (e.g., "Before v3.0.0 update")
      *                 example: "Before major config change"
      *               note:
      *                 type: string
@@ -308,7 +308,7 @@ module.exports = function createConfigBackupsRouter({
      *                 maxLength: 100
      *                 description: New label (null/empty to remove)
      *                 nullable: true
-     *                 example: "Pre-v2.9.5 stable"
+     *                 example: "Pre-v3.0.0 stable"
      *               note:
      *                 type: string
      *                 maxLength: 500

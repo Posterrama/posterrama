@@ -305,4 +305,4 @@ No frontend build step is required.
 ---
 
 **Last updated:** December 14, 2025
-**Version:** 2.9.9
+**Version:** 3.0.0

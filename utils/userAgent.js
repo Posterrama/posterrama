@@ -28,7 +28,7 @@ class UserAgentBuilder {
      *
      * @example
      * UserAgentBuilder.build('Plex-Client', { includeHostname: true });
-     * // Returns: "Posterrama/2.9.4 (Plex-Client) Node.js/18.20.0 linux/5.15.0 Host/media-server"
+     * // Returns: "Posterrama/3.0.0 (Plex-Client) Node.js/18.20.0 linux/5.15.0 Host/media-server"
      */
     static build(service = 'default', options = {}) {
         const {
@@ -70,7 +70,7 @@ class UserAgentBuilder {
      *
      * @example
      * UserAgentBuilder.forPlex();
-     * // Returns: "Posterrama/2.9.4 (Plex-Client) Node.js/18.20.0 linux/5.15.0 Host/media-server"
+     * // Returns: "Posterrama/3.0.0 (Plex-Client) Node.js/18.20.0 linux/5.15.0 Host/media-server"
      */
     static forPlex() {
         return this.build('Plex-Client', {
@@ -87,7 +87,7 @@ class UserAgentBuilder {
      *
      * @example
      * UserAgentBuilder.forJellyfin();
-     * // Returns: "Posterrama/2.9.4 (Jellyfin-Client) Node.js/18.20.0 linux/5.15.0 Host/media-server"
+     * // Returns: "Posterrama/3.0.0 (Jellyfin-Client) Node.js/18.20.0 linux/5.15.0 Host/media-server"
      */
     static forJellyfin() {
         return this.build('Jellyfin-Client', {
@@ -104,7 +104,7 @@ class UserAgentBuilder {
      *
      * @example
      * UserAgentBuilder.forTMDB();
-     * // Returns: "Posterrama/2.9.4 (TMDB-Client) Node.js/18.20.0 linux/5.15.0"
+     * // Returns: "Posterrama/3.0.0 (TMDB-Client) Node.js/18.20.0 linux/5.15.0"
      */
     static forTMDB() {
         return this.build('TMDB-Client', {
@@ -121,7 +121,7 @@ class UserAgentBuilder {
      *
      * @example
      * UserAgentBuilder.forRomM();
-     * // Returns: "Posterrama/2.9.4 (RomM-Client) Node.js/18.20.0 linux/5.15.0 Host/media-server"
+     * // Returns: "Posterrama/3.0.0 (RomM-Client) Node.js/18.20.0 linux/5.15.0 Host/media-server"
      */
     static forRomM() {
         return this.build('RomM-Client', {
@@ -139,7 +139,7 @@ class UserAgentBuilder {
      *
      * @example
      * UserAgentBuilder.minimal();
-     * // Returns: "Posterrama/2.9.4"
+     * // Returns: "Posterrama/3.0.0"
      */
     static minimal() {
         return `Posterrama/${pkg.version}`;

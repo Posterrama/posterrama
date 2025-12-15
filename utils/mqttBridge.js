@@ -554,7 +554,7 @@ class MqttBridge extends EventEmitter {
                     responseType: 'arraybuffer',
                     timeout: 5000,
                     headers: {
-                        'User-Agent': 'Posterrama-MQTT-Bridge/2.8.1',
+                        'User-Agent': 'Posterrama-MQTT-Bridge/3.0.0',
                     },
                 });
 

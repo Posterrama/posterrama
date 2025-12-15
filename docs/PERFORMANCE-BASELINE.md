@@ -1,6 +1,6 @@
 # Performance Baseline
 
-**Version:** 2.9.9
+**Version:** 3.0.0
 **Last Updated:** 2025-12-14
 
 This document defines how to capture and track performance baselines for Posterrama.
@@ -52,7 +52,7 @@ When you capture new results, update this document with:
 
 ### 3) Static asset size snapshot
 
-Because there is no bundling/minification step in v2.9.9, tracking the largest raw assets is useful.
+Because there is no bundling/minification step in v3.0.0, tracking the largest raw assets is useful.
 
 ```bash
 npm run perf:largest-files

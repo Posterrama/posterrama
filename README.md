@@ -9,7 +9,7 @@
 <div align="center">
 
 <p style="margin: 0; line-height: 1.1;">
-  <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-2.9.9-blue.svg"></a>
+  <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-3.0.0-blue.svg"></a>
   <a href="https://nodejs.org/"><img alt="Node.js" src="https://img.shields.io/badge/node.js-%E2%89%A518.0.0-blue"></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue"></a>
 </p>
@@ -205,23 +205,24 @@ Local library: Add your own artwork with a simple upload—posters, cinematic ba
 
 <figure>
   <img src="./screenshots/device_management.png" alt="Device Management" width="740">
-  <figcaption style="text-align:left; color:#6a6a6a;"><em>Manage devices live: status, playback, and per‑device overrides</em></figcaption>
+  <figcaption style="text-align:left; color:#6a6a6a;"><em>Manage devices (BETA): status, profiles, bulk actions, and overrides</em></figcaption>
 </figure>
 
-Orchestrate every Posterrama screen from a single, real‑time dashboard. Device Management shows live status, lets you control playback, and apply per‑device Display Settings without interrupting the experience. Whether you run one TV at home or a whole foyer of screens, changes land instantly over a lightweight WebSocket channel.
+Device Management (BETA) is the admin workspace for operating multiple Posterrama screens: see device health at a glance, organize devices by location/profile, and send operational actions without touching the displays.
 
 What you can do:
 
-- Live controls per device: previous/next, play/pause toggle, pin current poster, and reload/reset
-- Clear status badges: Offline (grey), Online (green), Live (blue)
-- Controls auto‑disable when a device is offline
-- Per‑device Display Settings override with JSON editor and presets; apply live over WebSocket
-- WebSocket heartbeat keeps status and playback state in sync with the device
+- At‑a‑glance status: Live / Online / Offline / Unknown (plus “Powered off”), with device type, mode, resolution, version, and an optional now‑playing thumbnail
+- Quick actions per device: power toggle, reload, clear cache, play/pause, open live logs, open remote control, and send a command
+- Fleet operations: search + filter by status or location, select multiple devices, then run bulk actions (reload, clear cache, pairing codes, overrides, clear overrides, play/pause, delete)
+- Organization: rename devices, assign a location, and assign a Device Profile (reusable Display Settings bundles)
+- Per‑device Display Settings overrides: edit/clear overrides so a device can deviate from global + profile settings when needed
 
 Where it shines:
 
-- At home — Quickly pause a screen when you get a call, pin a specific poster for a movie night, or tailor one display's look (mode, grid density, info overlays) without touching the others.
-- In commercial cinemas and venues — Keep foyer and hallway displays fresh and on‑brand. Swap promos in seconds, verify screens are healthy at a glance, and minimize downtime with one‑click reload/reset.
+- At home — keep different rooms in different modes, quickly pause/restore a screen, and troubleshoot a single device without affecting others
+- In venues — manage a fleet with bulk actions, health visibility, and consistent look via profiles/locations
+- For trusted kiosks — use the Settings tab’s IP Whitelist to let known screens skip registration and follow global Display Settings
 
 ---
 

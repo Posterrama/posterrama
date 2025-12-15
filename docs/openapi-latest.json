@@ -2,7 +2,7 @@
     "openapi": "3.0.0",
     "info": {
         "title": "Posterrama API",
-        "version": "2.9.9",
+        "version": "3.0.0",
         "description": "Posterrama aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.",
         "contact": {
             "name": "Posterrama Project",
@@ -272,7 +272,7 @@
                             "createdAt": "2025-10-25T12:00:00.000Z",
                             "sizeBytes": 4096,
                             "type": "manual",
-                            "label": "Before v2.9.5 update",
+                            "label": "Before v3.0.0 update",
                             "note": "Stable configuration before major update"
                         },
                         {
@@ -1686,7 +1686,7 @@
                     "version": {
                         "type": "string",
                         "description": "Service version",
-                        "example": "1.2.5"
+                        "example": "3.0.0"
                     },
                     "timestamp": {
                         "type": "string",
@@ -2094,8 +2094,8 @@
                     "success": true,
                     "release": {
                         "id": 123456789,
-                        "tag_name": "v2.8.1",
-                        "name": "Release 2.8.1",
+                        "tag_name": "v3.0.0",
+                        "name": "Release 3.0.0",
                         "body": "## Bug Fixes\n- Fixed MQTT broker display issue\n- Improved error handling",
                         "published_at": "2025-10-25T10:00:00Z",
                         "prerelease": false
@@ -2111,15 +2111,15 @@
                     },
                     "hasUpdate": {
                         "type": "boolean",
-                        "example": true
+                        "example": false
                     },
                     "currentVersion": {
                         "type": "string",
-                        "example": "2.8.0"
+                        "example": "3.0.0"
                     },
                     "latestVersion": {
                         "type": "string",
-                        "example": "2.8.1"
+                        "example": "3.0.0"
                     },
                     "releaseInfo": {
                         "$ref": "#/components/schemas/GitHubRelease"
@@ -2127,13 +2127,13 @@
                 },
                 "example": {
                     "success": true,
-                    "hasUpdate": true,
-                    "currentVersion": "2.8.0",
-                    "latestVersion": "2.8.1",
+                    "hasUpdate": false,
+                    "currentVersion": "3.0.0",
+                    "latestVersion": "3.0.0",
                     "releaseInfo": {
                         "id": 123456,
-                        "tag_name": "v2.8.1",
-                        "name": "Release 2.8.1",
+                        "tag_name": "v3.0.0",
+                        "name": "Release 3.0.0",
                         "body": "## Bug Fixes\n- Fixed MQTT broker display issue",
                         "published_at": "2025-10-25T10:00:00Z",
                         "prerelease": false
@@ -3769,7 +3769,7 @@
                                     "mode": "public",
                                     "publicDir": "public",
                                     "staticPath": "public",
-                                    "assetVersion": "2.9.9"
+                                    "assetVersion": "3.0.0"
                                 }
                             }
                         }
@@ -4472,7 +4472,7 @@
                                     "properties": {
                                         "version": {
                                             "type": "string",
-                                            "example": "1.7.6"
+                                            "example": "3.0.0"
                                         }
                                     }
                                 },
@@ -4518,15 +4518,15 @@
                                     "properties": {
                                         "currentVersion": {
                                             "type": "string",
-                                            "example": "1.5.0"
+                                            "example": "3.0.0"
                                         },
                                         "latestVersion": {
                                             "type": "string",
-                                            "example": "1.6.0"
+                                            "example": "3.0.0"
                                         },
                                         "hasUpdate": {
                                             "type": "boolean",
-                                            "example": true
+                                            "example": false
                                         },
                                         "updateType": {
                                             "type": "string",
@@ -4534,11 +4534,11 @@
                                         },
                                         "releaseUrl": {
                                             "type": "string",
-                                            "example": "https://github.com/Posterrama/posterrama/releases/tag/v1.6.0"
+                                            "example": "https://github.com/Posterrama/posterrama/releases/tag/v3.0.0"
                                         },
                                         "downloadUrl": {
                                             "type": "string",
-                                            "example": "https://github.com/Posterrama/posterrama/archive/v1.6.0.tar.gz"
+                                            "example": "https://github.com/Posterrama/posterrama/archive/v3.0.0.tar.gz"
                                         },
                                         "releaseNotes": {
                                             "type": "string",
@@ -4550,7 +4550,7 @@
                                         },
                                         "releaseName": {
                                             "type": "string",
-                                            "example": "Version 1.6.0 - GitHub Integration"
+                                            "example": "Version 3.0.0 - GitHub Integration"
                                         }
                                     }
                                 },
@@ -4790,7 +4790,7 @@
                                     "version": {
                                         "type": "string",
                                         "description": "Specific version to update to (optional)",
-                                        "example": "1.6.0"
+                                        "example": "3.0.0"
                                     },
                                     "force": {
                                         "type": "boolean",
@@ -8968,7 +8968,7 @@
                                     "label": {
                                         "type": "string",
                                         "maxLength": 100,
-                                        "description": "Optional label for the backup (e.g., \"Before v2.9.5 update\")",
+                                        "description": "Optional label for the backup (e.g., \"Before v3.0.0 update\")",
                                         "example": "Before major config change"
                                     },
                                     "note": {
@@ -9340,7 +9340,7 @@
                                         "maxLength": 100,
                                         "description": "New label (null/empty to remove)",
                                         "nullable": true,
-                                        "example": "Pre-v2.9.5 stable"
+                                        "example": "Pre-v3.0.0 stable"
                                     },
                                     "note": {
                                         "type": "string",

@@ -1,9 +1,9 @@
 # Production Deployment Guide (No Build Pipeline)
 
-**Version:** 2.9.9
+**Version:** 3.0.0
 **Last Updated:** 2025-12-14
 
-Posterrama v2.9.9 does not use a bundler-driven frontend “production build” (`dist/public/`, `npm run build:prod`, etc.).
+Posterrama v3.0.0 does not use a bundler-driven frontend “production build” (`dist/public/`, `npm run build:prod`, etc.).
 
 - Frontend assets are served directly from `public/`.
 - “Production” primarily means runtime configuration + process management (PM2) + safe logging.

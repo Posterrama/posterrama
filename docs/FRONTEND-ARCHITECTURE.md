@@ -1,6 +1,6 @@
 # Posterrama Frontend Architecture
 
-**Version:** 2.9.9
+**Version:** 3.0.0
 **Last Updated:** December 14, 2025
 
 ---

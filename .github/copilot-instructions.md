@@ -1,6 +1,6 @@
 # Posterrama AI Agent Instructions
 
-Posterrama (v2.9.x) is a Node.js/Express media server aggregation app. It unifies Plex, Jellyfin, TMDB, and local libraries into dynamic displays (Screensaver, Wallart, Cinema).
+Posterrama (v3.0.x) is a Node.js/Express media server aggregation app. It unifies Plex, Jellyfin, TMDB, and local libraries into dynamic displays (Screensaver, Wallart, Cinema).
 
 ## Architecture & Patterns
 

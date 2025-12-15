@@ -176,7 +176,7 @@ const ecosystemConfig = require('./ecosystem.config.js');
 const { shuffleArray } = require('./utils/array-utils');
 
 // Asset version (can later be replaced by build hash); fallback to package.json version
-const ASSET_VERSION = pkg.version || '1.0.0';
+const ASSET_VERSION = pkg.version || '3.0.0';
 
 // --- Fixed hardcoded limits (not user-configurable) ---
 const FIXED_LIMITS = Object.freeze({
@@ -3579,7 +3579,7 @@ app.get('/api/health', (req, res, next) => {
  *               mode: public
  *               publicDir: public
  *               staticPath: public
- *               assetVersion: "2.9.9"
+ *               assetVersion: "3.0.0"
  */
 app.get('/api/frontend/static-dir', (req, res) => {
     res.json({
@@ -4614,7 +4614,7 @@ app.get(
  *               properties:
  *                 version:
  *                   type: string
- *                   example: "1.7.6"
+ *                   example: "3.0.0"
  *       401:
  *         description: Unauthorized
  */
@@ -4657,10 +4657,10 @@ app.get(
  *               properties:
  *                 currentVersion:
  *                   type: string
- *                   example: "1.5.0"
+ *                   example: "3.0.0"
  *                 latestVersion:
  *                   type: string
- *                   example: "1.6.0"
+ *                   example: "3.0.0"
  *                 hasUpdate:
  *                   type: boolean
  *                   example: true
@@ -4669,10 +4669,10 @@ app.get(
  *                   example: "minor"
  *                 releaseUrl:
  *                   type: string
- *                   example: "https://github.com/Posterrama/posterrama/releases/tag/v1.6.0"
+ *                   example: "https://github.com/Posterrama/posterrama/releases/tag/v3.0.0"
  *                 downloadUrl:
  *                   type: string
- *                   example: "https://github.com/Posterrama/posterrama/archive/v1.6.0.tar.gz"
+ *                   example: "https://github.com/Posterrama/posterrama/archive/v3.0.0.tar.gz"
  *                 releaseNotes:
  *                   type: string
  *                   example: "### New Features\n- Added GitHub integration"
@@ -4681,7 +4681,7 @@ app.get(
  *                   example: "2025-08-15T20:00:00Z"
  *                 releaseName:
  *                   type: string
- *                   example: "Version 1.6.0 - GitHub Integration"
+ *                   example: "Version 3.0.0"
  */
 app.get(
     '/api/admin/update-check',
@@ -4922,7 +4922,7 @@ app.post(
  *               version:
  *                 type: string
  *                 description: Specific version to update to (optional)
- *                 example: "1.6.0"
+ *                 example: "3.0.0"
  *               force:
  *                 type: boolean
  *                 description: Force update even if already on latest version

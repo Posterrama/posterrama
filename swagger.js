@@ -300,7 +300,7 @@ function generateSwaggerSpec(req = null) {
                                     createdAt: '2025-10-25T12:00:00.000Z',
                                     sizeBytes: 4096,
                                     type: 'manual',
-                                    label: 'Before v2.9.5 update',
+                                    label: 'Before v3.0.0 update',
                                     note: 'Stable configuration before major update',
                                 },
                                 {
@@ -1472,7 +1472,7 @@ function generateSwaggerSpec(req = null) {
                             version: {
                                 type: 'string',
                                 description: 'Service version',
-                                example: '1.2.5',
+                                example: '3.0.0',
                             },
                             timestamp: {
                                 type: 'string',
@@ -1824,8 +1824,8 @@ function generateSwaggerSpec(req = null) {
                             success: true,
                             release: {
                                 id: 123456789,
-                                tag_name: 'v2.8.1',
-                                name: 'Release 2.8.1',
+                                tag_name: 'v3.0.0',
+                                name: 'Release 3.0.0',
                                 body: '## Bug Fixes\n- Fixed MQTT broker display issue\n- Improved error handling',
                                 published_at: '2025-10-25T10:00:00Z',
                                 prerelease: false,
@@ -1836,20 +1836,20 @@ function generateSwaggerSpec(req = null) {
                         type: 'object',
                         properties: {
                             success: { type: 'boolean', example: true },
-                            hasUpdate: { type: 'boolean', example: true },
-                            currentVersion: { type: 'string', example: '2.8.0' },
-                            latestVersion: { type: 'string', example: '2.8.1' },
+                            hasUpdate: { type: 'boolean', example: false },
+                            currentVersion: { type: 'string', example: '3.0.0' },
+                            latestVersion: { type: 'string', example: '3.0.0' },
                             releaseInfo: { $ref: '#/components/schemas/GitHubRelease' },
                         },
                         example: {
                             success: true,
-                            hasUpdate: true,
-                            currentVersion: '2.8.0',
-                            latestVersion: '2.8.1',
+                            hasUpdate: false,
+                            currentVersion: '3.0.0',
+                            latestVersion: '3.0.0',
                             releaseInfo: {
                                 id: 123456,
-                                tag_name: 'v2.8.1',
-                                name: 'Release 2.8.1',
+                                tag_name: 'v3.0.0',
+                                name: 'Release 3.0.0',
                                 body: '## Bug Fixes\n- Fixed MQTT broker display issue',
                                 published_at: '2025-10-25T10:00:00Z',
                                 prerelease: false,

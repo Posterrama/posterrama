@@ -61,7 +61,7 @@ else
     
     # Fallback: use hardcoded latest known version
     if [ -z "$VERSION" ]; then
-        VERSION="v2.9.5"
+        VERSION="v3.0.0"
         echo -e "${YELLOW}Using fallback version: $VERSION${NC}"
         echo -e "${YELLOW}(Could not fetch from GitHub - network or rate limit issue)${NC}"
     else
