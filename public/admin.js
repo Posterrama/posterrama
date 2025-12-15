@@ -5608,6 +5608,14 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         return 'Fade In/Out';
                     case 'slide':
                         return 'Slide';
+                    case 'tilt':
+                        return 'Tilt + Depth';
+                    case 'focus':
+                        return 'Focus Pull';
+                    case 'sweep':
+                        return 'Light Sweep';
+                    case 'analogzoom':
+                        return 'Analog Zoom';
                     default:
                         return String(val || '—');
                 }

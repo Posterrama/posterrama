@@ -42,6 +42,61 @@
                 /* noop */
             }
         };
+
+        const applyPosterEffect = ({ onChange } = { onChange: true }) => {
+            try {
+                const poster = $('poster');
+                if (!poster) return;
+
+                const effect = String(
+                    window.appConfig?.transitionEffect || 'kenburns'
+                ).toLowerCase();
+                const intervalMs = Math.max(
+                    5000,
+                    Math.floor((window.appConfig?.transitionIntervalSeconds || 10) * 1000)
+                );
+
+                // Drive CSS durations via a single variable
+                try {
+                    document.body?.style?.setProperty('--ss-poster-ms', `${intervalMs}ms`);
+                } catch (_) {
+                    /* noop */
+                }
+
+                // Clear previous effect classes
+                poster.classList.remove(
+                    'ss-poster-tilt',
+                    'ss-poster-analogzoom',
+                    'ss-poster-focus',
+                    'ss-poster-sweep'
+                );
+
+                // Continuous/idle effects
+                if (effect === 'tilt') {
+                    poster.classList.add('ss-poster-tilt');
+                } else if (effect === 'analogzoom') {
+                    poster.classList.add('ss-poster-analogzoom');
+                }
+
+                // One-shot effects on change
+                if (onChange) {
+                    if (effect === 'focus') {
+                        // Restart animation reliably
+                        poster.classList.remove('ss-poster-focus');
+                        requestAnimationFrame(() => {
+                            poster.classList.add('ss-poster-focus');
+                        });
+                    } else if (effect === 'sweep') {
+                        poster.classList.remove('ss-poster-sweep');
+                        requestAnimationFrame(() => {
+                            poster.classList.add('ss-poster-sweep');
+                        });
+                    }
+                }
+            } catch (_) {
+                /* noop */
+            }
+        };
         const setPoster = url => {
             // In the refactored screensaver, we render the poster on the single #poster element
             try {
@@ -149,8 +204,22 @@
                 if (posterVisible && item?.posterUrl) {
                     setPoster(item.posterUrl);
                     showEl('poster-wrapper', true, 'block');
+                    applyPosterEffect({ onChange: true });
                 } else {
                     showEl('poster-wrapper', false);
+                    try {
+                        const poster = $('poster');
+                        if (poster) {
+                            poster.classList.remove(
+                                'ss-poster-tilt',
+                                'ss-poster-analogzoom',
+                                'ss-poster-focus',
+                                'ss-poster-sweep'
+                            );
+                        }
+                    } catch (_) {
+                        /* noop */
+                    }
                 }
                 // Clearlogo
                 setClearlogo(item?.clearLogoUrl || item?.clearlogo || '');
@@ -958,7 +1027,15 @@
                     img.onload = () => {
                         try {
                             const { effect, intervalMs, transitionMs } = getTimings();
-                            const effectMs = effect === 'kenburns' ? intervalMs : transitionMs;
+
+                            // Map poster-only effects to a background fade.
+                            const bgEffect = ['tilt', 'focus', 'sweep', 'analogzoom'].includes(
+                                effect
+                            )
+                                ? 'fade'
+                                : effect;
+
+                            const effectMs = bgEffect === 'kenburns' ? intervalMs : transitionMs;
 
                             // Mark transitioning to avoid overlap
                             _state.isTransitioning = !opts.immediate;
@@ -967,7 +1044,7 @@
                             // Important: for Ken Burns we must NOT reset the outgoing (active) layer,
                             // otherwise it snaps back to the default transform/scale during the fade.
                             // Keep its animation running and only fade its opacity.
-                            if (effect !== 'kenburns') {
+                            if (bgEffect !== 'kenburns') {
                                 resetLayer(active);
                             }
                             resetLayer(inactive);
@@ -1005,7 +1082,7 @@
                             const halfInMs = Math.max(160, effectMs - halfOutMs);
 
                             // Background transition
-                            if (effect === 'fade' || effect === 'none') {
+                            if (bgEffect === 'fade' || bgEffect === 'none') {
                                 inactive.style.opacity = '0';
                                 inactive.style.transition = `opacity ${effectMs}ms ease-in-out`;
                                 active.style.transition = `opacity ${effectMs}ms ease-in-out`;
@@ -1038,7 +1115,7 @@
                                     }
                                     _state.isTransitioning = false;
                                 }, effectMs + 50);
-                            } else if (effect === 'slide') {
+                            } else if (bgEffect === 'slide') {
                                 // Background: slide left as new slides in from right
                                 inactive.style.opacity = '0';
                                 inactive.style.transform = `translate3d(${slideOffsetPx}px,0,0)`;
