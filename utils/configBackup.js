@@ -1,5 +1,4 @@
 // Utilities for managing configuration backups (create/list/cleanup/restore) and schedule
-const fs = require('fs');
 const fsp = require('fs').promises;
 const path = require('path');
 const { auditLog } = require('./auditLogger');
@@ -21,9 +20,9 @@ const FILE_WHITELIST = [
     '.env',
 ];
 
-function ensureDirSync(dir) {
+async function ensureDir(dir) {
     try {
-        fs.mkdirSync(dir, { recursive: true });
+        await fsp.mkdir(dir, { recursive: true });
     } catch (_) {
         /* ignore mkdir error (race condition not critical) */
     }
@@ -45,17 +44,17 @@ async function statIfExists(filePath) {
 }
 
 async function createBackup(options = {}) {
-    ensureDirSync(BACKUP_DIR);
+    await ensureDir(BACKUP_DIR);
     const id = nowId();
     const dir = path.join(BACKUP_DIR, id);
-    ensureDirSync(dir);
+    await ensureDir(dir);
     const files = [];
     for (const name of FILE_WHITELIST) {
         const src = path.join(ROOT, name);
         const st = await statIfExists(src);
         if (!st || !st.isFile()) continue;
         const dst = path.join(dir, name);
-        ensureDirSync(path.dirname(dst));
+        await ensureDir(path.dirname(dst));
         await fsp.copyFile(src, dst);
         files.push({ name, size: st.size });
     }
@@ -87,7 +86,7 @@ async function createBackup(options = {}) {
 }
 
 async function listBackups() {
-    ensureDirSync(BACKUP_DIR);
+    await ensureDir(BACKUP_DIR);
     const entries = await fsp.readdir(BACKUP_DIR).catch(() => []);
     const items = [];
     for (const id of entries) {
@@ -127,7 +126,7 @@ async function listBackups() {
 }
 
 async function cleanupOldBackups(keep = 5, maxAgeDays = 0) {
-    ensureDirSync(BACKUP_DIR);
+    await ensureDir(BACKUP_DIR);
     const list = await listBackups();
 
     // Determine backups to delete based on count and/or age
@@ -185,12 +184,12 @@ async function restoreFile(backupId, fileName, auditContext) {
     const srcSt = await statIfExists(src);
     if (!srcSt || !srcSt.isFile()) throw new Error('File not found in backup');
     const dst = path.join(ROOT, fileName);
-    ensureDirSync(path.dirname(dst));
+    await ensureDir(path.dirname(dst));
     // Make an implicit safety copy of current file if exists
     const curSt = await statIfExists(dst);
     if (curSt && curSt.isFile()) {
         const safedir = path.join(BACKUP_DIR, `${backupId}-pre-restore`);
-        ensureDirSync(safedir);
+        await ensureDir(safedir);
         try {
             await fsp.copyFile(dst, path.join(safedir, fileName));
         } catch (_) {
