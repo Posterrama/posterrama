@@ -2404,6 +2404,15 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
 });
 
 // Serve static files from public/
+// Some pages or browsers may request /favicon.png; redirect to the canonical favicon.ico
+app.get('/favicon.png', (req, res) => {
+    res.redirect(302, '/favicon.ico');
+});
+
+// iOS/Safari will probe these defaults even if we provide explicit <link rel="apple-touch-icon"> tags.
+app.get(['/apple-touch-icon.png', '/apple-touch-icon-precomposed.png'], (req, res) => {
+    res.redirect(302, '/icons/icon-192x192.png?v=2');
+});
 app.use(express.static(publicDir));
 
 // Block Next.js routes early to prevent MIME type errors from JSON 404 responses
