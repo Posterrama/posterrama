@@ -1007,6 +1007,12 @@ module.exports = function createMediaRouter({
      *         schema:
      *           type: boolean
      *         description: When true, enriches items with trailers and theme music URLs (Plex/Jellyfin only). Note that this adds latency to the request as it fetches additional metadata per item.
+     *       - in: query
+     *         name: mode
+     *         schema:
+     *           type: string
+     *           enum: [cinema]
+     *         description: When set to "cinema", includes cinema-only items (e.g., Local Directory motion posterpacks). Other modes will not receive those items.
      *     responses:
      *       200:
      *         description: Playlist of media items. When includeExtras=true, items include extras array with trailers, trailer object (first trailer for convenience), theme path, and themeUrl for streaming.
@@ -1363,6 +1369,18 @@ module.exports = function createMediaRouter({
 
                 // Apply optional filtering by source
                 let filtered = applySourceFilter(playlistCache, req.query?.source);
+
+                // Motion posterpacks are cinema-only (Local Directory feature).
+                // Only return them when the client explicitly requests cinema mode.
+                const mode = String(req.query?.mode || '').toLowerCase();
+                if (mode !== 'cinema') {
+                    filtered = filtered.filter(item => {
+                        if (!item) return false;
+                        if (item.motionPosterUrl || item.isMotionPoster) return false;
+                        const t = String(item.type || '').toLowerCase();
+                        return t !== 'motion';
+                    });
+                }
 
                 // Exclude games if requested (for screensaver/cinema modes)
                 if (

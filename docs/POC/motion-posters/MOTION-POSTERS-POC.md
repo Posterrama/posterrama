@@ -1,15 +1,60 @@
 # Motion Posters with AI - POC Plan
 
-**Status:** Planning Phase  
-**Target:** Proof of Concept - Depth-based Motion  
+**Status:** Active POC Notes  
+**Target:** CPU-first Proof of Concept (depth-based motion)  
 **Created:** 2025-11-01  
-**Version:** 0.1.0
+**Last Updated:** 2025-12-17  
+**Version:** 0.2.0
 
 ---
 
 ## 🎯 Goal
 
 Develop a locally running system that converts static movie posters into subtly animated "motion posters" using AI, without dependency on external APIs or cloud services.
+
+---
+
+## ✅ Current state in this repo (December 2025)
+
+This POC folder already contains a standalone, CPU-capable prototype:
+
+- `docs/POC/motion-posters/motion-demo.py` (depth → parallax frames → MP4)
+- `docs/POC/motion-posters/motion-demo-requirements.txt`
+
+It intentionally does **not** integrate with Posterrama yet.
+
+Important Posterrama v3 patterns to follow when integrating:
+
+- Routes are typically **factory functions** in `routes/` (dependency injection)
+- Use `asyncHandler` for async route handlers
+- Use `utils/logger.js` (`logger.info`, `logger.error`) instead of `console.*`
+- Prefer existing utilities for caching / safe disk writes where possible
+- Config schema changes must update `config.schema.json`, `config/validators.js`, `config.example.json`, plus tests
+
+---
+
+## 🚀 Fastest way to prove it works (CPU-only, minimal integration)
+
+The fastest “it works” demonstration is: generate a seamless-loop MP4 locally, then play it in a loop (and optionally drop it into the frontend).
+
+1. Install dependencies (CPU) and FFmpeg (recommended)
+2. Generate a motion poster:
+
+```bash
+cd /var/www/posterrama/docs/POC/motion-posters
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r motion-demo-requirements.txt
+sudo apt-get update && sudo apt-get install -y ffmpeg
+python motion-demo.py --input poster.jpg --model midas_small --max-width 1024
+```
+
+3. Validate output:
+
+```bash
+mpv --loop motion-output/motion_poster.mp4
+```
+
+If that looks good, we have validated the core concept (CPU depth → subtle motion → looped video).
 
 ---
 
@@ -48,10 +93,10 @@ Think "cinemagraph" style but fully AI-generated from a static image.
 
 ### User Experience
 
-- Admin panel: "Generate Motion" knop per poster
-- Progress indicator tijdens generatie
-- Queue systeem voor batch processing
-- Fallback naar statische poster bij falen
+- Admin panel: "Generate Motion" button per poster
+- Progress indicator during generation
+- Queue system for batch processing
+- Fallback to static poster on failure
 - Cache management (disk space limits)
 
 ---
@@ -68,14 +113,15 @@ Think "cinemagraph" style but fully AI-generated from a static image.
 - Visually impressive enough to validate concept
 - No complex dependencies
 
-**Tech Stack:**
+**Tech Stack (integration target):**
 
 ```
 ┌─────────────────────────────────────────────────┐
 │  Posterrama Node.js Server (Express)            │
-│  ├─ /api/motion/generate                        │
-│  ├─ /api/motion/status/:jobId                   │
-│  └─ /api/motion/queue                           │
+│  ├─ routes/motion-posters.js (router factory)   │
+│  ├─ /api/admin/motion-posters/generate          │
+│  ├─ /api/admin/motion-posters/status/:jobId     │
+│  └─ /api/admin/motion-posters/queue             │
 └─────────────────┬───────────────────────────────┘
                   │ HTTP/JSON
 ┌─────────────────▼───────────────────────────────┐
@@ -88,9 +134,9 @@ Think "cinemagraph" style but fully AI-generated from a static image.
                   │ File I/O
 ┌─────────────────▼───────────────────────────────┐
 │  Storage                                        │
-│  ├─ media/posters/            (originals)       │
-│  ├─ media/motion/             (generated)       │
-│  └─ cache/motion-jobs.json    (queue state)     │
+│  ├─ image_cache/               (existing)       │
+│  ├─ media/motion/              (generated)      │
+│  └─ cache/motion-jobs.json     (queue state)    │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -302,15 +348,15 @@ function displayMotionPoster(url) {
 
 ### Must Have
 
-- [x] Python service draait lokaal
-- [x] MiDaS model download werkt automatisch
-- [x] Depth map generatie succesvol
-- [x] Video output met parallax effect
-- [x] Seamless loop (geen zichtbare cut)
-- [x] Node.js kan Python service aanroepen
-- [x] Admin panel heeft "Generate" knop
-- [x] Progress tracking werkt
-- [x] Motion poster toont in screensaver mode
+- [x] Python generator runs locally
+- [x] Depth model download works automatically
+- [x] Depth map generation succeeds
+- [x] Video output with parallax effect
+- [x] Seamless loop (no visible cut)
+- [ ] Posterrama can trigger generation (integration)
+- [ ] Admin UI has a "Generate" button (integration)
+- [ ] Progress tracking works (integration)
+- [ ] Motion poster plays in at least one display mode (integration)
 
 ### Nice to Have
 
@@ -339,13 +385,13 @@ function displayMotionPoster(url) {
 - [ ] FastAPI boilerplate
 - [ ] MiDaS integration
 - [ ] Basic depth → parallax pipeline
-- [ ] MP4 output met FFmpeg
+- [ ] MP4 output with FFmpeg
 
 **Day 3-4: Node.js Integration**
 
 - [ ] API endpoints (/api/motion/\*)
-- [ ] Job queue systeem
-- [ ] File storage structuur
+- [ ] Job queue system
+- [ ] File storage structure
 - [ ] Config schema updates
 
 **Day 5: Frontend**
@@ -512,5 +558,5 @@ function displayMotionPoster(url) {
 ---
 
 **Document Owner:** AI Agent + User  
-**Last Updated:** 2025-11-01  
+**Last Updated:** 2025-12-17  
 **Status:** Ready for Review

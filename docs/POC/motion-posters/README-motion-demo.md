@@ -9,7 +9,11 @@ Standalone script to test depth-based motion posters **without** touching Poster
 ### 1. Install Python dependencies
 
 ```bash
-cd /var/www/posterrama/scripts
+cd /var/www/posterrama/docs/POC/motion-posters
+
+# Optional but recommended
+python3 -m venv .venv
+source .venv/bin/activate
 
 # CPU only (works everywhere)
 pip install -r motion-demo-requirements.txt
@@ -19,7 +23,16 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 pip install -r motion-demo-requirements.txt
 ```
 
-**First time:** MiDaS model is automatically downloaded (~100MB)
+### 2. Install FFmpeg (recommended)
+
+The script can encode a browser-friendly H.264 MP4 when `ffmpeg` is available.
+
+```bash
+sudo apt-get update
+sudo apt-get install -y ffmpeg
+```
+
+**First time:** the depth model is automatically downloaded (size depends on the model).
 
 ---
 
@@ -35,7 +48,25 @@ python motion-demo.py --input /path/to/poster.jpg
 python motion-demo.py --input "https://image.tmdb.org/t/p/original/xyz.jpg"
 ```
 
-**Output:** `motion-output/motion_poster.mp4` + `depth_map.png`
+**Output (default):** written under `media/motion/<timestamp>-<name>/`:
+
+```
+media/motion/<timestamp>-<name>/
+├── motion_poster.mp4
+└── depth_map.png
+```
+
+Tip for CPU speed: start with a smaller model and a smaller output width.
+
+```bash
+python motion-demo.py --input poster.jpg --model midas_small --max-width 1024
+```
+
+To override output directory:
+
+```bash
+python motion-demo.py --input poster.jpg --output motion-output
+```
 
 ---
 
@@ -119,7 +150,7 @@ done
 echo "Done! Check motion-output-*/ directories"
 ```
 
-Maak executable en run:
+Make it executable and run:
 
 ```bash
 chmod +x test-multiple.sh
@@ -196,7 +227,7 @@ Use CPU mode (omit `--gpu`) or smaller poster
 
 ### Video doesn't play
 
-Install codec: `apt install libavcodec-extra` (Linux) or use VLC player
+If you want to play it in a browser, install `ffmpeg` and regenerate so it encodes H.264.
 
 ### Poster too large/small
 
@@ -215,10 +246,10 @@ Script scales automatically, but for best results use 1000-2000px width
 
 ### Test cases:
 
-1. **Busy poster** (veel elementen) - Blade Runner
-2. **Simple poster** (groot gezicht) - Persoon close-up
-3. **Landscape poster** (natuur) - Interstellar space
-4. **Dark poster** (weinig licht) - Horror films
+1. **Busy poster** (many elements) - Blade Runner
+2. **Simple poster** (big face) - character close-up
+3. **Landscape poster** (environment) - Interstellar space
+4. **Dark poster** (low light) - horror posters
 
 ### Decide:
 

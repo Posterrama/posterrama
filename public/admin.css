@@ -11328,6 +11328,96 @@ body.page-logs {
         width 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* ===== Local: Posterpack Generation Mode segmented ===== */
+#panel-local #posterpack-mode-group .pp-mode-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin: 0;
+}
+
+#panel-local #posterpack-mode-group .segmented {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-card));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    width: fit-content;
+    position: relative;
+    overflow: visible;
+    font-size: 0.95rem;
+    line-height: 1.2;
+}
+#panel-local #posterpack-mode-group .segmented .seg {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    border-radius: 8px;
+    margin-bottom: 0; /* override .form-group label margin */
+    font-weight: 400; /* override .form-group label weight */
+    transition:
+        background 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease;
+    position: relative;
+    z-index: 1;
+}
+#panel-local #posterpack-mode-group .segmented .seg:hover:not([aria-checked='true']) {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-text-primary);
+}
+#panel-local #posterpack-mode-group .segmented input[type='radio'] {
+    display: none;
+}
+#panel-local #posterpack-mode-group .segmented .seg[aria-checked='true'] {
+    color: var(--color-info-light);
+}
+#panel-local #posterpack-mode-group .segmented .seg-indicator {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    height: calc(100% - 8px);
+    width: 0;
+    border-radius: 8px;
+    background: rgba(59, 130, 246, 0.18);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    pointer-events: none;
+    z-index: 0;
+    transition:
+        left 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        width 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Motion search row sizing/alignment */
+#panel-local #posterpack-motion-section .pp-motion-search {
+    grid-template-columns: minmax(240px, 420px) auto;
+}
+#panel-local #posterpack-motion-section .pp-motion-search-btn {
+    min-height: 34px;
+    padding-left: 14px;
+    padding-right: 14px;
+    border-radius: 10px;
+    width: fit-content;
+    display: inline-flex;
+}
+
+#panel-local #posterpack-motion-status {
+    font-size: 12px;
+    opacity: 0.85;
+    color: var(--color-text-secondary);
+}
+#panel-local #posterpack-motion-status[data-kind='error'] {
+    color: var(--color-danger, #ef4444);
+    opacity: 1;
+}
+
 /* ===== Media Sources tabs (mirror Display segmented control) ===== */
 /* Only style the Source tabs container as a card; leave other categories loose */
 #section-media-sources #sources-tabs {

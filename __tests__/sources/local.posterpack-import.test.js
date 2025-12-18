@@ -41,6 +41,7 @@ describe('LocalDirectorySource posterpack importer', () => {
             'poster.jpg': 'P',
             'background.jpg': 'B',
             'clearlogo.png': 'C',
+            'motion.mp4': Buffer.alloc(128, 0x11),
             'metadata.json': JSON.stringify(meta),
         });
         const zipPath = path.join(root, 'complete', 'manual', 'Test Movie (2024).zip');
@@ -75,7 +76,7 @@ describe('LocalDirectorySource posterpack importer', () => {
         expect(Array.isArray(zipEntry.zipPills)).toBe(true);
         // Should include the assets we added
         expect(zipEntry.zipPills).toEqual(
-            expect.arrayContaining(['poster', 'background', 'clearlogo', 'metadata'])
+            expect.arrayContaining(['poster', 'background', 'clearlogo', 'metadata', 'motion'])
         );
     });
 });

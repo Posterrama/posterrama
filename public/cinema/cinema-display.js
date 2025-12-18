@@ -2539,7 +2539,12 @@
 
         // Set poster URL for blurred background
         if (media) {
-            const posterUrl = media.posterUrl || media.poster_path || '';
+            const posterUrl =
+                media.posterUrl ||
+                media.poster_path ||
+                media.thumbnailUrl ||
+                media.thumbnail_url ||
+                '';
             if (posterUrl) {
                 root.style.setProperty('--cinema-poster-url', `url('${posterUrl}')`);
 
@@ -3134,6 +3139,59 @@
             }
         }
 
+        const motionUrl = media?.motionPosterUrl || media?.motionUrl || null;
+
+        // Ensure motion poster video element is created/removed as needed
+        try {
+            const posterHost = document.getElementById('poster');
+            if (posterHost) {
+                posterHost.style.position = posterHost.style.position || 'relative';
+                let videoEl = document.getElementById('poster-video');
+                if (motionUrl) {
+                    if (!videoEl) {
+                        videoEl = document.createElement('video');
+                        videoEl.id = 'poster-video';
+                        videoEl.muted = true;
+                        videoEl.loop = true;
+                        videoEl.autoplay = true;
+                        videoEl.playsInline = true;
+                        videoEl.preload = 'auto';
+                        videoEl.style.cssText = `
+                            position: absolute;
+                            inset: 0;
+                            width: 100%;
+                            height: 100%;
+                            object-fit: contain;
+                            object-position: center;
+                            z-index: 1;
+                            pointer-events: none;
+                            background: transparent;
+                        `;
+                        posterHost.appendChild(videoEl);
+                    }
+
+                    if (videoEl.src !== motionUrl) {
+                        videoEl.src = motionUrl;
+                    }
+                    const p = videoEl.play();
+                    if (p && typeof p.catch === 'function') {
+                        p.catch(() => {
+                            /* autoplay may be blocked; muted+inline should allow */
+                        });
+                    }
+                } else if (videoEl) {
+                    try {
+                        videoEl.pause();
+                    } catch (_) {
+                        /* ignore */
+                    }
+                    videoEl.remove();
+                }
+            }
+        } catch (_) {
+            /* non-fatal */
+        }
+
         // PROGRESSIVE LOADING: Show thumbnail first, then upgrade to full quality
         const posterEl = document.getElementById('poster');
         let posterSampleUrl = null;
@@ -3162,7 +3220,7 @@
                 mode: cinemaConfig.poster?.cinematicTransitions?.selectionMode,
             });
 
-            // Show low-quality thumbnail immediately
+            // Show low-quality thumbnail immediately (skip blur when motion poster is active)
             const thumbUrl = url.includes('?')
                 ? `${url}&quality=30&width=400`
                 : `${url}?quality=30&width=400`;
@@ -3175,8 +3233,12 @@
             });
 
             posterEl.style.backgroundImage = `url('${thumbUrl}')`;
-            posterEl.style.filter = 'blur(3px)';
-            posterEl.style.transition = 'filter 0.5s ease-out';
+            if (!motionUrl) {
+                posterEl.style.filter = 'blur(3px)';
+                posterEl.style.transition = 'filter 0.5s ease-out';
+            } else {
+                posterEl.style.filter = 'none';
+            }
 
             // Load full quality in background
             const fullImg = new Image();
@@ -4024,7 +4086,7 @@
             const isGamesOnly = wallartMode.gamesOnly === true;
 
             // Build URL with appropriate parameter
-            let url = `/get-media?count=50&type=${encodeURIComponent(type)}`;
+            let url = `/get-media?count=50&type=${encodeURIComponent(type)}&mode=cinema`;
             if (isGamesOnly) {
                 url += '&gamesOnly=true';
             } else {

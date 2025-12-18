@@ -2805,7 +2805,23 @@
             <div class="section-title"><i class="fas fa-archive"></i> Posterpack Generation</div>
           </div>
           <div class="form-grid">
-            <div class="form-group">
+            <div class="form-group" style="grid-column: 1 / -1;" id="posterpack-mode-group">
+              <label style="margin:0 0 8px; font-weight:600; color: var(--color-text-secondary);">Mode</label>
+              <div class="pp-mode-row">
+                <div class="segmented" role="tablist" aria-label="Posterpack Mode">
+                  <label class="seg" role="tab" aria-checked="true" title="Generate posterpacks in bulk">
+                    <input type="radio" name="posterpack.mode" id="posterpack.mode.standard" value="standard" checked>
+                    <i class="fas fa-archive"></i> <span class="seg-text">Standard</span>
+                  </label>
+                  <label class="seg" role="tab" aria-checked="false" title="Generate one motion posterpack ZIP under motion/">
+                    <input type="radio" name="posterpack.mode" id="posterpack.mode.motion" value="motion">
+                    <i class="fas fa-film"></i> <span class="seg-text">Motion</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" id="posterpack-source-group">
               <label for="posterpack.source">Content Source</label>
               <div class="select-wrap has-caret" id="posterpack-source-wrap">
                 <select id="posterpack.source">
@@ -2813,6 +2829,29 @@
                   <option value="jellyfin">Jellyfin</option>
                 </select>
                 <span class="select-caret" aria-hidden="true">▾</span>
+              </div>
+            </div>
+
+            <!-- Motion posterpack: search + select single item (movies/series) -->
+            <div class="form-group" id="posterpack-motion-section" style="grid-column: 1 / -1; display:none;" hidden>
+              <div class="form-subsection">
+                <h4>Pick a Movie or Series</h4>
+                <div class="form-grid pp-motion-search" style="gap: 12px; align-items:end;">
+                  <div class="form-group">
+                    <label for="posterpack.motion.query">Search</label>
+                    <input type="text" id="posterpack.motion.query" class="compact-input" placeholder="Search Plex/Jellyfin movies/series…" />
+                  </div>
+                  <div class="form-group" style="margin-bottom:0;">
+                    <button class="btn btn-secondary btn-sm pp-motion-search-btn" id="posterpack.motion.searchBtn" type="button">
+                      <i class="fas fa-search"></i> Search
+                    </button>
+                  </div>
+                </div>
+
+                <div id="posterpack-motion-status" style="margin-top:8px; display:none;"></div>
+
+                <div id="posterpack-motion-results" style="margin-top:10px;"></div>
+                <div id="posterpack-motion-selected" style="margin-top:10px;"></div>
               </div>
             </div>
             

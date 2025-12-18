@@ -16,6 +16,10 @@ from pathlib import Path
 import urllib.request
 import time
 import math
+import subprocess
+import tempfile
+import shutil
+import re
 
 try:
     import torch
@@ -30,26 +34,45 @@ except ImportError as e:
 
 
 class MotionPosterGenerator:
-    def __init__(self, device='cpu'):
+    def __init__(self, device='cpu', model_key='dpt_hybrid', max_width=1024):
         """Initialize the generator with MiDaS model."""
         self.device = device
+        self.model_key = model_key
+        self.max_width = max_width
         self.model = None
         self.transform = None
         
     def load_model(self):
         """Load MiDaS depth estimation model."""
-        print("📥 Loading MiDaS model (first time will download ~100MB)...")
+        model_map = {
+            # CPU-friendly defaults
+            'midas_small': {'hub_id': 'MiDaS_small', 'transform': 'small'},
+            'dpt_hybrid': {'hub_id': 'DPT_Hybrid', 'transform': 'dpt'},
+            # Highest quality but slowest on CPU
+            'dpt_large': {'hub_id': 'DPT_Large', 'transform': 'dpt'},
+        }
+
+        if self.model_key not in model_map:
+            raise ValueError(f"Unknown model '{self.model_key}'")
+
+        selected = model_map[self.model_key]
+        print(
+            f"📥 Loading MiDaS model '{selected['hub_id']}' (first time will download; CPU speed depends on model)..."
+        )
         start = time.time()
         
         try:
             # Load MiDaS model from torch hub
-            self.model = torch.hub.load("intel-isl/MiDaS", "DPT_Large", trust_repo=True)
+            self.model = torch.hub.load("intel-isl/MiDaS", selected['hub_id'], trust_repo=True)
             self.model.to(self.device)
             self.model.eval()
             
             # Load transforms
             midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms", trust_repo=True)
-            self.transform = midas_transforms.dpt_transform
+            if selected['transform'] == 'small':
+                self.transform = midas_transforms.small_transform
+            else:
+                self.transform = midas_transforms.dpt_transform
             
             elapsed = time.time() - start
             print(f"✅ Model loaded in {elapsed:.1f}s")
@@ -79,8 +102,16 @@ class MotionPosterGenerator:
         
         # Load with PIL
         img = Image.open(input_path).convert('RGB')
-        print(f"   ✓ Loaded {img.size[0]}x{img.size[1]} image")
-        
+
+        # Optional downscale for CPU speed
+        if self.max_width and img.size[0] > self.max_width:
+            target_w = int(self.max_width)
+            target_h = int(img.size[1] * (target_w / img.size[0]))
+            img = img.resize((target_w, target_h), resample=Image.Resampling.LANCZOS)
+            print(f"   ✓ Loaded and scaled to {img.size[0]}x{img.size[1]} image")
+        else:
+            print(f"   ✓ Loaded {img.size[0]}x{img.size[1]} image")
+
         return img, np.array(img)
     
     def estimate_depth(self, image_pil):
@@ -221,23 +252,56 @@ class MotionPosterGenerator:
         """Encode frames to MP4 video."""
         print(f"🎥 Encoding video to {output_path}...")
         start = time.time()
-        
-        height, width = frames[0].shape[:2]
-        
-        # Define codec and create VideoWriter
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-        
-        if not out.isOpened():
-            print("❌ Failed to open video writer")
-            sys.exit(1)
-        
-        for frame in frames:
-            # Convert RGB to BGR for OpenCV
-            frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            out.write(frame_bgr)
-        
-        out.release()
+
+        ffmpeg_path = shutil.which('ffmpeg')
+
+        if ffmpeg_path:
+            # Prefer FFmpeg for browser-friendly H.264 MP4 output
+            with tempfile.TemporaryDirectory(prefix='motion_frames_') as tmp_dir:
+                for idx, frame in enumerate(frames):
+                    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                    frame_path = os.path.join(tmp_dir, f"frame_{idx:05d}.png")
+                    cv2.imwrite(frame_path, frame_bgr)
+
+                cmd = [
+                    ffmpeg_path,
+                    '-y',
+                    '-hide_banner',
+                    '-loglevel',
+                    'error',
+                    '-framerate',
+                    str(int(fps)),
+                    '-i',
+                    os.path.join(tmp_dir, 'frame_%05d.png'),
+                    '-c:v',
+                    'libx264',
+                    '-pix_fmt',
+                    'yuv420p',
+                    '-movflags',
+                    '+faststart',
+                    output_path,
+                ]
+
+                try:
+                    subprocess.run(cmd, check=True)
+                except subprocess.CalledProcessError:
+                    print("❌ FFmpeg encoding failed")
+                    sys.exit(1)
+        else:
+            # Fallback: OpenCV mp4v (often fine for local players, not always browser-friendly)
+            height, width = frames[0].shape[:2]
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+            if not out.isOpened():
+                print("❌ Failed to open video writer")
+                sys.exit(1)
+
+            for frame in frames:
+                frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                out.write(frame_bgr)
+
+            out.release()
         
         elapsed = time.time() - start
         file_size_mb = os.path.getsize(output_path) / (1024 * 1024)
@@ -285,6 +349,38 @@ class MotionPosterGenerator:
         print(f"   or open in your video player\n")
 
 
+def _find_repo_root(start_dir):
+    """Find Posterrama repo root by walking up until package.json + server.js exist."""
+    cur = os.path.abspath(start_dir)
+    while True:
+        if os.path.exists(os.path.join(cur, 'package.json')) and os.path.exists(os.path.join(cur, 'server.js')):
+            return cur
+        parent = os.path.dirname(cur)
+        if parent == cur:
+            return os.path.abspath(start_dir)
+        cur = parent
+
+
+def _slugify(text):
+    text = str(text or '').strip().lower()
+    text = re.sub(r'[^a-z0-9]+', '-', text)
+    return text.strip('-') or 'poster'
+
+
+def _auto_output_dir(input_path):
+    repo_root = _find_repo_root(os.path.dirname(__file__))
+    motion_root = os.path.join(repo_root, 'media', 'motion')
+
+    if input_path.startswith('http://') or input_path.startswith('https://'):
+        base = 'url'
+    else:
+        base = Path(input_path).stem
+
+    safe_base = _slugify(base)
+    stamp = time.strftime('%Y%m%d-%H%M%S')
+    return os.path.join(motion_root, f"{stamp}-{safe_base}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Generate motion posters with depth-based parallax',
@@ -313,8 +409,8 @@ Effects:
     
     parser.add_argument('--input', '-i', required=True,
                         help='Input image path or URL')
-    parser.add_argument('--output', '-o', default='motion-output',
-                        help='Output directory (default: motion-output)')
+    parser.add_argument('--output', '-o', default='auto',
+                        help='Output directory. Use "auto" to write under media/motion (default: auto)')
     parser.add_argument('--effect', '-e', choices=['parallax', 'zoom', 'sway'],
                         default='parallax', help='Motion effect type')
     parser.add_argument('--duration', '-d', type=float, default=4.0,
@@ -323,6 +419,11 @@ Effects:
                         help='Frames per second (default: 24)')
     parser.add_argument('--intensity', type=float, default=1.0,
                         help='Effect intensity multiplier (default: 1.0)')
+    parser.add_argument('--model', choices=['midas_small', 'dpt_hybrid', 'dpt_large'],
+                        default='dpt_hybrid',
+                        help='Depth model (default: dpt_hybrid). CPU fastest: midas_small')
+    parser.add_argument('--max-width', type=int, default=1024,
+                        help='Downscale input for speed (default: 1024). 0 disables scaling')
     parser.add_argument('--gpu', action='store_true',
                         help='Use GPU if available')
     
@@ -337,10 +438,17 @@ Effects:
         print("🖥️  Using CPU (add --gpu to use GPU if available)")
     
     # Generate
-    generator = MotionPosterGenerator(device=device)
+    max_width = args.max_width if args.max_width and args.max_width > 0 else 0
+    generator = MotionPosterGenerator(device=device, model_key=args.model, max_width=max_width)
+
+    output_dir = args.output
+    if not output_dir or str(output_dir).strip().lower() == 'auto':
+        output_dir = _auto_output_dir(args.input)
+        print(f"📁 Auto output directory: {output_dir}")
+
     generator.generate(
         input_path=args.input,
-        output_dir=args.output,
+        output_dir=output_dir,
         effect=args.effect,
         duration=args.duration,
         fps=args.fps,

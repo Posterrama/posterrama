@@ -1239,6 +1239,156 @@ app.get(
 );
 
 /**
+ * Stream assets from a folder-based local "pack" (used for motion posterpacks).
+ * This avoids enabling arbitrary /local-media serving while still allowing cinema devices to play videos.
+ *
+ * Example:
+ *   /local-folderpack?dir=motion/My%20Movie%20(2024)&entry=motion
+ */
+app.get(
+    '/local-folderpack',
+    // @ts-ignore - Express router overload with asyncHandler
+    asyncHandler(async (req, res) => {
+        try {
+            if (!config.localDirectory?.enabled || !localDirectorySource) {
+                return res.status(404).send('Local directory support not enabled');
+            }
+
+            const entryKey = String(req.query.entry || '').toLowerCase();
+            let dirRel = String(req.query.dir || '').trim();
+            try {
+                if (/%[0-9A-Fa-f]{2}/.test(dirRel)) dirRel = decodeURIComponent(dirRel);
+            } catch (_) {
+                /* ignore */
+            }
+
+            if (!dirRel || !entryKey) return res.status(400).send('Missing parameters');
+
+            // Security: prevent traversal and absolute paths
+            if (
+                dirRel.includes('..') ||
+                dirRel.startsWith('/') ||
+                dirRel.startsWith('\\') ||
+                /^[a-zA-Z]:/.test(dirRel)
+            ) {
+                return res.status(400).send('Invalid dir path');
+            }
+
+            // Restrict to motion/* packs only (cinema-only feature)
+            const dirRelNorm = dirRel.replace(/\\/g, '/').replace(/^\/+/, '');
+            if (!dirRelNorm.toLowerCase().startsWith('motion/')) {
+                return res.status(400).send('Invalid pack directory');
+            }
+
+            const allowed = new Set(['motion', 'poster', 'thumbnail', 'background', 'metadata']);
+            if (!allowed.has(entryKey)) return res.status(400).send('Invalid entry type');
+
+            const bases = Array.isArray(localDirectorySource.rootPaths)
+                ? localDirectorySource.rootPaths
+                : [localDirectorySource.rootPath].filter(Boolean);
+
+            // Resolve pack directory against configured bases
+            let packDirFull = null;
+            for (const base of bases) {
+                const full = path.resolve(base, dirRelNorm);
+                const withinBase = full === base || (full + path.sep).startsWith(base + path.sep);
+                if (!withinBase) continue;
+                try {
+                    const st = await fsp.stat(full);
+                    if (st.isDirectory()) {
+                        packDirFull = full;
+                        break;
+                    }
+                } catch (_) {
+                    /* try next base */
+                }
+            }
+
+            if (!packDirFull) return res.status(404).send('Pack directory not found');
+
+            const entries = await fsp.readdir(packDirFull, { withFileTypes: true }).catch(() => []);
+            const fileNames = entries.filter(e => e.isFile()).map(e => e.name);
+
+            const pickByPatterns = patterns => {
+                for (const re of patterns) {
+                    const found = fileNames.find(n => re.test(n));
+                    if (found) return found;
+                }
+                return null;
+            };
+
+            let filename = null;
+            if (entryKey === 'metadata') {
+                filename = pickByPatterns([/^metadata\.json$/i]);
+            } else if (entryKey === 'motion') {
+                filename = pickByPatterns([
+                    /^(motion)\.(mp4|webm|m4v|mov|mkv|avi)$/i,
+                    /^(poster)\.(mp4|webm|m4v|mov|mkv|avi)$/i,
+                ]);
+                if (!filename) {
+                    filename = pickByPatterns([/\.(mp4|webm|m4v|mov|mkv|avi)$/i]);
+                }
+            } else if (entryKey === 'background') {
+                filename = pickByPatterns([
+                    /^(background|backdrop)\.(jpg|jpeg|png|webp)$/i,
+                    /\.(jpg|jpeg|png|webp)$/i,
+                ]);
+            } else {
+                // poster/thumbnail
+                filename = pickByPatterns([
+                    /^(thumb|thumbnail)\.(jpg|jpeg|png|webp)$/i,
+                    /^poster\.(jpg|jpeg|png|webp)$/i,
+                    /\.(jpg|jpeg|png|webp)$/i,
+                ]);
+            }
+
+            if (!filename) return res.status(404).send('Entry not found in folder');
+
+            const fileFull = path.join(packDirFull, filename);
+            const st = await fsp.stat(fileFull).catch(() => null);
+            if (!st?.isFile()) return res.status(404).send('Entry not found');
+
+            const mime = require('mime-types');
+            const ctype = mime.lookup(fileFull) || 'application/octet-stream';
+            res.setHeader('Content-Type', ctype);
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+
+            const size = st.size;
+            const range = req.headers.range;
+
+            // Range support for video/audio
+            if (range && /^bytes=\d*-\d*$/.test(range)) {
+                const [startStr, endStr] = range.replace(/bytes=/, '').split('-');
+                const start = startStr ? parseInt(startStr, 10) : 0;
+                const end = endStr ? parseInt(endStr, 10) : size - 1;
+                const safeStart = Number.isFinite(start) ? Math.max(0, start) : 0;
+                const safeEnd = Number.isFinite(end) ? Math.min(size - 1, end) : size - 1;
+                if (safeStart > safeEnd || safeStart >= size) {
+                    res.setHeader('Content-Range', `bytes */${size}`);
+                    return res.sendStatus(416);
+                }
+
+                res.status(206);
+                res.setHeader('Accept-Ranges', 'bytes');
+                res.setHeader('Content-Range', `bytes ${safeStart}-${safeEnd}/${size}`);
+                res.setHeader('Content-Length', safeEnd - safeStart + 1);
+                fs.createReadStream(fileFull, { start: safeStart, end: safeEnd }).pipe(res);
+                return;
+            }
+
+            res.setHeader('Content-Length', size);
+            fs.createReadStream(fileFull).pipe(res);
+        } catch (err) {
+            logger.error('[Local Folderpack] Failed to stream entry', {
+                error: err?.message || String(err),
+                stack: err?.stack,
+            });
+            return res.status(500).send('Internal server error');
+        }
+    })
+);
+
+/**
  * @swagger
  * /local-posterpack:
  *   get:
@@ -1260,7 +1410,7 @@ app.get(
  *         required: true
  *         schema:
  *           type: string
- *           enum: [poster, background, clearlogo, thumbnail, banner]
+ *           enum: [poster, background, clearlogo, thumbnail, banner, motion, trailer, theme]
  *         description: Type of asset to extract from ZIP
  *         example: poster
  *     responses:
@@ -1322,6 +1472,7 @@ app.get(
                 'clearlogo',
                 'thumbnail',
                 'banner',
+                'motion',
                 'trailer',
                 'theme',
             ]);
@@ -1373,7 +1524,7 @@ app.get(
 
             // Preferred extensions order based on entry type
             let exts;
-            if (entryKey === 'trailer') {
+            if (entryKey === 'trailer' || entryKey === 'motion') {
                 exts = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v'];
             } else if (entryKey === 'theme') {
                 exts = ['mp3', 'flac', 'wav', 'ogg', 'm4a', 'aac'];
@@ -1416,6 +1567,35 @@ app.get(
             const ctype = mime.lookup(target.entryName) || 'application/octet-stream';
             res.setHeader('Content-Type', ctype);
             res.setHeader('Cache-Control', 'public, max-age=86400');
+
+            // Support HTTP Range for video/audio entries (required for motion posters)
+            const wantsRange =
+                typeof req.headers.range === 'string' &&
+                (entryKey === 'motion' || entryKey === 'trailer' || entryKey === 'theme');
+            if (wantsRange) {
+                const size = data.length;
+                const range = req.headers.range;
+                const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+                if (!match) {
+                    res.setHeader('Content-Range', `bytes */${size}`);
+                    return res.status(416).end();
+                }
+                const start = match[1] ? parseInt(match[1], 10) : 0;
+                const end = match[2] ? parseInt(match[2], 10) : size - 1;
+                const safeStart = Number.isFinite(start) ? start : 0;
+                const safeEnd = Number.isFinite(end) ? end : size - 1;
+                if (safeStart >= size || safeStart > safeEnd) {
+                    res.setHeader('Content-Range', `bytes */${size}`);
+                    return res.status(416).end();
+                }
+                const finalEnd = Math.min(safeEnd, size - 1);
+                res.status(206);
+                res.setHeader('Accept-Ranges', 'bytes');
+                res.setHeader('Content-Range', `bytes ${safeStart}-${finalEnd}/${size}`);
+                res.setHeader('Content-Length', finalEnd - safeStart + 1);
+                return res.end(data.subarray(safeStart, finalEnd + 1));
+            }
+
             res.setHeader('Content-Length', data.length);
             return res.end(data);
         } catch (err) {
@@ -1465,6 +1645,7 @@ app.head(
                 'clearlogo',
                 'thumbnail',
                 'banner',
+                'motion',
                 'trailer',
                 'theme',
             ]);
@@ -1510,7 +1691,7 @@ app.head(
 
             // Check extensions based on entry type
             let exts;
-            if (entryKey === 'trailer') {
+            if (entryKey === 'trailer' || entryKey === 'motion') {
                 exts = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v'];
             } else if (entryKey === 'theme') {
                 exts = ['mp3', 'flac', 'wav', 'ogg', 'm4a', 'aac'];
@@ -2340,6 +2521,8 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
             'wallart/artist-cards.js',
             'wallart/film-cards.js',
             'wallart/wallart.css',
+            'admin.js',
+            'admin.css',
             'core.js',
             'lazy-loading.js',
             'device-mgmt.js',
@@ -2391,6 +2574,10 @@ app.get(['/wallart', '/wallart.html'], (req, res) => {
                 `/client-logger.js?v=${versions['client-logger.js'] || ASSET_VERSION}`
             )
             .replace(
+                /\/admin\.css\?v=\{\{ASSET_VERSION\}\}/g,
+                `/admin.css?v=${versions['admin.css'] || ASSET_VERSION}`
+            )
+            .replace(
                 /\/admin\.js\?v=\{\{ASSET_VERSION\}\}/g,
                 `/admin.js?v=${versions['admin.js'] || ASSET_VERSION}`
             );
@@ -2413,7 +2600,22 @@ app.get('/favicon.png', (req, res) => {
 app.get(['/apple-touch-icon.png', '/apple-touch-icon-precomposed.png'], (req, res) => {
     res.redirect(302, '/icons/icon-192x192.png?v=2');
 });
-app.use(express.static(publicDir));
+app.use(
+    express.static(publicDir, {
+        setHeaders: (res, _path) => {
+            try {
+                const url = res.req?.url || '';
+                if (/[?&](v|cb)=/.test(url)) {
+                    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+                    res.setHeader('Pragma', 'no-cache');
+                    res.setHeader('Expires', '0');
+                }
+            } catch {
+                // ignore
+            }
+        },
+    })
+);
 
 // Block Next.js routes early to prevent MIME type errors from JSON 404 responses
 // These routes are injected by browser extensions, service workers, or stale caches
@@ -2426,15 +2628,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// Ensure cache-busted assets are not cached by proxies and mark as must-revalidate
-app.use((req, res, next) => {
-    if (/[?&]v=|[?&]cb=/.test(req.url)) {
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-    }
-    next();
-});
+// NOTE: cache-busted static assets are handled via express.static setHeaders above.
 app.use(express.urlencoded({ extended: true })); // For parsing form data
 app.use(express.json({ limit: '10mb' })); // For parsing JSON payloads
 
@@ -7611,7 +7805,22 @@ if (require.main === module) {
         });
 
         // Serve static files (CSS, JS, etc.) - use built version in production
-        siteApp.use(express.static(publicDir));
+        siteApp.use(
+            express.static(publicDir, {
+                setHeaders: (res, _path) => {
+                    try {
+                        const url = res.req?.url || '';
+                        if (/[?&](v|cb)=/.test(url)) {
+                            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+                            res.setHeader('Pragma', 'no-cache');
+                            res.setHeader('Expires', '0');
+                        }
+                    } catch {
+                        // ignore
+                    }
+                },
+            })
+        );
 
         // Fallback for unmatched routes - redirect to root
         /**

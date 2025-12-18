@@ -135,6 +135,7 @@
         "eslint": "^9.39.1",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-prettier": "^5.5.4",
+        "ffmpeg-static": "^5.3.0",
         "glob": "^11.0.3",
         "jest": "^29.7.0",
         "nock": "^13.5.6",

@@ -115,6 +115,22 @@ class LocalDirectorySource {
     }
 
     /**
+     * Helper: test if a filepath is inside the configured motion directory.
+     * Motion posterpacks live under <root>/motion as ZIP files.
+     */
+    isInMotionDirectory(filePath) {
+        try {
+            const p = path.resolve(filePath);
+            return this.rootPaths.some(base => {
+                const motionDir = path.resolve(base, this.directories.motion);
+                return (p + path.sep).startsWith(motionDir + path.sep) || p === motionDir;
+            });
+        } catch (_) {
+            return false;
+        }
+    }
+
+    /**
      * Import all posterpack ZIPs from complete/*-export and manual folders into posters/backgrounds
      * Best-effort and idempotent: skips if destination files already exist.
      */
@@ -193,6 +209,41 @@ class LocalDirectorySource {
         }
 
         try {
+            // Motion movie posterpacks are ZIP-based under motion/*.zip, with metadata explicitly
+            // marking them as motion packs. Folder packs are a backward-compat fallback.
+            if (type === 'motion') {
+                let zipFiles = [];
+                try {
+                    zipFiles = await this.scanMotionZipPosterpacks();
+                } catch (e) {
+                    logger.warn(
+                        `LocalDirectorySource: Failed to scan ZIP motion posterpacks: ${e?.message}`
+                    );
+                }
+
+                if (Array.isArray(zipFiles) && zipFiles.length) {
+                    const items = zipFiles
+                        .slice(0, count)
+                        .map(f => this.createMotionZipPosterpackMediaItem(f));
+                    this.updateMetrics();
+                    logger.debug(
+                        `LocalDirectorySource: Returned ${items.length} items for type motion (ZIP packs)`
+                    );
+                    return items;
+                }
+
+                // Backward compatibility: folder-based motion packs under motion/<Movie Name>/...
+                const packs = await this.scanMotionPosterpacks();
+                const items = packs
+                    .slice(0, count)
+                    .map(p => this.createMotionPosterpackMediaItem(p));
+                this.updateMetrics();
+                logger.debug(
+                    `LocalDirectorySource: Returned ${items.length} items for type motion (folder packs fallback)`
+                );
+                return items;
+            }
+
             // Determine target directory based on type
             const targetDirectory = this.getDirectoryForType(type);
             if (!targetDirectory) {
@@ -203,8 +254,7 @@ class LocalDirectorySource {
             // Scan directory for native files (images/videos)
             const files = await this.scanDirectory(targetDirectory);
 
-            // Augment with ZIP-based poster/background assets from complete/manual without extraction
-            // We only consider manual posterpacks to avoid mass duplicates from generated exports.
+            // Augment with ZIP-based poster/background assets from complete/* without extraction
             if (type === 'poster' || type === 'background') {
                 try {
                     const zipFiles = await this.scanZipPosterpacks(type);
@@ -302,6 +352,153 @@ class LocalDirectorySource {
     }
 
     /**
+     * Scan for motion posterpacks in motion/<Movie Name>/ folders.
+     * Each folder can contain:
+     * - motion.(mp4|webm|m4v|mov|mkv|avi)
+     * - poster.(jpg|jpeg|png|webp) or thumbnail.(jpg|jpeg|png|webp) (optional)
+     * - background.(jpg|jpeg|png|webp) (optional)
+     * - metadata.json (optional, posterpack-style)
+     */
+    async scanMotionPosterpacks() {
+        const results = [];
+        const videoExts = ['mp4', 'webm', 'm4v', 'mov', 'mkv', 'avi'];
+        const imageExts = ['jpg', 'jpeg', 'png', 'webp'];
+
+        for (const base of this.rootPaths) {
+            const motionRoot = path.join(base, this.directories.motion);
+            if (!(await fs.pathExists(motionRoot))) continue;
+
+            let entries = [];
+            try {
+                entries = await fs.readdir(motionRoot, { withFileTypes: true });
+            } catch (e) {
+                logger.debug(
+                    `LocalDirectorySource: Failed to read motion directory ${motionRoot}: ${e?.message}`
+                );
+                continue;
+            }
+
+            for (const ent of entries) {
+                if (!ent.isDirectory()) continue;
+                if (ent.name === this.directories.system) continue;
+
+                const packDir = path.join(motionRoot, ent.name);
+                let packEntries = [];
+                try {
+                    packEntries = await fs.readdir(packDir, { withFileTypes: true });
+                } catch (_) {
+                    continue;
+                }
+
+                const fileNames = packEntries.filter(e => e.isFile()).map(e => e.name);
+
+                const findFirstByNames = (baseNames, exts) => {
+                    for (const bn of baseNames) {
+                        for (const ext of exts) {
+                            const re = new RegExp(`^${bn}\\.${ext}$`, 'i');
+                            const candidate = fileNames.find(n => re.test(n));
+                            if (candidate) return candidate;
+                        }
+                    }
+                    return null;
+                };
+
+                const motionName = findFirstByNames(['motion', 'poster'], videoExts);
+                if (!motionName) continue;
+
+                const posterName = findFirstByNames(['poster'], imageExts);
+                const thumbnailName =
+                    findFirstByNames(['thumb', 'thumbnail'], imageExts) || posterName;
+                const backgroundName = findFirstByNames(['background', 'backdrop'], imageExts);
+
+                const metadataPath = path.join(packDir, 'metadata.json');
+                let metadata = null;
+                try {
+                    if (await fs.pathExists(metadataPath)) {
+                        metadata = await fs.readJson(metadataPath).catch(() => null);
+                    }
+                } catch (_) {
+                    metadata = null;
+                }
+
+                const motionFullPath = path.join(packDir, motionName);
+                const st = await fs.stat(motionFullPath).catch(() => null);
+                const modified = st?.mtime ? new Date(st.mtime) : new Date();
+
+                results.push({
+                    name: ent.name,
+                    base,
+                    packDir,
+                    relativeDir: path.relative(base, packDir).replace(/\\/g, '/'),
+                    motionFile: motionName,
+                    posterFile: posterName,
+                    thumbnailFile: thumbnailName,
+                    backgroundFile: backgroundName,
+                    metadata,
+                    modified,
+                });
+            }
+        }
+
+        // Newest first for deterministic behavior (callers may shuffle later)
+        results.sort((a, b) => (b.modified?.getTime?.() || 0) - (a.modified?.getTime?.() || 0));
+        return results;
+    }
+
+    createMotionPosterpackMediaItem(pack) {
+        const meta = pack?.metadata && typeof pack.metadata === 'object' ? pack.metadata : {};
+        const title = meta.title || meta.name || meta.originalTitle || pack.name;
+        const year = meta.year || meta.releaseYear || meta.releasedYear || null;
+
+        const slugify = s =>
+            String(s || '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .slice(0, 120);
+
+        const encodedDir = encodeURIComponent(pack.relativeDir);
+        const motionPosterUrl = `/local-folderpack?dir=${encodedDir}&entry=motion`;
+        const posterUrl = pack.thumbnailFile
+            ? `/local-folderpack?dir=${encodedDir}&entry=thumbnail`
+            : null;
+        const backgroundUrl = pack.backgroundFile
+            ? `/local-folderpack?dir=${encodedDir}&entry=background`
+            : null;
+
+        return {
+            title,
+            year,
+            // Maintain existing item schema used by clients
+            poster: posterUrl,
+            posterUrl,
+            background: backgroundUrl,
+            backgroundUrl,
+            motionPosterUrl,
+            isMotionPoster: true,
+            type: 'motion',
+            source: 'local',
+            sourceId: meta.sourceId || `local-motion-${slugify(title)}-${year || ''}`,
+            key: `local-motion-${slugify(title)}-${year || ''}`,
+            metadata: {
+                ...meta,
+                overview: meta.overview || meta.summary || null,
+                tagline: meta.tagline || null,
+                genre: meta.genres || meta.genre || [],
+            },
+            usage: {
+                cinema: true,
+                wallart: false,
+                screensaver: false,
+            },
+            // Local directory specific fields
+            localPath: pack.packDir,
+            directory: this.directories.motion,
+            extension: 'dir',
+        };
+    }
+
+    /**
      * Scan complete/manual for posterpack ZIPs that contain the requested entry type
      * Returns synthetic file records representing poster/background items backed by ZIP entries
      * @param {('poster'|'background')} type
@@ -325,9 +522,147 @@ class LocalDirectorySource {
         }
     }
 
+    /**
+     * Determine whether a parsed metadata.json marks a ZIP as a motion movie posterpack.
+     * This is intentionally strict so we don't accidentally treat normal posterpacks as motion.
+     * @param {any} meta
+     * @returns {boolean}
+     */
+    isMotionZipMetadata(meta) {
+        if (!meta || typeof meta !== 'object') return false;
+        const packType = String(
+            meta.packType || meta.pack || meta.kind || meta.type || ''
+        ).toLowerCase();
+        const mediaType = String(
+            meta.mediaType || meta.media_kind || meta.media || ''
+        ).toLowerCase();
+        const isMotion =
+            meta.isMotionPoster === true ||
+            meta.motionPoster === true ||
+            packType.includes('motion') ||
+            packType === 'motion-movie' ||
+            packType === 'motionposter';
+
+        // "movie" is preferred but not strictly required if the metadata is clearly motion.
+        const isMovie =
+            mediaType === 'movie' || packType.includes('movie') || meta.isMovie === true;
+        return Boolean(isMotion && (isMovie || packType.includes('motion')));
+    }
+
+    /**
+     * Scan motion/ for ZIP-based motion movie posterpacks.
+     * A motion ZIP pack must include poster.* + motion.* and must be explicitly flagged in metadata.json.
+     *
+     * @returns {Promise<Array<{name:string,path:string,size:number,modified:Date,extension:string,directory:string,type:string,zipHas:any,zipMetadata:any}>>}
+     */
+    async scanMotionZipPosterpacks() {
+        const results = [];
+        const imageExts = ['jpg', 'jpeg', 'png', 'webp'];
+        const videoExts = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v'];
+        const seen = new Set(); // de-dup by basename
+
+        for (const base of this.rootPaths) {
+            const motionRoot = path.join(base, this.directories.motion);
+            if (!(await fs.pathExists(motionRoot))) continue;
+
+            let entries = [];
+            try {
+                entries = await fs.readdir(motionRoot, { withFileTypes: true });
+            } catch (e) {
+                logger.debug(
+                    `LocalDirectorySource: Failed to read motion ZIP directory ${motionRoot}: ${e?.message}`
+                );
+                continue;
+            }
+
+            for (const ent of entries) {
+                if (!ent.isFile()) continue;
+                if (!/\.zip$/i.test(ent.name)) continue;
+                const baseName = ent.name.replace(/\.zip$/i, '');
+                if (seen.has(baseName)) continue;
+
+                const zipFull = path.join(motionRoot, ent.name);
+                try {
+                    const zip = new AdmZip(zipFull);
+                    const zipEntries = zip.getEntries();
+                    const has = {
+                        poster: false,
+                        background: false,
+                        thumbnail: false,
+                        clearlogo: false,
+                        trailer: false,
+                        theme: false,
+                        motion: false,
+                    };
+
+                    for (const ext of imageExts) {
+                        const rePoster = new RegExp(`(^|/)poster\\.${ext}$`, 'i');
+                        const reBg = new RegExp(`(^|/)background\\.${ext}$`, 'i');
+                        const reThumb = new RegExp(`(^|/)(thumb|thumbnail)\\.${ext}$`, 'i');
+                        const reClearLogo = new RegExp(`(^|/)clearlogo\\.${ext}$`, 'i');
+                        if (zipEntries.some(e => rePoster.test(e.entryName))) has.poster = true;
+                        if (zipEntries.some(e => reBg.test(e.entryName))) has.background = true;
+                        if (zipEntries.some(e => reThumb.test(e.entryName))) has.thumbnail = true;
+                        if (zipEntries.some(e => reClearLogo.test(e.entryName)))
+                            has.clearlogo = true;
+                    }
+                    for (const ext of videoExts) {
+                        const reTrailer = new RegExp(`(^|/)trailer\\.${ext}$`, 'i');
+                        if (zipEntries.some(e => reTrailer.test(e.entryName))) {
+                            has.trailer = true;
+                            break;
+                        }
+                    }
+                    for (const ext of videoExts) {
+                        const reMotion = new RegExp(`(^|/)motion\\.${ext}$`, 'i');
+                        if (zipEntries.some(e => reMotion.test(e.entryName))) {
+                            has.motion = true;
+                            break;
+                        }
+                    }
+                    const audioExts = ['mp3', 'flac', 'wav', 'ogg', 'm4a', 'aac'];
+                    for (const ext of audioExts) {
+                        const reTheme = new RegExp(`(^|/)theme\\.${ext}$`, 'i');
+                        if (zipEntries.some(e => reTheme.test(e.entryName))) {
+                            has.theme = true;
+                            break;
+                        }
+                    }
+
+                    const zipMeta = this.readZipMetadata(zip);
+                    const isMotion = Boolean(
+                        has.poster && has.motion && this.isMotionZipMetadata(zipMeta)
+                    );
+                    if (!isMotion) continue;
+
+                    const st = await fs.stat(zipFull);
+                    results.push({
+                        name: ent.name,
+                        path: zipFull,
+                        size: st.size,
+                        modified: st.mtime,
+                        extension: 'zip',
+                        directory: this.directories.motion,
+                        type: 'motion',
+                        zipHas: has,
+                        zipMetadata: zipMeta,
+                    });
+                    seen.add(baseName);
+                } catch (e) {
+                    logger.debug(
+                        `LocalDirectorySource: Failed to inspect motion ZIP ${zipFull}: ${e?.message}`
+                    );
+                }
+            }
+        }
+
+        results.sort((a, b) => (b.modified?.getTime?.() || 0) - (a.modified?.getTime?.() || 0));
+        return results;
+    }
+
     async scanZipPosterpacks(type) {
         const results = [];
-        const want = type === 'background' ? 'background' : 'poster';
+        const want = type === 'background' ? 'background' : type === 'motion' ? 'motion' : 'poster';
         const exts = ['jpg', 'jpeg', 'png', 'webp'];
         // Priority order: manual > plex-export > jellyfin-export
         const subdirs = ['manual', 'plex-export', 'jellyfin-export'];
@@ -363,6 +698,7 @@ class LocalDirectorySource {
                             clearlogo: false,
                             trailer: false,
                             theme: false,
+                            motion: false,
                         };
                         for (const ext of exts) {
                             const rePoster = new RegExp(`(^|/)poster\\.${ext}$`, 'i');
@@ -385,6 +721,14 @@ class LocalDirectorySource {
                                 break;
                             }
                         }
+                        // Check for motion poster video
+                        for (const ext of videoExts) {
+                            const reMotion = new RegExp(`(^|/)motion\\.${ext}$`, 'i');
+                            if (zipEntries.some(e => reMotion.test(e.entryName))) {
+                                has.motion = true;
+                                break;
+                            }
+                        }
                         // Check for theme music (audio files)
                         const audioExts = ['mp3', 'flac', 'wav', 'ogg', 'm4a', 'aac'];
                         for (const ext of audioExts) {
@@ -394,18 +738,34 @@ class LocalDirectorySource {
                                 break;
                             }
                         }
-                        found = has[want];
-                        if (!found) continue;
                         const st = await fs.stat(zipFull);
                         // Read metadata from ZIP if available
                         const zipMeta = this.readZipMetadata(zip);
+
+                        // Selection criteria
+                        if (want === 'motion') {
+                            // Motion movie posterpack must include poster + motion and must be explicitly flagged by metadata.
+                            found = Boolean(
+                                has.poster && has.motion && this.isMotionZipMetadata(zipMeta)
+                            );
+                        } else {
+                            found = has[want];
+                        }
+
+                        if (!found) continue;
+
                         results.push({
                             name: ent.name,
                             path: zipFull,
                             size: st.size,
                             modified: st.mtime,
                             extension: 'zip',
-                            directory: want === 'background' ? 'backgrounds' : 'posters',
+                            directory:
+                                want === 'background'
+                                    ? 'backgrounds'
+                                    : want === 'motion'
+                                      ? 'motion'
+                                      : 'posters',
                             type: want,
                             zipHas: has,
                             zipMetadata: zipMeta, // Store metadata for use in createMediaItem
@@ -425,6 +785,75 @@ class LocalDirectorySource {
             );
         }
         return results;
+    }
+
+    /**
+     * Build a cinema-only motion media item from a ZIP posterpack record.
+     * @param {{path:string, directory:string, type:string, zipHas?:any, zipMetadata?:any}} file
+     */
+    createMotionZipPosterpackMediaItem(file) {
+        const zipMeta =
+            file?.zipMetadata && typeof file.zipMetadata === 'object' ? file.zipMetadata : {};
+        const title =
+            zipMeta.title || zipMeta.name || zipMeta.originalTitle || path.parse(file.path).name;
+        const year = zipMeta.year || zipMeta.releaseYear || zipMeta.releasedYear || null;
+
+        const slugify = s =>
+            String(s || '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .slice(0, 120);
+
+        // Build relative zip path against first matching root
+        let rel = file.path;
+        for (const base of this.rootPaths) {
+            const candidate = path.relative(base, file.path);
+            if (!candidate.startsWith('..')) {
+                rel = candidate;
+                break;
+            }
+        }
+        const relUrlPath = rel.replace(/\\/g, '/');
+        const encodedZip = encodeURIComponent(relUrlPath);
+
+        const posterUrl = `/local-posterpack?zip=${encodedZip}&entry=poster`;
+        const motionPosterUrl = `/local-posterpack?zip=${encodedZip}&entry=motion`;
+        const backgroundUrl = file.zipHas?.background
+            ? `/local-posterpack?zip=${encodedZip}&entry=background`
+            : null;
+        const thumbnailUrl = file.zipHas?.thumbnail
+            ? `/local-posterpack?zip=${encodedZip}&entry=thumbnail`
+            : posterUrl;
+
+        return {
+            title,
+            year,
+            poster: thumbnailUrl,
+            posterUrl: thumbnailUrl,
+            background: backgroundUrl,
+            backgroundUrl,
+            motionPosterUrl,
+            isMotionPoster: true,
+            type: 'motion',
+            source: 'local',
+            sourceId: zipMeta.sourceId || `local-motion-zip-${slugify(title)}-${year || ''}`,
+            key: `local-motion-zip-${slugify(title)}-${year || ''}`,
+            metadata: {
+                ...zipMeta,
+                overview: zipMeta.overview || zipMeta.summary || null,
+                tagline: zipMeta.tagline || null,
+                genre: zipMeta.genres || zipMeta.genre || [],
+            },
+            usage: {
+                cinema: true,
+                wallart: false,
+                screensaver: false,
+            },
+            localPath: file.path,
+            directory: this.directories.motion,
+            extension: 'zip',
+        };
     }
 
     /**
@@ -579,6 +1008,31 @@ class LocalDirectorySource {
             const directories = [];
             const files = [];
 
+            const motionRootAbs = path.join(base, this.directories.motion);
+            const isBrowsingMotionRoot = path.resolve(targetPath) === path.resolve(motionRootAbs);
+
+            const summarizeMotionPack = async dirName => {
+                const pills = [];
+                const packPath = path.join(targetPath, dirName);
+                let entries;
+                try {
+                    entries = await fs.readdir(packPath, { withFileTypes: true });
+                } catch (_) {
+                    return null;
+                }
+                const fileNames = entries.filter(e => e.isFile()).map(e => e.name);
+                const has = re => fileNames.some(n => re.test(n));
+                if (has(/^metadata\.json$/i)) pills.push('metadata');
+                if (has(/^(motion|poster)\.(mp4|webm|m4v|mov|mkv|avi)$/i)) pills.push('motion');
+                if (
+                    has(/^poster\.(jpg|jpeg|png|webp)$/i) ||
+                    has(/^(thumb|thumbnail)\.(jpg|jpeg|png|webp)$/i)
+                )
+                    pills.push('thumbnail');
+                if (has(/^(background|backdrop)\.(jpg|jpeg|png|webp)$/i)) pills.push('background');
+                return pills.length ? pills : null;
+            };
+
             for (const item of items) {
                 try {
                     if (item.isDirectory()) {
@@ -601,7 +1055,12 @@ class LocalDirectorySource {
                                     )}: ${e?.message}`
                                 );
                             }
-                            directories.push({ name: item.name, sizeBytes, itemCount });
+                            const dirEntry = { name: item.name, sizeBytes, itemCount };
+                            if (isBrowsingMotionRoot) {
+                                const dirPills = await summarizeMotionPack(item.name);
+                                if (dirPills) dirEntry.dirPills = dirPills;
+                            }
+                            directories.push(dirEntry);
                         }
                     } else if (item.isSymbolicLink()) {
                         // Include symlinked directories
@@ -622,7 +1081,12 @@ class LocalDirectorySource {
                                     `LocalDirectorySource: Failed to compute symlinked dir size for ${linkPath}: ${e?.message}`
                                 );
                             }
-                            directories.push({ name: item.name, sizeBytes, itemCount });
+                            const dirEntry = { name: item.name, sizeBytes, itemCount };
+                            if (isBrowsingMotionRoot) {
+                                const dirPills = await summarizeMotionPack(item.name);
+                                if (dirPills) dirEntry.dirPills = dirPills;
+                            }
+                            directories.push(dirEntry);
                         }
                     } else if (item.isFile()) {
                         // Hide generated metadata files from listings
@@ -638,7 +1102,10 @@ class LocalDirectorySource {
                                 // If this is a ZIP inside complete/*, summarize its contents
                                 if (/\.zip$/i.test(item.name)) {
                                     const fullZip = path.join(targetPath, item.name);
-                                    if (this.isInCompleteExport(fullZip)) {
+                                    if (
+                                        this.isInCompleteExport(fullZip) ||
+                                        this.isInMotionDirectory(fullZip)
+                                    ) {
                                         try {
                                             const zip = new AdmZip(fullZip);
                                             const entries = zip
@@ -673,6 +1140,8 @@ class LocalDirectorySource {
                                                 zipPills.push('cd');
                                             if (has(/(^|\/)trailer\.(mp4|mkv|avi|mov|webm|m4v)$/i))
                                                 zipPills.push('trailer');
+                                            if (has(/(^|\/)motion\.(mp4|mkv|avi|mov|webm|m4v)$/i))
+                                                zipPills.push('motion');
                                             if (has(/(^|\/)theme\.(mp3|flac|wav|ogg|m4a|aac)$/i))
                                                 zipPills.push('theme');
                                         } catch (e) {
