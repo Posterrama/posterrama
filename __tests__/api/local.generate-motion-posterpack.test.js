@@ -5,6 +5,7 @@ const request = require('supertest');
 const AdmZip = require('adm-zip');
 
 const LocalDirectorySource = require('../../sources/local');
+const JobQueue = require('../../utils/job-queue');
 
 const {
     createMockAdminAuth,
@@ -45,7 +46,13 @@ describe('POST /api/local/generate-motion-posterpack', () => {
             asyncHandler: createMockAsyncHandler,
             isAuthenticated: createMockAdminAuth(true),
             localDirectorySource,
-            jobQueue: null,
+            jobQueue: new JobQueue({
+                localDirectory: {
+                    enabled: true,
+                    rootPath: tempRoot,
+                    posterpackGeneration: {},
+                },
+            }),
             uploadMiddleware: null,
             cacheManager: null,
             refreshPlaylistCache: async () => {},
@@ -66,7 +73,7 @@ describe('POST /api/local/generate-motion-posterpack', () => {
         }
     });
 
-    test('creates a motion ZIP under motion/ with required entries and motion metadata', async () => {
+    test('queues a motion job and produces a motion ZIP under motion/', async () => {
         const res = await request(app)
             .post('/api/local/generate-motion-posterpack')
             .send({
@@ -78,11 +85,26 @@ describe('POST /api/local/generate-motion-posterpack', () => {
                 options: { overwrite: true, testMode: true },
             });
 
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(202);
         expect(res.body).toMatchObject({ success: true });
-        expect(typeof res.body.zipPath).toBe('string');
+        expect(typeof res.body.jobId).toBe('string');
 
-        const zipPath = res.body.zipPath;
+        const jobId = res.body.jobId;
+
+        let job = null;
+        for (let i = 0; i < 50; i++) {
+            const jr = await request(app).get(`/api/local/motion-jobs/${jobId}`);
+            expect(jr.status).toBe(200);
+            job = jr.body;
+            if (job.status === 'completed' || job.status === 'failed') break;
+            await new Promise(r => setTimeout(r, 25));
+        }
+
+        expect(job).toBeTruthy();
+        expect(job.status).toBe('completed');
+        expect(typeof job.results?.zipPath).toBe('string');
+
+        const zipPath = job.results.zipPath;
         expect(await fs.pathExists(zipPath)).toBe(true);
         expect(zipPath).toContain(`${path.sep}motion${path.sep}`);
 

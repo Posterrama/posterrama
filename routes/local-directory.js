@@ -23,6 +23,15 @@ module.exports = function createLocalDirectoryRouter({
 
     const archiver = require('archiver');
 
+    // Allow the shared JobQueue to refresh UI/media caches after background jobs finish.
+    try {
+        if (jobQueue && typeof jobQueue.setCacheHooks === 'function') {
+            jobQueue.setCacheHooks({ cacheManager, refreshPlaylistCache });
+        }
+    } catch (_) {
+        // non-fatal
+    }
+
     const parsePositiveInt = (value, fallback, { min = 1, max = Number.MAX_SAFE_INTEGER } = {}) => {
         const n = Number.parseInt(String(value ?? ''), 10);
         if (!Number.isFinite(n)) return fallback;
@@ -51,49 +60,6 @@ module.exports = function createLocalDirectoryRouter({
     };
 
     const zipJoin = (...parts) => parts.filter(Boolean).join('/').replace(/\\/g, '/');
-
-    const safeZipBaseName = name => {
-        return String(name || '')
-            .replace(/[\\/:*?"<>|]/g, '-')
-            .replace(/\s+/g, ' ')
-            .trim()
-            .slice(0, 180);
-    };
-
-    const resolveFfmpegBinary = () => {
-        try {
-            // Prefer bundled ffmpeg if available
-
-            const ffmpegPath = require('ffmpeg-static');
-            if (ffmpegPath) return ffmpegPath;
-        } catch (_) {
-            /* ignore */
-        }
-        // Fallback to system ffmpeg in PATH
-        return 'ffmpeg';
-    };
-
-    const spawnPromise = (cmd, args, { cwd } = {}) => {
-        return new Promise((resolve, reject) => {
-            const { spawn } = require('child_process');
-            const child = spawn(cmd, args, {
-                cwd,
-                stdio: ['ignore', 'pipe', 'pipe'],
-            });
-            let stderr = '';
-            child.stderr.on('data', d => (stderr += d.toString()));
-            child.on('error', err => {
-                err.stderr = stderr;
-                reject(err);
-            });
-            child.on('close', code => {
-                if (code === 0) return resolve({ stderr });
-                const err = new Error(`Command failed: ${cmd} ${args.join(' ')} (exit ${code})`);
-                err.stderr = stderr;
-                reject(err);
-            });
-        });
-    };
 
     const withinBasePath = (baseDir, candidatePath) => {
         const base = path.resolve(baseDir);
@@ -992,65 +958,33 @@ module.exports = function createLocalDirectoryRouter({
             return res.status(404).json({ error: 'Local directory support not enabled' });
         }
 
-        uploadMiddleware(req, res, err => {
-            if (err) {
-                logger.error('Upload error:', err);
-                if (err.code === 'LIMIT_FILE_SIZE') {
-                    return res.status(400).json({ error: 'File size too large' });
-                } else if (err.code === 'INVALID_FILE_TYPE') {
-                    return res.status(400).json({ error: err.message });
-                }
-                return res.status(500).json({ error: err.message });
-            }
+        // Nudge playlist/media cache after response if at least one file was accepted.
+        // We hook finish so the upload handler can decide validity and respond first.
+        res.once('finish', () => {
             try {
-                const uploadedFiles = req.files || [];
-                const targetDirectory =
-                    req.body?.targetDirectory || req.query?.targetDirectory || 'posters';
-                const targetPath = req.uploadTargetPath || '';
-
-                if (!uploadedFiles.length) {
-                    return res.status(400).json({ success: false, error: 'No files uploaded' });
-                }
-
-                logger.info(
-                    `Upload completed: ${uploadedFiles.length} files to ${targetDirectory} (${targetPath})`
-                );
-
-                const payload = {
-                    success: true,
-                    uploadedFiles: uploadedFiles.map(file => ({
-                        filename: file.filename,
-                        originalName: file.originalname,
-                        size: file.size,
-                        path: file.path,
-                    })),
-                    targetDirectory,
-                    targetPath,
-                };
-
-                // Nudge playlist/media cache so UI pills and screensaver pick up new files immediately
-                try {
+                if (res.locals?.uploadedCount > 0) {
                     if (cacheManager && typeof cacheManager.clear === 'function') {
                         cacheManager.clear('media');
                     }
-                    // Fire-and-forget refresh (does its own locking); do not block upload response
                     Promise.resolve(refreshPlaylistCache()).catch(err => {
-                        // Non-fatal: background refresh is best-effort after upload
                         logger.debug(
                             'refreshPlaylistCache after upload failed (ignored):',
                             err?.message || err
                         );
                     });
-                } catch (e) {
-                    // Non-fatal: cache nudge after upload failed; upload still considered successful
-                    logger.debug('Post-upload cache nudge failed (ignored):', e?.message || e);
                 }
-
-                res.json(payload);
             } catch (e) {
-                logger.error('Upload post-processing error:', e);
-                res.status(500).json({ success: false, error: 'Upload processing failed' });
+                logger.debug('Post-upload cache nudge failed (ignored):', e?.message || e);
             }
+        });
+
+        uploadMiddleware(req, res, err => {
+            if (err) {
+                const { handleUploadError } = require('../middleware/fileUpload');
+                return handleUploadError(err, req, res, () => {});
+            }
+            const { handleUploadComplete } = require('../middleware/fileUpload');
+            return handleUploadComplete(req, res, () => {});
         });
     });
 
@@ -1275,8 +1209,10 @@ module.exports = function createLocalDirectoryRouter({
         // @ts-ignore
         isAuthenticated,
         asyncHandler(async (req, res) => {
-            if (!config.localDirectory?.enabled || !localDirectorySource) {
-                return res.status(404).json({ error: 'Local directory support not enabled' });
+            if (!config.localDirectory?.enabled || !jobQueue) {
+                return res
+                    .status(404)
+                    .json({ error: 'Local directory support or job queue not available' });
             }
 
             const {
@@ -1302,152 +1238,114 @@ module.exports = function createLocalDirectoryRouter({
                 });
             }
 
-            const width = Number.isFinite(Number(options.width)) ? Number(options.width) : 720;
-            const height = Number.isFinite(Number(options.height)) ? Number(options.height) : 1080;
-            const seconds = Number.isFinite(Number(options.seconds))
-                ? Math.max(1, Number(options.seconds))
-                : 8;
-            const overwrite = options.overwrite === true;
-            const testMode = options.testMode === true || process.env.NODE_ENV === 'test';
-
-            // Pick output root (first configured base)
-            const baseRoot =
-                Array.isArray(localDirectorySource.rootPaths) && localDirectorySource.rootPaths[0]
-                    ? localDirectorySource.rootPaths[0]
-                    : localDirectorySource.rootPath;
-            const motionDir = path.resolve(baseRoot, localDirectorySource.directories.motion);
-            await fs.ensureDir(motionDir);
-
-            const y = Number.isFinite(Number(year)) ? Number(year) : null;
-            const zipBaseName = safeZipBaseName(`${t}${y ? ` (${y})` : ''}`) || safeZipBaseName(t);
-            const zipPath = path.join(motionDir, `${zipBaseName}.zip`);
-            const exists = await fs.pathExists(zipPath);
-            if (exists && !overwrite) {
-                return res.status(409).json({ error: 'Motion posterpack already exists', zipPath });
-            }
-
-            // Fetch poster image via the server itself (posterUrl is usually /image?...)
             const origin = `${req.protocol}://${req.get('host')}`;
             const abs = isRelative ? new URL(pu, origin).toString() : pu;
 
-            let posterBytes;
-            try {
-                const resp = await fetch(abs);
-                if (!resp.ok) {
-                    return res
-                        .status(502)
-                        .json({ error: 'Failed to fetch poster', status: resp.status });
-                }
-                const arr = await resp.arrayBuffer();
-                posterBytes = Buffer.from(arr);
-            } catch (e) {
-                logger.error('[Motion Posterpack] Poster fetch failed', {
-                    url: abs,
-                    error: e?.message || String(e),
-                });
-                return res.status(502).json({ error: 'Failed to fetch poster' });
-            }
+            const jobId = await jobQueue.addMotionPosterpackJob({
+                key: key || null,
+                title: t,
+                year: Number.isFinite(Number(year)) ? Number(year) : null,
+                mediaType: mt,
+                posterUrl: pu,
+                posterUrlAbs: abs,
+                options: options || {},
+            });
 
-            const os = require('os');
-            const fsp = require('fs/promises');
-            const sharp = require('sharp');
-            const AdmZip = require('adm-zip');
-
-            const workDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'posterrama-motiongen-'));
-            const posterPathOnDisk = path.join(workDir, 'poster.jpg');
-            const thumbPathOnDisk = path.join(workDir, 'thumbnail.jpg');
-            const motionPathOnDisk = path.join(workDir, 'motion.mp4');
-            const metaPathOnDisk = path.join(workDir, 'metadata.json');
-
-            try {
-                // Normalize poster image
-                await sharp(posterBytes)
-                    .resize(width, height, { fit: 'cover' })
-                    .jpeg({ quality: 88, mozjpeg: true })
-                    .toFile(posterPathOnDisk);
-                await fsp.copyFile(posterPathOnDisk, thumbPathOnDisk);
-
-                const metadata = {
-                    packType: 'motion',
-                    mediaType: mt,
-                    isMotionPoster: true,
-                    title: t,
-                    year: y,
-                    sourceKey: key || null,
-                    posterUrl: pu,
-                    createdAt: new Date().toISOString(),
-                };
-                await fsp.writeFile(metaPathOnDisk, JSON.stringify(metadata, null, 2), 'utf8');
-
-                if (testMode) {
-                    await fsp.writeFile(motionPathOnDisk, Buffer.alloc(1024, 0x11));
-                } else {
-                    const ffmpegBin = resolveFfmpegBinary();
-                    const fps = 30;
-                    const totalFrames = Math.max(1, Math.round(seconds * fps));
-                    await spawnPromise(ffmpegBin, [
-                        '-y',
-                        '-hide_banner',
-                        '-loglevel',
-                        'error',
-                        '-loop',
-                        '1',
-                        '-i',
-                        posterPathOnDisk,
-                        '-t',
-                        String(seconds),
-                        '-vf',
-                        [
-                            `scale=${width}:${height}:force_original_aspect_ratio=increase`,
-                            `crop=${width}:${height}`,
-                            `zoompan=z='min(zoom+0.0007,1.06)':d=1:x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':s=${width}x${height}:fps=${fps}`,
-                            'format=yuv420p',
-                        ].join(','),
-                        '-frames:v',
-                        String(totalFrames),
-                        '-c:v',
-                        'libx264',
-                        '-pix_fmt',
-                        'yuv420p',
-                        '-movflags',
-                        '+faststart',
-                        motionPathOnDisk,
-                    ]);
-                }
-
-                const zip = new AdmZip();
-                zip.addFile('poster.jpg', await fsp.readFile(posterPathOnDisk));
-                zip.addFile('thumbnail.jpg', await fsp.readFile(thumbPathOnDisk));
-                zip.addFile('motion.mp4', await fsp.readFile(motionPathOnDisk));
-                zip.addFile('metadata.json', await fsp.readFile(metaPathOnDisk));
-                zip.writeZip(zipPath);
-
-                // Nudge caches/UI
-                try {
-                    if (cacheManager && typeof cacheManager.clear === 'function') {
-                        cacheManager.clear('media');
-                    }
-                    Promise.resolve(refreshPlaylistCache()).catch(() => {});
-                } catch (_) {
-                    /* ignore */
-                }
-
-                return res.json({ success: true, zipPath });
-            } catch (e) {
-                logger.error('[Motion Posterpack] Generation failed', {
-                    error: e?.message || String(e),
-                    stderr: e?.stderr,
-                });
-                return res.status(500).json({ error: 'Motion posterpack generation failed' });
-            } finally {
-                try {
-                    await fsp.rm(workDir, { recursive: true, force: true });
-                } catch (_) {
-                    /* ignore */
-                }
-            }
+            return res.status(202).json({
+                success: true,
+                jobId,
+                message: 'Motion posterpack generation job queued',
+            });
         })
     );
+
+    // Motion job API (thin wrapper around JobQueue)
+    router.post(
+        '/api/local/motion-jobs',
+        express.json(),
+        // @ts-ignore
+        isAuthenticated,
+        asyncHandler(async (req, res) => {
+            if (!config.localDirectory?.enabled || !jobQueue) {
+                return res
+                    .status(404)
+                    .json({ error: 'Local directory support or job queue not available' });
+            }
+
+            const {
+                key = null,
+                title,
+                year = null,
+                mediaType = 'movie',
+                posterUrl,
+                options = {},
+            } = req.body || {};
+
+            const t = String(title || '').trim();
+            const pu = String(posterUrl || '').trim();
+            const mt = String(mediaType || '').toLowerCase() === 'series' ? 'series' : 'movie';
+
+            if (!t) return res.status(400).json({ error: 'title is required' });
+            if (!pu) return res.status(400).json({ error: 'posterUrl is required' });
+
+            const isRelative = pu.startsWith('/');
+            const isAbsolute = /^https?:\/\//i.test(pu) || /^data:/i.test(pu);
+            if (!isRelative && !isAbsolute) {
+                return res.status(400).json({
+                    error: 'posterUrl must be a relative URL starting with /, or an absolute http(s)/data: URL',
+                });
+            }
+
+            const origin = `${req.protocol}://${req.get('host')}`;
+            const abs = isRelative ? new URL(pu, origin).toString() : pu;
+            const jobId = await jobQueue.addMotionPosterpackJob({
+                key: key || null,
+                title: t,
+                year: Number.isFinite(Number(year)) ? Number(year) : null,
+                mediaType: mt,
+                posterUrl: pu,
+                posterUrlAbs: abs,
+                options: options || {},
+            });
+
+            return res.status(202).json({ success: true, jobId });
+        })
+    );
+
+    router.get('/api/local/motion-jobs/:jobId', (req, res) => {
+        if (!jobQueue) {
+            return res.status(404).json({ error: 'Job queue not available' });
+        }
+        const { jobId } = req.params;
+        const job = jobQueue.getJob(jobId);
+        if (!job || job.type !== 'motion-posterpack') {
+            return res.status(404).json({ error: 'Job not found' });
+        }
+        return res.json(job);
+    });
+
+    router.get('/api/local/motion-jobs', (req, res) => {
+        if (!jobQueue) {
+            return res.status(404).json({ error: 'Job queue not available' });
+        }
+        const { status } = req.query;
+        const jobs = jobQueue.getAllJobs(status).filter(j => j && j.type === 'motion-posterpack');
+        return res.json({ jobs });
+    });
+
+    router.post('/api/local/motion-jobs/:jobId/cancel', (req, res) => {
+        if (!jobQueue) {
+            return res.status(404).json({ error: 'Job queue not available' });
+        }
+        const { jobId } = req.params;
+        const job = jobQueue.getJob(jobId);
+        if (!job || job.type !== 'motion-posterpack') {
+            return res.status(404).json({ error: 'Job not found' });
+        }
+        const cancelled = jobQueue.cancelJob(jobId);
+        if (cancelled) return res.json({ success: true });
+        return res.status(400).json({ error: 'Job cannot be cancelled', status: job.status });
+    });
 
     /**
      * @swagger

@@ -28006,7 +28006,34 @@ if (!document.__niwDelegatedFallback) {
                     // Update view while keeping handlers intact
                     refreshDirectorySafe(true);
                 } else {
-                    showNotification(result.message || 'Upload failed', 'error');
+                    const hasSomeUploads =
+                        Array.isArray(result.uploadedFiles) && result.uploadedFiles.length > 0;
+                    const baseMessage = result.message || result.error || 'Upload failed';
+                    const firstError =
+                        Array.isArray(result.errors) && result.errors.length > 0
+                            ? result.errors[0]
+                            : null;
+                    const errorDetail = firstError
+                        ? `${firstError.file ? `${firstError.file}: ` : ''}${firstError.error || ''}`
+                        : '';
+
+                    if (hasSomeUploads) {
+                        const td = result.targetDirectory || targetDirectory;
+                        showNotification(
+                            `Uploaded ${result.uploadedFiles.length} file(s) to ${td}`,
+                            'success'
+                        );
+                        if (errorDetail) {
+                            showNotification(`${baseMessage} (${errorDetail})`, 'error');
+                        } else {
+                            showNotification(baseMessage, 'error');
+                        }
+                        refreshDirectorySafe(true);
+                    } else if (errorDetail) {
+                        showNotification(`${baseMessage} (${errorDetail})`, 'error');
+                    } else {
+                        showNotification(baseMessage, 'error');
+                    }
                 }
             })
             .catch(error => {
@@ -28928,6 +28955,9 @@ if (!document.__niwDelegatedFallback) {
             (async () => {
                 const ok = [];
                 const failed = [];
+
+                const sleep = ms => new Promise(r => setTimeout(r, ms));
+
                 try {
                     for (let i = 0; i < queue.length; i++) {
                         const item = queue[i];
@@ -28957,7 +28987,7 @@ if (!document.__niwDelegatedFallback) {
                             continue;
                         }
 
-                        const res = await fetch('/api/local/generate-motion-posterpack', {
+                        const res = await fetch('/api/local/motion-jobs', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -28969,13 +28999,65 @@ if (!document.__niwDelegatedFallback) {
                             }),
                         });
                         const data = await res.json().catch(() => null);
-                        if (!res.ok || !data?.success) {
+                        if (!res.ok || !data?.success || !data?.jobId) {
                             failed.push({
                                 title: title || 'Untitled',
                                 error: data?.error || data?.message || `HTTP ${res.status}`,
                             });
                         } else {
-                            ok.push(title || 'Untitled');
+                            const jobId = data.jobId;
+                            // Poll until completion/failure
+                            const start = Date.now();
+                            while (Date.now() - start <= 2 * 60 * 1000) {
+                                const { status, pct, lastLog, job } = await (async () => {
+                                    const r = await fetch(
+                                        `/api/local/motion-jobs/${encodeURIComponent(jobId)}`
+                                    );
+                                    const j = await r.json().catch(() => null);
+                                    if (!r.ok || !j) {
+                                        throw new Error(
+                                            j?.error ||
+                                                `Failed to fetch job status (HTTP ${r.status})`
+                                        );
+                                    }
+                                    const st = String(j.status || '');
+                                    const p = Number.isFinite(Number(j.progress))
+                                        ? Number(j.progress)
+                                        : null;
+                                    const ll =
+                                        Array.isArray(j.logs) && j.logs.length
+                                            ? String(j.logs[j.logs.length - 1])
+                                            : null;
+                                    return { status: st, pct: p, lastLog: ll, job: j };
+                                })();
+
+                                const pctText = pct == null ? '' : ` (${Math.round(pct)}%)`;
+                                const logText = lastLog ? ` — ${lastLog}` : '';
+                                setMotionSearchStatus(
+                                    `Generating ${i + 1}/${queue.length}: ${title}${year ? ` (${year})` : ''}${pctText}${logText}`,
+                                    'info'
+                                );
+
+                                if (status === 'completed') {
+                                    ok.push(title || 'Untitled');
+                                    break;
+                                }
+                                if (status === 'failed' || status === 'cancelled') {
+                                    failed.push({
+                                        title: title || 'Untitled',
+                                        error: job?.error || status,
+                                    });
+                                    break;
+                                }
+                                await sleep(750);
+                            }
+
+                            if (Date.now() - start > 2 * 60 * 1000) {
+                                failed.push({
+                                    title: title || 'Untitled',
+                                    error: 'Timed out waiting for job',
+                                });
+                            }
                         }
                     }
 

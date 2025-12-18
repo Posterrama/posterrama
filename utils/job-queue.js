@@ -47,6 +47,14 @@ class JobQueue extends EventEmitter {
     }
 
     /**
+     * Inject cache hooks so background jobs can refresh UI/media caches after creating artifacts.
+     * @param {{cacheManager?: any, refreshPlaylistCache?: Function}} hooks
+     */
+    setCacheHooks(hooks) {
+        this.cacheHooks = hooks || null;
+    }
+
+    /**
      * Add a posterpack generation job to the queue
      * @param {string} sourceType - 'plex' or 'jellyfin'
      * @param {Array} libraryIds - Array of library IDs
@@ -95,6 +103,57 @@ class JobQueue extends EventEmitter {
         } catch (_) {
             // ignore logger init failures
         }
+
+        // Emit job added event
+        this.emit('jobAdded', job);
+
+        // Start processing if we're under the concurrent limit
+        this.processNextJob();
+
+        return jobId;
+    }
+
+    /**
+     * Add a motion posterpack generation job to the queue.
+     * @param {{
+     *   key?: string|null,
+     *   title: string,
+     *   year?: number|null,
+     *   mediaType?: 'movie'|'series',
+     *   posterUrl: string,
+     *   posterUrlAbs: string,
+     *   options?: any,
+     * }} payload
+     * @returns {Promise<string>} Job ID
+     */
+    async addMotionPosterpackJob(payload) {
+        const jobId = this.generateJobId();
+        const job = {
+            id: jobId,
+            type: 'motion-posterpack',
+            status: 'queued',
+            progress: 0,
+            totalItems: 1,
+            processedItems: 0,
+            created: new Date(),
+            started: null,
+            completed: null,
+            results: null,
+            error: null,
+            logs: [],
+            motion: {
+                key: payload?.key || null,
+                title: payload?.title,
+                year: payload?.year ?? null,
+                mediaType: payload?.mediaType === 'series' ? 'series' : 'movie',
+                posterUrl: payload?.posterUrl,
+                posterUrlAbs: payload?.posterUrlAbs,
+                options: payload?.options || {},
+            },
+        };
+
+        this.jobs.set(jobId, job);
+        logger.info(`JobQueue: Added job ${jobId}`, { type: job.type, title: payload?.title });
 
         // Emit job added event
         this.emit('jobAdded', job);
@@ -196,6 +255,9 @@ class JobQueue extends EventEmitter {
                 case 'posterpack-generation':
                     await this.processPosterpackGeneration(job);
                     break;
+                case 'motion-posterpack':
+                    await this.processMotionPosterpack(job);
+                    break;
                 default:
                     throw new Error(`Unknown job type: ${job.type}`);
             }
@@ -223,6 +285,22 @@ class JobQueue extends EventEmitter {
                 });
 
             this.emit('jobCompleted', job);
+
+            // Best-effort cache refresh for jobs that create media artifacts.
+            try {
+                if (job.type === 'motion-posterpack' || job.type === 'posterpack-generation') {
+                    const cm = this.cacheHooks?.cacheManager;
+                    const rpc = this.cacheHooks?.refreshPlaylistCache;
+                    if (cm && typeof cm.clear === 'function') {
+                        cm.clear('media');
+                    }
+                    if (typeof rpc === 'function') {
+                        Promise.resolve(rpc()).catch(() => {});
+                    }
+                }
+            } catch (_) {
+                // non-fatal
+            }
         } catch (error) {
             // Mark job as failed
             job.status = 'failed';
@@ -629,6 +707,210 @@ class JobQueue extends EventEmitter {
                 p95ItemMs: p95,
                 throughputItemsPerSec: throughput,
             });
+        }
+    }
+
+    /**
+     * Process a motion posterpack job.
+     * @param {any} job
+     */
+    async processMotionPosterpack(job) {
+        const safeZipBaseName = name => {
+            return String(name || '')
+                .replace(/[\\/:*?"<>|]/g, '-')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 180);
+        };
+
+        const resolveFfmpegBinary = () => {
+            try {
+                const ffmpegPath = require('ffmpeg-static');
+                if (ffmpegPath) return ffmpegPath;
+            } catch (_) {
+                /* ignore */
+            }
+            return 'ffmpeg';
+        };
+
+        const spawnPromise = (cmd, args, { cwd } = {}) => {
+            return new Promise((resolve, reject) => {
+                const { spawn } = require('child_process');
+                const child = spawn(cmd, args, {
+                    cwd,
+                    stdio: ['ignore', 'pipe', 'pipe'],
+                });
+                let stderr = '';
+                child.stderr.on('data', d => (stderr += d.toString()));
+                child.on('error', err => {
+                    err.stderr = stderr;
+                    reject(err);
+                });
+                child.on('close', code => {
+                    if (code === 0) return resolve({ stderr });
+                    const err = new Error(
+                        `Command failed: ${cmd} ${args.join(' ')} (exit ${code})`
+                    );
+                    err.stderr = stderr;
+                    reject(err);
+                });
+            });
+        };
+
+        const update = (pct, msg) => {
+            if (Number.isFinite(pct)) job.progress = Math.max(0, Math.min(100, pct));
+            if (msg) job.logs.push(String(msg));
+            this.emit('jobProgress', job);
+        };
+
+        const m = job.motion || {};
+        const t = String(m.title || '').trim();
+        const mt = String(m.mediaType || 'movie').toLowerCase() === 'series' ? 'series' : 'movie';
+        const y = Number.isFinite(Number(m.year)) ? Number(m.year) : null;
+        const posterUrlAbs = String(m.posterUrlAbs || '').trim();
+        const posterUrlOriginal = String(m.posterUrl || '').trim();
+        const options = m.options || {};
+
+        if (!t) throw new Error('title is required');
+        if (!posterUrlAbs) throw new Error('posterUrlAbs is required');
+
+        const width = Number.isFinite(Number(options.width)) ? Number(options.width) : 720;
+        const height = Number.isFinite(Number(options.height)) ? Number(options.height) : 1080;
+        const seconds = Number.isFinite(Number(options.seconds))
+            ? Math.max(1, Number(options.seconds))
+            : 8;
+        const overwrite = options.overwrite === true;
+        const testMode = options.testMode === true || process.env.NODE_ENV === 'test';
+
+        const rootPath =
+            Array.isArray(this.config?.localDirectory?.rootPath) &&
+            this.config.localDirectory.rootPath.length
+                ? this.config.localDirectory.rootPath[0]
+                : this.config?.localDirectory?.rootPath || path.resolve(process.cwd(), 'media');
+
+        const motionDir = path.resolve(rootPath, 'motion');
+        await fs.ensureDir(motionDir);
+
+        const zipBaseName = safeZipBaseName(`${t}${y ? ` (${y})` : ''}`) || safeZipBaseName(t);
+        const zipPath = path.join(motionDir, `${zipBaseName}.zip`);
+        const exists = await fs.pathExists(zipPath);
+        if (exists && !overwrite) {
+            const err = new Error('Motion posterpack already exists');
+            err.zipPath = zipPath;
+            throw err;
+        }
+
+        if (!sharp) {
+            throw new Error('sharp is required to generate motion posterpacks');
+        }
+
+        update(2, `Preparing motion posterpack for ${t}${y ? ` (${y})` : ''}`);
+
+        let posterBytes;
+        if (/^data:/i.test(posterUrlAbs)) {
+            update(5, 'Decoding data URL');
+            const m1 = posterUrlAbs.match(/^data:([^,]*),(.*)$/i);
+            if (!m1) throw new Error('Invalid data URL');
+            const meta = m1[1] || '';
+            const data = m1[2] || '';
+            const isB64 = /;base64/i.test(meta);
+            posterBytes = Buffer.from(data, isB64 ? 'base64' : 'utf8');
+        } else {
+            update(5, 'Downloading poster');
+            const resp = await axios.get(posterUrlAbs, {
+                responseType: 'arraybuffer',
+                timeout: Number(process.env.MOTION_POSTER_FETCH_TIMEOUT_MS) || 30000,
+                validateStatus: s => s >= 200 && s < 300,
+            });
+            posterBytes = Buffer.from(resp.data);
+        }
+
+        const fsp = require('fs/promises');
+        const osTmp = os.tmpdir();
+        const AdmZip = require('adm-zip');
+        const workDir = await fsp.mkdtemp(path.join(osTmp, 'posterrama-motionjob-'));
+        const posterPathOnDisk = path.join(workDir, 'poster.jpg');
+        const thumbPathOnDisk = path.join(workDir, 'thumbnail.jpg');
+        const motionPathOnDisk = path.join(workDir, 'motion.mp4');
+        const metaPathOnDisk = path.join(workDir, 'metadata.json');
+
+        try {
+            update(20, 'Normalizing poster');
+            await sharp(posterBytes)
+                .resize(width, height, { fit: 'cover' })
+                .jpeg({ quality: 88, mozjpeg: true })
+                .toFile(posterPathOnDisk);
+            await fsp.copyFile(posterPathOnDisk, thumbPathOnDisk);
+
+            update(30, 'Writing metadata');
+            const metadata = {
+                packType: 'motion',
+                mediaType: mt,
+                isMotionPoster: true,
+                title: t,
+                year: y,
+                sourceKey: m.key || null,
+                posterUrl: posterUrlOriginal,
+                posterUrlAbs: posterUrlAbs,
+                createdAt: new Date().toISOString(),
+            };
+            await fsp.writeFile(metaPathOnDisk, JSON.stringify(metadata, null, 2), 'utf8');
+
+            if (testMode) {
+                update(60, 'Generating motion video (testMode)');
+                await fsp.writeFile(motionPathOnDisk, Buffer.alloc(1024, 0x11));
+            } else {
+                update(60, 'Generating motion video');
+                const ffmpegBin = resolveFfmpegBinary();
+                const fps = 30;
+                const totalFrames = Math.max(1, Math.round(seconds * fps));
+                await spawnPromise(ffmpegBin, [
+                    '-y',
+                    '-hide_banner',
+                    '-loglevel',
+                    'error',
+                    '-loop',
+                    '1',
+                    '-i',
+                    posterPathOnDisk,
+                    '-t',
+                    String(seconds),
+                    '-vf',
+                    [
+                        `scale=${width}:${height}:force_original_aspect_ratio=increase`,
+                        `crop=${width}:${height}`,
+                        `zoompan=z='min(zoom+0.0007,1.06)':d=1:x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':s=${width}x${height}:fps=${fps}`,
+                        'format=yuv420p',
+                    ].join(','),
+                    '-frames:v',
+                    String(totalFrames),
+                    '-c:v',
+                    'libx264',
+                    '-pix_fmt',
+                    'yuv420p',
+                    '-movflags',
+                    '+faststart',
+                    motionPathOnDisk,
+                ]);
+            }
+
+            update(85, 'Packaging ZIP');
+            const zip = new AdmZip();
+            zip.addFile('poster.jpg', await fsp.readFile(posterPathOnDisk));
+            zip.addFile('thumbnail.jpg', await fsp.readFile(thumbPathOnDisk));
+            zip.addFile('motion.mp4', await fsp.readFile(motionPathOnDisk));
+            zip.addFile('metadata.json', await fsp.readFile(metaPathOnDisk));
+            zip.writeZip(zipPath);
+
+            job.processedItems = 1;
+            job.results = { zipPath };
+            update(95, `Wrote ${zipPath}`);
+        } finally {
+            try {
+                await fsp.rm(workDir, { recursive: true, force: true });
+            } catch (_) {
+                // ignore
+            }
         }
     }
 

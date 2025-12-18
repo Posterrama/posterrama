@@ -149,7 +149,8 @@ function createFileFilter(config) {
             const allow = {
                 posters: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'],
                 backgrounds: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'],
-                motion: ['gif', 'mp4', 'webm', 'avi', 'mov', 'mkv'],
+                // Motion supports raw video uploads AND motion posterpack ZIPs
+                motion: ['gif', 'mp4', 'webm', 'avi', 'mov', 'mkv', 'zip'],
                 complete: ['zip'],
             };
             const fallbackFormats = ld.supportedFormats || [
@@ -250,6 +251,173 @@ async function handleUploadComplete(req, res, _next) {
             const targetDir = req.uploadTargetDirectory;
 
             try {
+                // Extra strict validation for motion ZIP posterpacks uploaded into motion/
+                // (must include poster.* + motion.* and be explicitly flagged in metadata.json)
+                if (String(targetDir).toLowerCase() === 'motion' && ext === 'zip') {
+                    const AdmZip = require('adm-zip');
+                    const imageExts = ['jpg', 'jpeg', 'png', 'webp'];
+                    const videoExts = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v'];
+
+                    /** @param {any} meta */
+                    const isMotionZipMetadata = meta => {
+                        if (!meta || typeof meta !== 'object') return false;
+                        const packType = String(
+                            meta.packType || meta.pack || meta.kind || meta.type || ''
+                        ).toLowerCase();
+                        const mediaType = String(
+                            meta.mediaType || meta.media_kind || meta.media || ''
+                        ).toLowerCase();
+                        const isMotion =
+                            meta.isMotionPoster === true ||
+                            meta.motionPoster === true ||
+                            packType.includes('motion') ||
+                            packType === 'motion-movie' ||
+                            packType === 'motionposter';
+                        const isMovie =
+                            mediaType === 'movie' ||
+                            packType.includes('movie') ||
+                            meta.isMovie === true;
+                        return Boolean(isMotion && (isMovie || packType.includes('motion')));
+                    };
+
+                    /** @param {any} zip */
+                    const readZipMetadata = zip => {
+                        try {
+                            const zipEntries = zip.getEntries();
+                            const metaEntry = zipEntries.find(e =>
+                                /^metadata\.json$/i.test(e.entryName)
+                            );
+                            if (!metaEntry) return null;
+                            const content = zip.readAsText(metaEntry);
+                            return JSON.parse(content);
+                        } catch (_) {
+                            return null;
+                        }
+                    };
+
+                    const zip = new AdmZip(file.path);
+                    const entries = zip.getEntries();
+
+                    // Basic safety: disallow traversal/absolute paths inside the ZIP
+                    for (const ent of entries) {
+                        const n = String(ent.entryName || '');
+                        if (
+                            n.includes('..') ||
+                            n.includes('\\') ||
+                            n.startsWith('/') ||
+                            n.startsWith('\\')
+                        ) {
+                            const error = /** @type {any} */ (
+                                new Error('ZIP contains unsafe entry paths')
+                            );
+                            error.code = 'INVALID_MOTION_ZIP';
+                            throw error;
+                        }
+                    }
+
+                    const hasPoster = imageExts.some(ext2 =>
+                        entries.some(e =>
+                            new RegExp(`(^|/)poster\\.${ext2}$`, 'i').test(e.entryName)
+                        )
+                    );
+                    const hasMotion = videoExts.some(ext2 =>
+                        entries.some(e =>
+                            new RegExp(`(^|/)motion\\.${ext2}$`, 'i').test(e.entryName)
+                        )
+                    );
+
+                    if (!hasPoster) {
+                        const error = /** @type {any} */ (
+                            new Error('Missing required poster.* entry')
+                        );
+                        error.code = 'INVALID_MOTION_ZIP';
+                        throw error;
+                    }
+                    if (!hasMotion) {
+                        const error = /** @type {any} */ (
+                            new Error('Missing required motion.* entry')
+                        );
+                        error.code = 'INVALID_MOTION_ZIP';
+                        throw error;
+                    }
+
+                    const meta = readZipMetadata(zip);
+                    if (!meta) {
+                        const error = /** @type {any} */ (
+                            new Error('Missing or invalid metadata.json')
+                        );
+                        error.code = 'INVALID_MOTION_ZIP';
+                        throw error;
+                    }
+                    if (!isMotionZipMetadata(meta)) {
+                        const error = /** @type {any} */ (
+                            new Error(
+                                'metadata.json does not explicitly mark this as a motion posterpack'
+                            )
+                        );
+                        error.code = 'INVALID_MOTION_ZIP';
+                        throw error;
+                    }
+                }
+
+                // Validate normal posterpack ZIPs uploaded into complete/ (stored under complete/manual)
+                // Intentionally less strict than motion packs: require at least one expected asset entry.
+                if (String(targetDir).toLowerCase() === 'complete' && ext === 'zip') {
+                    const AdmZip = require('adm-zip');
+                    const imageExts = ['jpg', 'jpeg', 'png', 'webp'];
+                    const videoExts = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v'];
+                    const audioExts = ['mp3', 'flac', 'wav', 'ogg', 'm4a', 'aac'];
+
+                    const zip = new AdmZip(file.path);
+                    const entries = zip.getEntries();
+
+                    // Basic safety: disallow traversal/absolute paths inside the ZIP
+                    for (const ent of entries) {
+                        const n = String(ent.entryName || '');
+                        if (
+                            n.includes('..') ||
+                            n.includes('\\') ||
+                            n.startsWith('/') ||
+                            n.startsWith('\\')
+                        ) {
+                            const error = /** @type {any} */ (
+                                new Error('ZIP contains unsafe entry paths')
+                            );
+                            error.code = 'INVALID_POSTERPACK_ZIP';
+                            throw error;
+                        }
+                    }
+
+                    const hasAnyImageAsset = imageExts.some(ext2 =>
+                        entries.some(e =>
+                            new RegExp(
+                                `(^|/)(poster|background|thumb|thumbnail|clearlogo)\\.${ext2}$`,
+                                'i'
+                            ).test(e.entryName)
+                        )
+                    );
+                    const hasAnyTrailer = videoExts.some(ext2 =>
+                        entries.some(e =>
+                            new RegExp(`(^|/)trailer\\.${ext2}$`, 'i').test(e.entryName)
+                        )
+                    );
+                    const hasAnyTheme = audioExts.some(ext2 =>
+                        entries.some(e =>
+                            new RegExp(`(^|/)theme\\.${ext2}$`, 'i').test(e.entryName)
+                        )
+                    );
+
+                    if (!hasAnyImageAsset && !hasAnyTrailer && !hasAnyTheme) {
+                        const error = /** @type {any} */ (
+                            new Error(
+                                'ZIP does not look like a posterpack (missing poster/background/thumbnail/clearlogo, trailer, or theme)'
+                            )
+                        );
+                        error.code = 'INVALID_POSTERPACK_ZIP';
+                        throw error;
+                    }
+                }
+
                 // Validate uploaded file
                 const isValid = await validateUploadedFile(file.path, req.app.locals.config);
 
@@ -301,10 +469,20 @@ async function handleUploadComplete(req, res, _next) {
 
         // Return results
         const response = {
-            success: uploadResults.length > 0,
+            // Back-compat: treat partial success as success=false so callers can show errors,
+            // while still providing uploadedFiles for the accepted subset.
+            success: uploadResults.length > 0 && errors.length === 0,
             filesUploaded: uploadResults.length,
             files: uploadResults,
+            uploadedFiles: uploadResults.map(f => ({
+                filename: f.savedAs,
+                originalName: f.originalName,
+                size: f.size,
+                path: f.path,
+            })),
             totalFiles: req.files.length,
+            targetDirectory: req.uploadTargetDirectory,
+            targetPath: req.uploadTargetPath,
         };
 
         if (errors.length > 0) {
@@ -312,7 +490,18 @@ async function handleUploadComplete(req, res, _next) {
             response.message = `${uploadResults.length} of ${req.files.length} files uploaded successfully`;
         }
 
-        res.json(response);
+        // Allow parent route to decide whether to trigger cache refresh.
+        res.locals.uploadedCount = uploadResults.length;
+
+        if (uploadResults.length === 0) {
+            return res.status(400).json({
+                ...response,
+                success: false,
+                error: 'No valid files uploaded',
+            });
+        }
+
+        return res.json(response);
     } catch (error) {
         logger.error('FileUpload: Upload completion handler error:', error);
         res.status(500).json({
@@ -339,7 +528,7 @@ async function validateUploadedFile(filePath, config) {
         }
 
         // File type validation if enabled
-        if (config.localDirectory?.security?.fileTypeValidation) {
+        if (config?.localDirectory?.security?.fileTypeValidation) {
             return await validateFileTypeFromHeader(filePath);
         }
 
