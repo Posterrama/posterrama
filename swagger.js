@@ -31,7 +31,7 @@ function generateSwaggerSpec(req = null) {
                 title: 'Posterrama API',
                 version: pkg.version,
                 description:
-                    'Posterrama aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.',
+                    'Posterrama aggregates media from Plex, Jellyfin / Emby, TMDB, RomM, and local libraries to create dynamic poster galleries.',
                 contact: {
                     name: 'Posterrama Project',
                     url: 'https://github.com/Posterrama/posterrama',
@@ -98,12 +98,12 @@ function generateSwaggerSpec(req = null) {
                 {
                     name: 'Configuration',
                     description:
-                        '**Application settings** for media sources (Plex/Jellyfin/TMDB), display modes (screensaver/cinema/wallart), and server options. Supports config backups.',
+                        '**Application settings** for media sources (Plex/Jellyfin / Emby/TMDB), display modes (screensaver/cinema/wallart), and server options. Supports config backups.',
                 },
                 {
                     name: 'Validation',
                     description:
-                        '**Test connections** to Plex/Jellyfin/TMDB servers before saving config. Returns detailed error messages on failure.',
+                        '**Test connections** to Plex/Jellyfin / Emby/TMDB servers before saving config. Returns detailed error messages on failure.',
                 },
                 {
                     name: 'Devices',
@@ -128,7 +128,7 @@ function generateSwaggerSpec(req = null) {
                 {
                     name: 'Metrics',
                     description:
-                        '**System monitoring** → Source performance (Plex/Jellyfin/TMDB response times), cache hit rates, device status. Useful for diagnostics.',
+                        '**System monitoring** → Source performance (Plex/Jellyfin / Emby/TMDB response times), cache hit rates, device status. Useful for diagnostics.',
                 },
                 {
                     name: 'Auto-Update',
@@ -843,7 +843,7 @@ function generateSwaggerSpec(req = null) {
                     MediaItem: {
                         type: 'object',
                         description:
-                            'A media item from any source (Plex, Jellyfin, TMDB, or Local). Contains all metadata needed to display the poster and additional information.',
+                            'A media item from any source (Plex, Jellyfin / Emby, TMDB, or Local). Contains all metadata needed to display the poster and additional information.',
                         properties: {
                             key: {
                                 type: 'string',
@@ -944,7 +944,7 @@ function generateSwaggerSpec(req = null) {
                                 type: 'array',
                                 nullable: true,
                                 description:
-                                    'Array of extras (trailers, behind the scenes, deleted scenes, interviews, etc.). Only populated when includeExtras=true query parameter is set. Available for Plex and Jellyfin sources only.',
+                                    'Array of extras (trailers, behind the scenes, deleted scenes, interviews, etc.). Only populated when includeExtras=true query parameter is set. Available for Plex and Jellyfin / Emby sources only.',
                                 items: {
                                     type: 'object',
                                     properties: {

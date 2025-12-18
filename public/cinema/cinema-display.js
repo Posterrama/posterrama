@@ -4287,7 +4287,7 @@
                 if (!nowPlayingBackoff.warnedJellyfin) {
                     nowPlayingBackoff.warnedJellyfin = true;
                     log(
-                        'Jellyfin sessions unauthorized; disabling Now Playing polling for 10 minutes'
+                        'Jellyfin / Emby sessions unauthorized; disabling Now Playing polling for 10 minutes'
                     );
                 }
                 return [];
@@ -4303,7 +4303,7 @@
             // Sessions are already marked with _source: 'jellyfin' by the poller
             return data?.sessions || [];
         } catch (e) {
-            error('Failed to fetch Jellyfin sessions', e);
+            error('Failed to fetch Jellyfin / Emby sessions', e);
             return [];
         }
     }

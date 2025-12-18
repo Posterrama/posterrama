@@ -567,7 +567,7 @@ module.exports = function createRouter({
 
 **E2E Tests** (test full stack):
 
-- Mock external APIs only (Plex, Jellyfin, TMDB)
+- Mock external APIs only (Plex, Jellyfin / Emby, TMDB)
 - Use real implementations of all internal modules
 
 ---

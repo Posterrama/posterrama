@@ -12,13 +12,14 @@
   <a href="https://github.com/Posterrama/posterrama"><img alt="Version" src="https://img.shields.io/badge/version-3.0.0-blue.svg"></a>
   <a href="https://nodejs.org/"><img alt="Node.js" src="https://img.shields.io/badge/node.js-%E2%89%A518.0.0-blue"></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue"></a>
+  <img alt="API Docs" src="https://img.shields.io/badge/API-Docs-85EA2D.svg?logo=swagger&logoColor=white">
 </p>
 <p style="margin: 2px 0 8px 0; line-height: 1.1;">
   <a href="https://www.plex.tv/"><img alt="Plex" src="https://img.shields.io/badge/Plex-supported-ffaa00.svg?logo=plex&logoColor=white"></a>
   <a href="https://github.com/jellyfin/jellyfin"><img alt="Jellyfin" src="https://img.shields.io/badge/Jellyfin-supported-8f7ee7.svg?logo=jellyfin&logoColor=white"></a>
+  <a href="https://emby.media/"><img alt="Emby" src="https://img.shields.io/badge/Emby-supported-52b54b.svg"></a>
   <a href="https://github.com/rommapp/romm"><img alt="RomM" src="https://img.shields.io/badge/RomM-supported-e74c3c.svg?logo=retroarch&logoColor=white"></a>
   <a href="https://www.themoviedb.org/"><img alt="TMDB" src="https://img.shields.io/badge/TMDB-supported-01d277.svg?logo=themoviedatabase&logoColor=white"></a>
-  <img alt="API Docs" src="https://img.shields.io/badge/API-Docs-85EA2D.svg?logo=swagger&logoColor=white">
 </p>
 
 <img src="./screenshots/screensaver.png" alt="Posterrama hero" width="740">
@@ -27,7 +28,7 @@
 
 ---
 
-**Posterrama** is a self-hosted display server that turns TVs, tablets, and wall-mounted monitors into living galleries for your media. It pulls artwork from Plex, Jellyfin, TMDB, and RomM and presents it in polished display modes built for ambient viewing, digital signage, and screensavers.
+**Posterrama** is a self-hosted display server that turns TVs, tablets, and wall-mounted monitors into living galleries for your media. It pulls artwork from Plex, Jellyfin / Emby, TMDB, and RomM and presents it in polished display modes built for ambient viewing, digital signage, and screensavers.
 
 Pick a mode (Cinema, Wallart, or Screensaver), connect your libraries, and manage devices in real time—then let Posterrama keep everything fresh with rich artwork, metadata, and deep customization.
 
@@ -40,7 +41,7 @@ Use it as:
 - A digital movie poster display — turn any TV or monitor into a cinematic foyer piece that continuously showcases your collection with studio‑grade artwork
 - A digital movie wall for your living room, home theater, or office
 - A smart, always-fresh screensaver with posters from your own collection
-- A stylish showcase for your Plex or Jellyfin library
+- A stylish showcase for your Plex or Jellyfin / Emby library
 - A gaming gallery — display your retro and modern game covers from RomM with dedicated games-only mode in Wallart
 - A conversation starter or party display
 
@@ -175,14 +176,14 @@ Get a clear overview of your setup the moment you sign in. The Dashboard highlig
   
 </figure>
 
-Connect your Plex or Jellyfin server, add popular sources like TMDB, or showcase your game collection from RomM. Your collection is always up to date.
+Connect your Plex or Jellyfin / Emby server, add popular sources like TMDB, or showcase your game collection from RomM. Your collection is always up to date.
 
-Local library: Add your own artwork with a simple upload—posters, cinematic backgrounds, motion posters, or complete posterpacks. You can also create shareable posterpacks directly from your Plex or Jellyfin libraries. New packs are picked up automatically—no unzipping or manual steps—and are instantly available in Screensaver, Wallart, and Cinema.
+Local library: Add your own artwork with a simple upload—posters, cinematic backgrounds, motion posters, or complete posterpacks. You can also create shareable posterpacks directly from your Plex or Jellyfin / Emby libraries. New packs are picked up automatically—no unzipping or manual steps—and are instantly available in Screensaver, Wallart, and Cinema.
 
 <!-- Content source features heading and intro removed per request; keep the actionable bullets below -->
  <!-- Content source features heading and intro removed per request; keep the actionable bullets below -->
 
-- Enable/disable each source (Plex, Jellyfin, TMDB, RomM)
+- Enable/disable each source (Plex, Jellyfin/Emby, TMDB, RomM)
 - Set server address and authentication (token, username/password)
 - Choose which libraries or collections to include
 - Filter by genre, rating, or quality
@@ -274,7 +275,7 @@ Setup is straightforward—enable MQTT in Posterrama settings, point it to your 
 - **Storage**: 2GB for application + cache space for images
 - **OS**: Linux (Ubuntu, Debian, CentOS, RHEL), macOS, or Windows with Node.js support
 - **Node.js**: v18+ supported (v20 LTS recommended)
-- **Network**: Stable connection to media servers (Plex/Jellyfin)
+- **Network**: Stable connection to media servers (Plex/Jellyfin / Emby)
 
 **Performance notes:**
 

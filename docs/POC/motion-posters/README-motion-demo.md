@@ -159,7 +159,7 @@ chmod +x test-multiple.sh
 
 ---
 
-## 🎨 Posters from your own Plex/Jellyfin
+## 🎨 Posters from your own Plex/Jellyfin / Emby
 
 ### Method 1: Via Posterrama API
 
@@ -178,7 +178,7 @@ while read url; do
 done < poster-urls.txt
 ```
 
-### Method 2: Direct from Plex/Jellyfin
+### Method 2: Direct from Plex/Jellyfin / Emby
 
 ```bash
 # Plex poster URL format

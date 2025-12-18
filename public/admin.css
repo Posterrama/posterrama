@@ -11399,6 +11399,23 @@ body.page-logs {
 #panel-local #posterpack-motion-section .pp-motion-search {
     grid-template-columns: minmax(240px, 420px) auto;
 }
+
+/* Motion search input: prevent browser autofill from flashing white */
+#panel-local #posterpack-motion-section #posterpack\.motion\.query:-webkit-autofill,
+#panel-local #posterpack-motion-section #posterpack\.motion\.query:-webkit-autofill:hover,
+#panel-local #posterpack-motion-section #posterpack\.motion\.query:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--color-bg-secondary) inset !important;
+    -webkit-text-fill-color: var(--color-text-primary) !important;
+    caret-color: var(--color-text-primary);
+    background-color: var(--color-bg-secondary) !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+#panel-local #posterpack-motion-section #posterpack\.motion\.query:-moz-ui-autofill {
+    box-shadow: 0 0 0 1000px var(--color-bg-secondary) inset;
+    -moz-text-fill-color: var(--color-text-primary);
+    caret-color: var(--color-text-primary);
+}
+
 #panel-local #posterpack-motion-section .pp-motion-search-btn {
     min-height: 34px;
     padding-left: 14px;

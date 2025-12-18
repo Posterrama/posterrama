@@ -703,7 +703,7 @@ app.get('/api/v1/config', (req, res) => {
  *   get:
  *     summary: Get media collection
  *     description: |
- *       Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB).
+ *       Returns the aggregated playlist from all configured media sources (Plex, Jellyfin / Emby, TMDB).
  *
  *       Features:
  *       - Cached for performance
@@ -6668,7 +6668,7 @@ app.get(
  * /api/admin/source-status:
  *   get:
  *     summary: Get per-source status for admin UI
- *     description: Returns enabled/configured flags and lastFetch timestamps for Plex, Jellyfin, and TMDB.
+ *     description: Returns enabled/configured flags and lastFetch timestamps for Plex, Jellyfin / Emby, and TMDB.
  *     tags: ['Admin']
  *     security:
  *       - bearerAuth: []

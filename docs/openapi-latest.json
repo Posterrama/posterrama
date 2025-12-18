@@ -3,7 +3,7 @@
     "info": {
         "title": "Posterrama API",
         "version": "3.0.0",
-        "description": "Posterrama aggregates media from Plex, Jellyfin, TMDB, RomM, and local libraries to create dynamic poster galleries.",
+        "description": "Posterrama aggregates media from Plex, Jellyfin / Emby, TMDB, RomM, and local libraries to create dynamic poster galleries.",
         "contact": {
             "name": "Posterrama Project",
             "url": "https://github.com/Posterrama/posterrama",
@@ -63,11 +63,11 @@
         },
         {
             "name": "Configuration",
-            "description": "**Application settings** for media sources (Plex/Jellyfin/TMDB), display modes (screensaver/cinema/wallart), and server options. Supports config backups."
+            "description": "**Application settings** for media sources (Plex/Jellyfin / Emby/TMDB), display modes (screensaver/cinema/wallart), and server options. Supports config backups."
         },
         {
             "name": "Validation",
-            "description": "**Test connections** to Plex/Jellyfin/TMDB servers before saving config. Returns detailed error messages on failure."
+            "description": "**Test connections** to Plex/Jellyfin / Emby/TMDB servers before saving config. Returns detailed error messages on failure."
         },
         {
             "name": "Devices",
@@ -87,7 +87,7 @@
         },
         {
             "name": "Metrics",
-            "description": "**System monitoring** → Source performance (Plex/Jellyfin/TMDB response times), cache hit rates, device status. Useful for diagnostics."
+            "description": "**System monitoring** → Source performance (Plex/Jellyfin / Emby/TMDB response times), cache hit rates, device status. Useful for diagnostics."
         },
         {
             "name": "Auto-Update",
@@ -1042,7 +1042,7 @@
             },
             "MediaItem": {
                 "type": "object",
-                "description": "A media item from any source (Plex, Jellyfin, TMDB, or Local). Contains all metadata needed to display the poster and additional information.",
+                "description": "A media item from any source (Plex, Jellyfin / Emby, TMDB, or Local). Contains all metadata needed to display the poster and additional information.",
                 "properties": {
                     "key": {
                         "type": "string",
@@ -1131,7 +1131,7 @@
                     "extras": {
                         "type": "array",
                         "nullable": true,
-                        "description": "Array of extras (trailers, behind the scenes, deleted scenes, interviews, etc.). Only populated when includeExtras=true query parameter is set. Available for Plex and Jellyfin sources only.",
+                        "description": "Array of extras (trailers, behind the scenes, deleted scenes, interviews, etc.). Only populated when includeExtras=true query parameter is set. Available for Plex and Jellyfin / Emby sources only.",
                         "items": {
                             "type": "object",
                             "properties": {
@@ -2202,7 +2202,7 @@
         "/api/v1/media": {
             "get": {
                 "summary": "Get media collection",
-                "description": "Returns the aggregated playlist from all configured media sources (Plex, Jellyfin, TMDB).\n\nFeatures:\n- Cached for performance\n- Supports source filtering (plex, jellyfin, tmdb, local)\n- Music Mode: Returns music albums instead of movies/TV shows\n- Games Mode: Returns game covers from RomM\n- Optional extras: Trailers and theme music URLs\n\nThe playlist is automatically shuffled and filtered based on configuration.\n",
+                "description": "Returns the aggregated playlist from all configured media sources (Plex, Jellyfin / Emby, TMDB).\n\nFeatures:\n- Cached for performance\n- Supports source filtering (plex, jellyfin, tmdb, local)\n- Music Mode: Returns music albums instead of movies/TV shows\n- Games Mode: Returns game covers from RomM\n- Optional extras: Trailers and theme music URLs\n\nThe playlist is automatically shuffled and filtered based on configuration.\n",
                 "tags": ["API v1"],
                 "x-codeSamples": [
                     {
@@ -5935,7 +5935,7 @@
         "/api/admin/source-status": {
             "get": {
                 "summary": "Get per-source status for admin UI",
-                "description": "Returns enabled/configured flags and lastFetch timestamps for Plex, Jellyfin, and TMDB.",
+                "description": "Returns enabled/configured flags and lastFetch timestamps for Plex, Jellyfin / Emby, and TMDB.",
                 "tags": ["Admin"],
                 "security": [
                     {
@@ -11811,7 +11811,7 @@
         "/api/local/generate-posterpack": {
             "post": {
                 "summary": "Generate posterpack from media servers",
-                "description": "Create ZIP archives of posters and metadata from Plex/Jellyfin libraries",
+                "description": "Create ZIP archives of posters and metadata from Plex/Jellyfin / Emby libraries",
                 "tags": ["Local Directory"],
                 "requestBody": {
                     "required": true,
@@ -12704,7 +12704,7 @@
         "/image": {
             "get": {
                 "summary": "Image proxy",
-                "description": "Proxies image requests to the media server (Plex/Jellyfin) or external URLs to avoid exposing server details and tokens to the client.",
+                "description": "Proxies image requests to the media server (Plex/Jellyfin / Emby) or external URLs to avoid exposing server details and tokens to the client.",
                 "tags": ["Public API"],
                 "parameters": [
                     {

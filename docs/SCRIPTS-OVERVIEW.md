@@ -41,7 +41,7 @@ Complete guide to all scripts in the `scripts/` directory, what they do, and how
 - Phase 2: Configuration validation
 - Phase 3: Dependencies & security
 - Phase 4: Unit & API tests
-- Phase 5: Integration tests (with real Plex/Jellyfin/TMDB)
+- Phase 5: Integration tests (with real Plex/Jellyfin / Emby/TMDB)
 - Phase 6: Regression tests
 - Phase 7: Performance & health
 - Phase 8: Documentation & API
@@ -139,7 +139,7 @@ Complete guide to all scripts in the `scripts/` directory, what they do, and how
 
 #### `validation/test-media-connectivity.js`
 
-**Purpose:** Tests connectivity to Plex/Jellyfin/TMDB sources
+**Purpose:** Tests connectivity to Plex/Jellyfin / Emby/TMDB sources
 **npm command:** None (called by `master-test.sh`)
 **Standalone:** Yes
 **Used by:** `master-test.sh` (Phase 5)

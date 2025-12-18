@@ -742,7 +742,7 @@ window.__wallartModeVerified = true;
 **Fix:**
 
 1. Check backend logs for errors
-2. Verify media sources configured (Plex/Jellyfin/TMDB)
+2. Verify media sources configured (Plex/Jellyfin / Emby/TMDB)
 3. Check `config.json` for correct source settings
 
 ---

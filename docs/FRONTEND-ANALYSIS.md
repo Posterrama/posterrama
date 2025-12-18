@@ -60,7 +60,7 @@ utils/
 
 **Cinema Mode** (cinema.html)
 
-- Now Playing detection (Plex/Jellyfin)
+- Now Playing detection (Plex/Jellyfin / Emby)
 - Automatic session tracking
 - Poster rotation with metadata
 - Fallback to screensaver when idle

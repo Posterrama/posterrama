@@ -1904,11 +1904,7 @@
                   <i class="fas fa-film"></i> Plex
                 </div>
                 <div class="seg-dropdown-item" data-source="jellyfin" data-panel="panel-jellyfin">
-                  <i class="fas fa-play"></i> Jellyfin
-                </div>
-                <div class="seg-dropdown-item coming-soon" title="Coming soon">
-                  <i class="fas fa-cloud"></i> Emby
-                  <span class="badge badge-info">Soon</span>
+                  <i class="fas fa-play"></i> Jellyfin / Emby
                 </div>
               </div>
             </label>
@@ -2234,17 +2230,17 @@
       <!-- Jellyfin Panel -->
       <section class="panel" id="panel-jellyfin" hidden>
         <div class="actions-home" id="jellyfin-actions-home" hidden>
-          <span class="status-pill" id="jf-status-pill-header" title="Jellyfin configuration status">Not configured</span>
+          <span class="status-pill" id="jf-status-pill-header" title="Jellyfin / Emby configuration status">Not configured</span>
           <span class="status-pill" id="jf-count-pill" title="Change ratings/genres/quality chips or year fields → the “Items: N” pill updates immediately using the cached playlist">Items: —</span>
-          <span class="status-pill" id="jf-restart-pill" title="Jellyfin server status" hidden><i class="fas fa-check-circle"></i> <span id="jf-restart-text">OK</span></span>
+          <span class="status-pill" id="jf-restart-pill" title="Jellyfin / Emby server status" hidden><i class="fas fa-check-circle"></i> <span id="jf-restart-text">OK</span></span>
           <button class="btn btn-icon btn-sm" id="btn-jf-test" title="Test connection"><i class="fas fa-vial"></i></button>
           <button class="btn btn-icon btn-sm" id="btn-jf-libraries" title="Fetch libraries"><i class="fas fa-list"></i></button>
-          <label class="header-toggle" for="jf.enabled" title="Enable Jellyfin source">
+          <label class="header-toggle" for="jf.enabled" title="Enable Jellyfin / Emby source">
             <input type="checkbox" id="jf.enabled" />
             <span class="ht-switch" aria-hidden="true"></span>
             <span class="ht-text">Enabled</span>
           </label>
-          <button class="btn btn-primary btn-sm" id="btn-save-jellyfin" title="Save Jellyfin settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
+          <button class="btn btn-primary btn-sm" id="btn-save-jellyfin" title="Save Jellyfin / Emby settings"><i class="fas fa-save"></i><span>Save Settings</span></button>
         </div>
         <div class="panel-content">
           <div class="loading-overlay" aria-hidden="true">
@@ -2255,7 +2251,7 @@
             <div class="section-title"><i class="fas fa-server"></i> Server
               <div class="section-actions">
                 <span class="ht-text" id="jf-insecure-note">Allow self‑signed certificates</span>
-                <label class="header-toggle" for="jf.insecureHttpsHeader" title="Allow self‑signed/invalid HTTPS (Jellyfin)">
+                <label class="header-toggle" for="jf.insecureHttpsHeader" title="Allow self‑signed/invalid HTTPS (Jellyfin / Emby)">
                   <input type="checkbox" id="jf.insecureHttpsHeader" />
                   <span class="ht-switch" aria-hidden="true"></span>
                 </label>
@@ -2279,7 +2275,7 @@
             </div>
             <div class="form-group">
               <label for="jf.apikey">API Key</label>
-              <input type="password" id="jf.apikey" placeholder="Jellyfin API Key" autocomplete="new-password">
+              <input type="password" id="jf.apikey" placeholder="Jellyfin / Emby API Key" autocomplete="new-password">
               
             </div>
             <div class="form-group" hidden>
@@ -2826,7 +2822,7 @@
               <div class="select-wrap has-caret" id="posterpack-source-wrap">
                 <select id="posterpack.source">
                   <option value="plex">Plex</option>
-                  <option value="jellyfin">Jellyfin</option>
+                  <option value="jellyfin">Jellyfin / Emby</option>
                 </select>
                 <span class="select-caret" aria-hidden="true">▾</span>
               </div>
@@ -2839,7 +2835,18 @@
                 <div class="form-grid pp-motion-search" style="gap: 12px; align-items:end;">
                   <div class="form-group">
                     <label for="posterpack.motion.query">Search</label>
-                    <input type="text" id="posterpack.motion.query" class="compact-input" placeholder="Search Plex/Jellyfin movies/series…" />
+                    <input
+                      type="text"
+                      id="posterpack.motion.query"
+                      class="compact-input"
+                      placeholder="Search Plex/Jellyfin / Emby movies/series…"
+                      autocomplete="off"
+                      autocorrect="off"
+                      autocapitalize="off"
+                      spellcheck="false"
+                      data-form-type="other"
+                      data-lpignore="true"
+                    />
                   </div>
                   <div class="form-group" style="margin-bottom:0;">
                     <button class="btn btn-secondary btn-sm pp-motion-search-btn" id="posterpack.motion.searchBtn" type="button">

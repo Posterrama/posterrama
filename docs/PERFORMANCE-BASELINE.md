@@ -64,7 +64,7 @@ du -sh public/
 ## When To Update Baselines
 
 - After changing caching behavior
-- After changing source adapters (Plex/Jellyfin/TMDB/local)
+- After changing source adapters (Plex/Jellyfin / Emby/TMDB/local)
 - After adding metrics, middleware, or request validation
 - After large frontend changes (admin / display modes)
 

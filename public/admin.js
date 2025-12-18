@@ -995,7 +995,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                                 ).length;
                                 if (count > 0) {
                                     total += count;
-                                    breakdown.push(`Jellyfin: ${formatNumber(count)}`);
+                                    breakdown.push(`Jellyfin/Emby: ${formatNumber(count)}`);
                                 }
                             }
                             if (romm?.enabled) {
@@ -1096,7 +1096,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     const jfCount = window.__lastJellyfinFilteredCount || 0;
                     if (jfCount > 0) {
                         total += jfCount;
-                        breakdown.push(`Jellyfin: ${formatNumber(jfCount)}`);
+                        breakdown.push(`Jellyfin/Emby: ${formatNumber(jfCount)}`);
                     }
                 }
 
@@ -11375,7 +11375,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     // Source display names
                     const sourceNames = {
                         plex: 'Plex',
-                        jellyfin: 'Jellyfin',
+                        jellyfin: 'Jellyfin / Emby',
                         romm: 'RomM',
                         local: 'Local Directory',
                         tmdb: 'TMDB',
@@ -11850,7 +11850,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     return;
                 }
                 if (h === '#jellyfin') {
-                    showSourcePanel('panel-jellyfin', 'Jellyfin');
+                    showSourcePanel('panel-jellyfin', 'Jellyfin / Emby');
                     // Lazy-load on routed open
                     window.admin2?.maybeFetchJellyfinOnOpen?.();
                     return;
@@ -20934,12 +20934,12 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 if (hasKey) {
                     // Set a special masked value that indicates key is set
                     el.value = '••••••••••••••••••••';
-                    el.setAttribute('placeholder', 'Jellyfin API Key already set');
+                    el.setAttribute('placeholder', 'Jellyfin / Emby API Key already set');
                     el.classList.add('token-masked');
                 } else {
                     // No key set, let user fill it in
                     el.value = '';
-                    el.setAttribute('placeholder', 'Jellyfin API Key');
+                    el.setAttribute('placeholder', 'Jellyfin / Emby API Key');
                     el.classList.remove('token-masked');
                 }
 
@@ -23187,7 +23187,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     pill.hidden = false;
                     if (data.hasPendingRestart) {
                         pill.className = 'status-pill status-warning';
-                        pill.title = 'Jellyfin server needs to be restarted';
+                        pill.title = 'Jellyfin / Emby server needs to be restarted';
                         if (pillIcon) pillIcon.className = 'fas fa-exclamation-triangle';
                         if (pillText) pillText.textContent = 'Restart Pending';
                         console.log('[Jellyfin] Server requires restart', {
@@ -23196,7 +23196,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                         });
                     } else {
                         pill.className = 'status-pill status-success';
-                        pill.title = 'Jellyfin server is healthy';
+                        pill.title = 'Jellyfin / Emby server is healthy';
                         if (pillIcon) pillIcon.className = 'fas fa-check-circle';
                         if (pillText) pillText.textContent = 'OK';
                     }
@@ -23207,7 +23207,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     const isTimeout = data.error.includes('timeout');
                     const errorMsg = isTimeout ? 'Connection Timeout' : 'Connection Failed';
                     const errorDetail = isTimeout
-                        ? 'Jellyfin server is slow or unreachable. Check network connectivity.'
+                        ? 'Jellyfin / Emby server is slow or unreachable. Check network connectivity.'
                         : data.error;
                     pill.title = errorDetail;
                     if (pillIcon) pillIcon.className = 'fas fa-exclamation-circle';
