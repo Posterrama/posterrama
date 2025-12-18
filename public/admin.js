@@ -27836,6 +27836,14 @@ if (!document.__niwDelegatedFallback) {
         }
     }
 
+    function debounceMotion(fn, wait = 250) {
+        let t;
+        return (...args) => {
+            if (t) clearTimeout(t);
+            t = setTimeout(() => fn(...args), wait);
+        };
+    }
+
     function initPosterpackMotionModeUi() {
         const motionRadio = document.getElementById('posterpack.mode.motion');
         const standardRadio = document.getElementById('posterpack.mode.standard');
@@ -27866,7 +27874,7 @@ if (!document.__niwDelegatedFallback) {
 
         if (queryEl && !queryEl.__bound) {
             queryEl.__bound = true;
-            const debounced = debounce(() => {
+            const debounced = debounceMotion(() => {
                 // Only auto-search when the picker is visible
                 const sec = document.getElementById('posterpack-motion-section');
                 if (!sec || sec.hidden || sec.style.display === 'none') return;
@@ -28995,12 +29003,10 @@ if (!document.__niwDelegatedFallback) {
                 } finally {
                     if (generateBtn) {
                         generateBtn.disabled = false;
-                        generateBtn.innerHTML =
-                            '<i class="fas fa-archive"></i> Generate Posterpack';
+                        updatePosterpackGenerateButtonLabel();
                     }
                 }
             })();
-            return;
             return;
         }
 
