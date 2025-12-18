@@ -11329,6 +11329,10 @@ body.page-logs {
 }
 
 /* ===== Local: Posterpack Generation Mode segmented ===== */
+#panel-local #posterpack-mode-group {
+    display: none;
+}
+
 #panel-local #posterpack-mode-group .pp-mode-row {
     display: flex;
     align-items: center;

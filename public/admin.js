@@ -27507,6 +27507,12 @@ if (!document.__niwDelegatedFallback) {
     let __motionPosterpackLastResults = [];
     const __MOTION_POSTERPACK_QUEUE_MAX = 5;
 
+    function getPosterpackQueueLimit() {
+        return getPosterpackMode && getPosterpackMode() === 'motion'
+            ? __MOTION_POSTERPACK_QUEUE_MAX
+            : Infinity;
+    }
+
     function getMotionItemId(item) {
         if (!item) return '';
         const key = item.key != null ? String(item.key) : '';
@@ -27549,7 +27555,9 @@ if (!document.__niwDelegatedFallback) {
             const suffix = n > 0 ? ` (${n})` : '';
             btn.innerHTML = `<i class="fas fa-film"></i> Generate Motion Posterpacks${suffix}`;
         } else {
-            btn.innerHTML = '<i class="fas fa-archive"></i> Generate Posterpack';
+            const n = Array.isArray(__motionPosterpackQueue) ? __motionPosterpackQueue.length : 0;
+            const suffix = n > 0 ? ` (${n})` : '';
+            btn.innerHTML = `<i class="fas fa-archive"></i> Generate Posterpacks${suffix}`;
         }
     }
 
@@ -27563,9 +27571,11 @@ if (!document.__niwDelegatedFallback) {
         const filtersGroup = document.getElementById('posterpack-filters')?.closest('.form-group');
         const previewBtn = document.getElementById('btn-preview-posterpack');
 
+        // Keep the picker available in both modes. In motion mode it is the primary
+        // workflow; in standard mode it enables per-title posterpack generation.
         if (motionSection) {
-            motionSection.hidden = mode !== 'motion';
-            motionSection.style.display = mode === 'motion' ? '' : 'none';
+            motionSection.hidden = false;
+            motionSection.style.display = '';
         }
         if (libSection) {
             libSection.hidden = mode === 'motion';
@@ -27636,7 +27646,6 @@ if (!document.__niwDelegatedFallback) {
         }
 
         const itemsHtml = __motionPosterpackQueue
-            .slice(0, __MOTION_POSTERPACK_QUEUE_MAX)
             .map((it, idx) => {
                 const t = it.title || it.name || 'Untitled';
                 const y = it.year ? ` (${it.year})` : '';
@@ -27664,10 +27673,13 @@ if (!document.__niwDelegatedFallback) {
             })
             .join('');
 
+        const isMotion = getPosterpackMode && getPosterpackMode() === 'motion';
+        const maxText = isMotion ? `/${__MOTION_POSTERPACK_QUEUE_MAX}` : '';
+
         host.innerHTML = `
             <div style="border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:10px;">
                 <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                    <div><strong>Queue</strong> <span style="opacity:.8; font-size:12px;">(${__motionPosterpackQueue.length}/${__MOTION_POSTERPACK_QUEUE_MAX})</span></div>
+                    <div><strong>Selected</strong> <span style="opacity:.8; font-size:12px;">(${__motionPosterpackQueue.length}${maxText})</span></div>
                     <button class="btn btn-secondary btn-sm" data-action="clear-motion-queue">
                         <i class="fas fa-xmark"></i> Clear all
                     </button>
@@ -27722,7 +27734,8 @@ if (!document.__niwDelegatedFallback) {
                 const src = it.source || '';
                 const posterUrl = it.posterUrl || '';
                 const queued = isMotionItemQueued(it);
-                const queueFull = __motionPosterpackQueue.length >= __MOTION_POSTERPACK_QUEUE_MAX;
+                const limit = getPosterpackQueueLimit();
+                const queueFull = Number.isFinite(limit) && __motionPosterpackQueue.length >= limit;
                 const disabled = queued || queueFull;
                 const btnText = queued ? 'Queued' : queueFull ? 'Queue full' : 'Add';
                 return `
@@ -27759,7 +27772,8 @@ if (!document.__niwDelegatedFallback) {
                     showNotification('Item is already in the queue', 'info');
                     return;
                 }
-                if (__motionPosterpackQueue.length >= __MOTION_POSTERPACK_QUEUE_MAX) {
+                const limit = getPosterpackQueueLimit();
+                if (Number.isFinite(limit) && __motionPosterpackQueue.length >= limit) {
                     showNotification(
                         `You can queue up to ${__MOTION_POSTERPACK_QUEUE_MAX} items`,
                         'warning'
@@ -27810,7 +27824,8 @@ if (!document.__niwDelegatedFallback) {
         setMotionSearchStatus(`Searching for "${query}"…`, 'info');
         host.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching…';
         try {
-            // Always search movies + series across all enabled sources/libraries
+            // Always search across sources for a snappy autocomplete UX (same behavior as motion).
+            // Filter out "local" results (those are already generated posterpacks).
             const url = `/api/admin/media/search?q=${encodeURIComponent(query)}&type=all&source=any&limit=25`;
             const res = await fetch(url, { credentials: 'include' });
             const data = await res.json().catch(() => null);
@@ -27819,9 +27834,13 @@ if (!document.__niwDelegatedFallback) {
                 throw new Error(msg);
             }
             const results = Array.isArray(data?.results) ? data.results : [];
-            __motionPosterpackLastResults = results;
-            setMotionSearchStatus(`Found ${results.length} result(s) for "${query}".`, 'info');
-            renderMotionPosterpackResults(results);
+            const filtered = results.filter(r => {
+                const src = (r?.source || '').toString().trim().toLowerCase();
+                return src === 'plex' || src === 'jellyfin';
+            });
+            __motionPosterpackLastResults = filtered;
+            setMotionSearchStatus(`Found ${filtered.length} result(s) for "${query}".`, 'info');
+            renderMotionPosterpackResults(filtered);
         } catch (e) {
             __motionPosterpackLastResults = [];
             renderMotionPosterpackResults([]);
@@ -27895,6 +27914,9 @@ if (!document.__niwDelegatedFallback) {
                 runMotionPosterpackSearch();
             });
         }
+
+        // Note: Content Source is for bulk selection (libraries/filters).
+        // The picker queue supports mixed sources; do not clear it on source changes.
 
         // Delegated click fallback (in case button binding is skipped)
         const motionSection = document.getElementById('posterpack-motion-section');
@@ -29089,6 +29111,104 @@ if (!document.__niwDelegatedFallback) {
                     }
                 }
             })();
+            return;
+        }
+
+        // Standard mode: if items are selected via the picker, generate posterpacks for those items.
+        // The selection queue can include mixed sources; we fan out into one job per source.
+        const queued = Array.isArray(__motionPosterpackQueue)
+            ? __motionPosterpackQueue.slice(0)
+            : [];
+        if (queued.length > 0) {
+            const inferSourceFromKey = k => {
+                const key = String(k || '').toLowerCase();
+                if (key.startsWith('plex-') || key.includes('/library/metadata/')) return 'plex';
+                if (key.startsWith('jellyfin_')) return 'jellyfin';
+                return '';
+            };
+
+            const bySource = new Map();
+            for (const it of queued) {
+                const src = (it?.source || inferSourceFromKey(it?.key) || '')
+                    .toString()
+                    .toLowerCase();
+                if (src !== 'plex' && src !== 'jellyfin') continue;
+                const key = it?.key;
+                if (!key) continue;
+                if (!bySource.has(src)) bySource.set(src, new Set());
+                bySource.get(src).add(key);
+            }
+
+            if (bySource.size === 0) {
+                showNotification('No valid selected items to generate', 'warning');
+                if (generateBtn) {
+                    generateBtn.disabled = false;
+                    updatePosterpackGenerateButtonLabel();
+                }
+                return;
+            }
+
+            (async () => {
+                try {
+                    const tasks = Array.from(bySource.entries()).map(async ([src, set]) => {
+                        const itemIds = Array.from(set);
+                        const res = await fetch('/api/local/generate-posterpack', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                sourceType: src,
+                                // Some deployments/older handlers require libraryIds to exist even when generating
+                                // from explicit items. Keep it as an empty array for selected-item generation.
+                                libraryIds: [],
+                                itemIds,
+                                options: {
+                                    compression: 'balanced',
+                                    // Also include itemIds inside options for backward compatibility.
+                                    itemIds,
+                                },
+                            }),
+                        });
+                        const data = await res.json().catch(() => null);
+                        if (!res.ok || !data?.success || !data?.jobId) {
+                            const msg = data?.error || data?.message || `HTTP ${res.status}`;
+                            try {
+                                console.warn('[Posterpack] Job start failed', {
+                                    sourceType: src,
+                                    status: res.status,
+                                    response: data,
+                                });
+                            } catch (_) {
+                                // ignore
+                            }
+                            throw new Error(`${src}: ${msg}`);
+                        }
+                        showNotification(
+                            `${src.charAt(0).toUpperCase() + src.slice(1)} posterpack generation started (${itemIds.length})`,
+                            'success'
+                        );
+                        startJobPolling(data.jobId);
+                        return data.jobId;
+                    });
+
+                    const settled = await Promise.allSettled(tasks);
+                    const failed = settled.filter(r => r.status === 'rejected');
+                    if (failed.length) {
+                        showNotification(
+                            `Some generations failed to start (${failed.length})`,
+                            'error'
+                        );
+                    }
+                } catch (e) {
+                    console.error('Generation error:', e);
+                    showNotification(e?.message || 'Generation failed', 'error');
+                } finally {
+                    if (generateBtn) {
+                        generateBtn.disabled = false;
+                        updatePosterpackGenerateButtonLabel();
+                    }
+                }
+            })();
+
             return;
         }
 
@@ -30543,6 +30663,28 @@ if (!document.__niwDelegatedFallback) {
                         // One last refresh so sizes reflect final state (force bypass cache)
                         refreshDirectorySafe(true);
                         if (progressToast?.dismiss) progressToast.dismiss();
+
+                        // Keep console output high-signal: only build/log details on failures.
+                        if (job.status === 'failed') {
+                            try {
+                                const logs = Array.isArray(job.logs) ? job.logs : [];
+                                const tail = logs.slice(Math.max(0, logs.length - 40));
+                                const debug = {
+                                    jobId: job.id || jobId,
+                                    status: job.status,
+                                    sourceType: job.sourceType,
+                                    error: job.error || null,
+                                    processedItems: job.processedItems,
+                                    totalItems: job.totalItems,
+                                    progress: job.progress,
+                                    logsTail: tail,
+                                };
+                                console.warn('[Posterpack] Job failed', debug);
+                            } catch (_) {
+                                // ignore
+                            }
+                        }
+
                         const ok = job.status === 'completed';
                         const title = ok ? 'Posterpack ready' : 'Posterpack failed';
                         const count = job?.results?.totalGenerated;

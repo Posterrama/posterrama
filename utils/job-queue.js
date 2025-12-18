@@ -353,34 +353,126 @@ class JobQueue extends EventEmitter {
             throw new Error(`Source adapter not found: ${sourceType}`);
         }
 
-        // Get all items from selected libraries
+        const isItemSelectionMode = Array.isArray(options?.itemIds) && options.itemIds.length > 0;
+
+        // Get all items from selected libraries (bulk mode), or fetch only selected items (picker mode)
         const allItems = [];
 
-        for (const libraryId of libraryIds) {
-            try {
-                job.logs.push(`Fetching items from library: ${libraryId}`);
-                this.emit('jobProgress', job);
-
-                const items = await sourceAdapter.fetchLibraryItems(libraryId);
-                allItems.push(...items);
-
-                job.logs.push(`Found ${items.length} items in library ${libraryId}`);
-                logger.debug(
-                    `JobQueue: Fetched ${items.length} items from library ${libraryId}, total now: ${allItems.length}`
+        if (isItemSelectionMode) {
+            if (!sourceAdapter.fetchItemsByIds) {
+                throw new Error(
+                    'Source adapter does not support selected-item posterpack generation'
                 );
-                if (job.exportLogger)
-                    await job.exportLogger.info('Fetched library', {
-                        libraryId,
-                        count: items.length,
-                    });
-            } catch (error) {
-                job.logs.push(`Error fetching library ${libraryId}: ${error.message}`);
-                logger.error(`JobQueue: Error fetching library ${libraryId}:`, error);
-                if (job.exportLogger)
-                    await job.exportLogger.error('Fetch library failed', {
-                        libraryId,
-                        error: error.message,
-                    });
+            }
+
+            job.logs.push(`Fetching ${options.itemIds.length} selected item(s)`);
+            const sample =
+                options.itemIds.length <= 5 ? options.itemIds : options.itemIds.slice(0, 5);
+            job.logs.push(
+                `Selected items: sourceType=${sourceType}, itemIds(sample)=${JSON.stringify(sample)}${
+                    options.itemIds.length > sample.length
+                        ? ` (+${options.itemIds.length - sample.length} more)`
+                        : ''
+                }`
+            );
+            logger.info('JobQueue: Selected-item generation starting', {
+                jobId: job?.id,
+                sourceType,
+                itemIdsCount: options.itemIds.length,
+                itemIdsSample: sample,
+            });
+            if (job.exportLogger)
+                await job.exportLogger.info('Selected-item generation starting', {
+                    jobId: job?.id,
+                    sourceType,
+                    itemIdsCount: options.itemIds.length,
+                    itemIdsSample: sample,
+                });
+            this.emit('jobProgress', job);
+
+            let items = [];
+            try {
+                items = await sourceAdapter.fetchItemsByIds(options.itemIds);
+            } catch (e) {
+                logger.error('JobQueue: fetchItemsByIds threw', {
+                    jobId: job?.id,
+                    sourceType,
+                    error: e?.message || String(e),
+                });
+                job.logs.push(`Selected items: fetchItemsByIds error: ${e?.message || String(e)}`);
+                throw e;
+            }
+
+            // If adapter attached bounded debug metadata, surface it into job logs for UI visibility.
+            try {
+                const dbg = items && typeof items === 'object' ? items.__selectedItemDebug : null;
+                if (dbg) {
+                    const safe = {
+                        sourceType: dbg.sourceType,
+                        itemIdsCount: dbg.itemIdsCount,
+                        parsedOk: dbg.parsedOk,
+                        parseFailed: dbg.parseFailed,
+                        resolvedServerOk: dbg.resolvedServerOk,
+                        metaOk: dbg.metaOk,
+                        fetchedOk: dbg.fetchedOk,
+                        processedOk: dbg.processedOk,
+                        errorsSample: Array.isArray(dbg.errors) ? dbg.errors : [],
+                    };
+                    const hasErrors =
+                        Array.isArray(safe.errorsSample) && safe.errorsSample.length > 0;
+                    const returnedCount = Array.isArray(items) ? items.length : 0;
+                    if (hasErrors || returnedCount === 0) {
+                        job.logs.push(`Selected items: adapter debug ${JSON.stringify(safe)}`);
+                    }
+                }
+            } catch (_) {
+                // ignore
+            }
+            allItems.push(...(Array.isArray(items) ? items : []));
+            job.logs.push(`Fetched ${allItems.length} selected item(s)`);
+            if (job.exportLogger)
+                await job.exportLogger.info('Fetched selected items', {
+                    count: allItems.length,
+                });
+
+            logger.info('JobQueue: Selected-item generation fetched items', {
+                jobId: job?.id,
+                sourceType,
+                returnedCount: Array.isArray(items) ? items.length : 0,
+            });
+            if (job.exportLogger)
+                await job.exportLogger.info('Selected-item generation fetched items', {
+                    jobId: job?.id,
+                    sourceType,
+                    returnedCount: Array.isArray(items) ? items.length : 0,
+                });
+        } else {
+            for (const libraryId of libraryIds) {
+                try {
+                    job.logs.push(`Fetching items from library: ${libraryId}`);
+                    this.emit('jobProgress', job);
+
+                    const items = await sourceAdapter.fetchLibraryItems(libraryId);
+                    allItems.push(...items);
+
+                    job.logs.push(`Found ${items.length} items in library ${libraryId}`);
+                    logger.debug(
+                        `JobQueue: Fetched ${items.length} items from library ${libraryId}, total now: ${allItems.length}`
+                    );
+                    if (job.exportLogger)
+                        await job.exportLogger.info('Fetched library', {
+                            libraryId,
+                            count: items.length,
+                        });
+                } catch (error) {
+                    job.logs.push(`Error fetching library ${libraryId}: ${error.message}`);
+                    logger.error(`JobQueue: Error fetching library ${libraryId}:`, error);
+                    if (job.exportLogger)
+                        await job.exportLogger.error('Fetch library failed', {
+                            libraryId,
+                            error: error.message,
+                        });
+                }
             }
         }
 
@@ -442,76 +534,85 @@ class JobQueue extends EventEmitter {
             jellyfin_rating: 0,
         };
 
-        const filtered = allItems.filter(it => {
-            // Media type filter (movie/show)
-            if (mediaType !== 'all') {
-                const t = (it.type || '').toLowerCase();
-                // If type not provided by adapter, infer "movie" as default
-                if (t && t !== mediaType) {
-                    excludeCounters.mediaType++;
-                    return false;
-                }
-            }
-            // Year filter
-            if (yearOk) {
-                const y = Number(it.year);
-                if (!Number.isFinite(y) || !yearOk(y)) {
-                    excludeCounters.year++;
-                    return false;
-                }
-            }
-            // Source-specific filters
-            if (sourceType === 'plex') {
-                if (allowedGenresP.length) {
-                    const g = Array.isArray(it.genre || it.genres)
-                        ? (it.genre || it.genres).map(x => String(x).toLowerCase())
-                        : [];
-                    if (!allowedGenresP.some(need => g.includes(String(need).toLowerCase()))) {
-                        excludeCounters.plex_genre++;
-                        return false;
-                    }
-                }
-                if (allowedRatingsP.length) {
-                    const r = it.contentRating || it.rating || null;
-                    const norm = r ? String(r).trim().toUpperCase() : '';
-                    if (!norm || !allowedRatingsP.includes(norm)) {
-                        excludeCounters.plex_rating++;
-                        return false;
-                    }
-                }
-                if (allowedQualP.length) {
-                    const lbl = it.qualityLabel || mapResToLabel(it.videoResolution);
-                    if (lbl && !allowedQualP.includes(lbl)) {
-                        excludeCounters.plex_quality++;
-                        return false;
-                    }
-                }
-            } else if (sourceType === 'jellyfin') {
-                if (allowedGenresJ.length) {
-                    const g = Array.isArray(it.genre || it.genres)
-                        ? (it.genre || it.genres).map(x => String(x).toLowerCase())
-                        : [];
-                    if (!allowedGenresJ.some(need => g.includes(String(need).toLowerCase()))) {
-                        excludeCounters.jellyfin_genre++;
-                        return false;
-                    }
-                }
-                if (allowedRatingsJ.length) {
-                    const r = it.officialRating || it.rating || null;
-                    const norm = r ? String(r).trim().toUpperCase() : '';
-                    if (!norm || !allowedRatingsJ.includes(norm)) {
-                        excludeCounters.jellyfin_rating++;
-                        return false;
-                    }
-                }
-            }
-            return true;
-        });
+        const filtered = isItemSelectionMode
+            ? allItems
+            : allItems.filter(it => {
+                  // Media type filter (movie/show)
+                  if (mediaType !== 'all') {
+                      const t = (it.type || '').toLowerCase();
+                      // If type not provided by adapter, infer "movie" as default
+                      if (t && t !== mediaType) {
+                          excludeCounters.mediaType++;
+                          return false;
+                      }
+                  }
+                  // Year filter
+                  if (yearOk) {
+                      const y = Number(it.year);
+                      if (!Number.isFinite(y) || !yearOk(y)) {
+                          excludeCounters.year++;
+                          return false;
+                      }
+                  }
+                  // Source-specific filters
+                  if (sourceType === 'plex') {
+                      if (allowedGenresP.length) {
+                          const g = Array.isArray(it.genre || it.genres)
+                              ? (it.genre || it.genres).map(x => String(x).toLowerCase())
+                              : [];
+                          if (
+                              !allowedGenresP.some(need => g.includes(String(need).toLowerCase()))
+                          ) {
+                              excludeCounters.plex_genre++;
+                              return false;
+                          }
+                      }
+                      if (allowedRatingsP.length) {
+                          const r = it.contentRating || it.rating || null;
+                          const norm = r ? String(r).trim().toUpperCase() : '';
+                          if (!norm || !allowedRatingsP.includes(norm)) {
+                              excludeCounters.plex_rating++;
+                              return false;
+                          }
+                      }
+                      if (allowedQualP.length) {
+                          const lbl = it.qualityLabel || mapResToLabel(it.videoResolution);
+                          if (lbl && !allowedQualP.includes(lbl)) {
+                              excludeCounters.plex_quality++;
+                              return false;
+                          }
+                      }
+                  } else if (sourceType === 'jellyfin') {
+                      if (allowedGenresJ.length) {
+                          const g = Array.isArray(it.genre || it.genres)
+                              ? (it.genre || it.genres).map(x => String(x).toLowerCase())
+                              : [];
+                          if (
+                              !allowedGenresJ.some(need => g.includes(String(need).toLowerCase()))
+                          ) {
+                              excludeCounters.jellyfin_genre++;
+                              return false;
+                          }
+                      }
+                      if (allowedRatingsJ.length) {
+                          const r = it.officialRating || it.rating || null;
+                          const norm = r ? String(r).trim().toUpperCase() : '';
+                          if (!norm || !allowedRatingsJ.includes(norm)) {
+                              excludeCounters.jellyfin_rating++;
+                              return false;
+                          }
+                      }
+                  }
+                  return true;
+              });
 
-        // Apply limit if provided
+        // Apply limit if provided (bulk mode only). When generating from selected items,
+        // always process the full selection.
         const limit = Number(options?.limit);
         const itemsToProcess =
-            Number.isFinite(limit) && limit > 0 ? filtered.slice(0, limit) : filtered;
+            !isItemSelectionMode && Number.isFinite(limit) && limit > 0
+                ? filtered.slice(0, limit)
+                : filtered;
 
         job.totalItems = itemsToProcess.length;
         job.logs.push(`Total items to process: ${job.totalItems}`);
@@ -528,6 +629,19 @@ class JobQueue extends EventEmitter {
         }
 
         if (job.totalItems === 0) {
+            if (isItemSelectionMode) {
+                logger.warn('JobQueue: Selected-item generation returned 0 items', {
+                    jobId: job?.id,
+                    sourceType,
+                    requestedItemIdsCount: Array.isArray(options?.itemIds)
+                        ? options.itemIds.length
+                        : 0,
+                    requestedItemIdsSample: Array.isArray(options?.itemIds)
+                        ? options.itemIds.slice(0, 10)
+                        : [],
+                });
+                throw new Error('No items found for selected items');
+            }
             throw new Error('No items found in selected libraries');
         }
 

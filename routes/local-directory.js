@@ -1120,12 +1120,22 @@ module.exports = function createLocalDirectoryRouter({
                     .json({ error: 'Local directory support or job queue not available' });
             }
 
-            const { sourceType, libraryIds, options = {} } = req.body;
+            const { sourceType, libraryIds = null, itemIds = null, options = {} } = req.body || {};
+            const libsProvided = Array.isArray(libraryIds);
+            const libs = libsProvided ? libraryIds : [];
+            const items = Array.isArray(itemIds) ? itemIds.filter(Boolean) : [];
 
-            if (!sourceType || !libraryIds || !Array.isArray(libraryIds)) {
-                return res
-                    .status(400)
-                    .json({ error: 'sourceType and libraryIds array are required' });
+            if (!sourceType || (!libsProvided && !items.length)) {
+                return res.status(400).json({
+                    error: 'sourceType and either libraryIds[] or itemIds[] are required',
+                });
+            }
+
+            // Plex/Jellyfin require a non-empty library selection unless generating from explicit itemIds.
+            if (sourceType !== 'local' && !items.length && (!libsProvided || libs.length === 0)) {
+                return res.status(400).json({
+                    error: 'For plex/jellyfin, provide libraryIds[] or itemIds[]',
+                });
             }
 
             if (!['plex', 'jellyfin', 'local'].includes(sourceType)) {
@@ -1135,10 +1145,14 @@ module.exports = function createLocalDirectoryRouter({
             }
 
             try {
+                const mergedOptions = items.length
+                    ? { ...(options || {}), itemIds: items }
+                    : options;
+
                 const jobId = await jobQueue.addPosterpackGenerationJob(
                     sourceType,
-                    libraryIds,
-                    options
+                    libs,
+                    mergedOptions
                 );
 
                 res.json({
@@ -1146,7 +1160,8 @@ module.exports = function createLocalDirectoryRouter({
                     jobId: jobId,
                     message: 'Posterpack generation job started',
                     sourceType: sourceType,
-                    libraryCount: libraryIds.length,
+                    libraryCount: libs.length,
+                    itemCount: items.length,
                 });
             } catch (error) {
                 logger.error('Posterpack generation error:', error);

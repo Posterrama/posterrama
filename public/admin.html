@@ -2033,7 +2033,7 @@
               </div>
             </div>
             <div class="form-group">
-              <label for="plex.music">Music Libraries</label>
+              <label for="plex.shows">Show Libraries</label>
               <select id="plex.shows" multiple style="display:none"></select>
               <div class="multiselect" id="plex-ms-shows">
                 <div class="ms-control" role="combobox" aria-expanded="false" aria-haspopup="listbox">
@@ -2817,17 +2817,6 @@
               </div>
             </div>
 
-            <div class="form-group" id="posterpack-source-group">
-              <label for="posterpack.source">Content Source</label>
-              <div class="select-wrap has-caret" id="posterpack-source-wrap">
-                <select id="posterpack.source">
-                  <option value="plex">Plex</option>
-                  <option value="jellyfin">Jellyfin / Emby</option>
-                </select>
-                <span class="select-caret" aria-hidden="true">▾</span>
-              </div>
-            </div>
-
             <!-- Motion posterpack: search + select single item (movies/series) -->
             <div class="form-group" id="posterpack-motion-section" style="grid-column: 1 / -1; display:none;" hidden>
               <div class="form-subsection">
@@ -2859,6 +2848,17 @@
 
                 <div id="posterpack-motion-results" style="margin-top:10px;"></div>
                 <div id="posterpack-motion-selected" style="margin-top:10px;"></div>
+              </div>
+            </div>
+
+            <div class="form-group" id="posterpack-source-group">
+              <label for="posterpack.source">Content Source</label>
+              <div class="select-wrap has-caret" id="posterpack-source-wrap">
+                <select id="posterpack.source">
+                  <option value="plex">Plex</option>
+                  <option value="jellyfin">Jellyfin / Emby</option>
+                </select>
+                <span class="select-caret" aria-hidden="true">▾</span>
               </div>
             </div>
             

@@ -46,6 +46,9 @@ class JellyfinHttpClient extends BaseHttpClient {
 
         this.apiKey = apiKey;
 
+        // Cached user id (best-effort) for endpoints that require /Users/{userId}/...
+        this._cachedUserId = null;
+
         // Helper: Detect Cloudflare errors
         this._isCloudflareError = error => {
             const status = error.response?.status;
@@ -161,6 +164,57 @@ class JellyfinHttpClient extends BaseHttpClient {
             }
             return config;
         });
+    }
+
+    /**
+     * Best-effort resolve a user id for the current token.
+     * Some Jellyfin/Emby deployments require user-scoped endpoints like /Users/{userId}/Items.
+     *
+     * @returns {Promise<string|null>}
+     */
+    async getCurrentUserId() {
+        if (this._cachedUserId) return this._cachedUserId;
+
+        // 1) Try /Users/Me when supported
+        try {
+            const me = await this.retryRequest(async () => {
+                const resp = await this.http.get('/Users/Me');
+                return resp.data;
+            });
+            const id = me?.Id ? String(me.Id).trim() : '';
+            if (id) {
+                this._cachedUserId = id;
+                return id;
+            }
+        } catch (_) {
+            // ignore; fall back to /Users
+        }
+
+        // 2) Fall back to /Users and pick the first enabled user
+        try {
+            const users = await this.retryRequest(async () => {
+                const resp = await this.http.get('/Users');
+                return resp.data;
+            });
+            const arr = Array.isArray(users) ? users : [];
+
+            // Prefer first non-disabled user when possible
+            const firstEnabled =
+                arr.find(u => u && u.Policy && u.Policy.IsDisabled === false) ||
+                arr.find(u => u && u.Policy == null) ||
+                arr[0] ||
+                null;
+
+            const id = firstEnabled?.Id ? String(firstEnabled.Id).trim() : '';
+            if (id) {
+                this._cachedUserId = id;
+                return id;
+            }
+        } catch (_) {
+            // ignore
+        }
+
+        return null;
     }
 
     /**
@@ -443,6 +497,48 @@ class JellyfinHttpClient extends BaseHttpClient {
 
             const response = await this.http.get(`/Items?${params}`);
             return response.data;
+        });
+    }
+
+    /**
+     * Get a single item by id
+     * @param {string} itemId
+     * @param {{fields?: string[], userId?: string}} [opts]
+     */
+    async getItem(itemId, opts = {}) {
+        const id = String(itemId || '').trim();
+        if (!id) throw new Error('itemId is required');
+        const fields = Array.isArray(opts.fields) ? opts.fields : [];
+        const userId = opts.userId ? String(opts.userId).trim() : '';
+
+        return this.retryRequest(async () => {
+            const params = {};
+            if (fields.length > 0) {
+                params.Fields = fields.join(',');
+            }
+
+            // Jellyfin/Emby deployments differ: some expose item details under /Items/{id},
+            // others require /Users/{userId}/Items/{id}. Try the global route first, then
+            // fall back when we have a userId and see a 404.
+            try {
+                const response = await this.http.get(`/Items/${encodeURIComponent(id)}`, {
+                    params,
+                });
+                return response.data;
+            } catch (e) {
+                const status = e?.response?.status;
+                if (status === 404) {
+                    const fallbackUserId = userId || (await this.getCurrentUserId());
+                    if (fallbackUserId) {
+                        const response = await this.http.get(
+                            `/Users/${encodeURIComponent(fallbackUserId)}/Items/${encodeURIComponent(id)}`,
+                            { params }
+                        );
+                        return response.data;
+                    }
+                }
+                throw e;
+            }
         });
     }
 
