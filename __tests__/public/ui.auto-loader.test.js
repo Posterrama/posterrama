@@ -137,4 +137,48 @@ describe('public/ui/auto-loader.js', () => {
         expect(loader).not.toBeNull();
         expect(loader.classList.contains('is-active')).toBe(true);
     });
+
+    test('wallart mode: hides loader when first wallart poster tile appears', async () => {
+        jest.useFakeTimers();
+
+        const dom = new JSDOM(
+            `<!doctype html><html><head></head><body data-mode="wallart">
+              <div id="layer-a"></div>
+              <div id="layer-b"></div>
+              <div id="wallart-grid"></div>
+            </body></html>`,
+            {
+                url: 'https://example.test/wallart',
+                pretendToBeVisual: true,
+            }
+        );
+
+        const exportsNs = await loadModuleIntoContext({
+            window: dom.window,
+            document: dom.window.document,
+        });
+
+        exportsNs.initAutoLoader({
+            timeoutMs: 2000,
+            modes: ['wallart'],
+            enableBusyDetector: false,
+        });
+
+        // Loader starts visible
+        expect(dom.window.document.getElementById('posterrama-loader')).not.toBeNull();
+
+        // Simulate first wallart tile render
+        const grid = dom.window.document.getElementById('wallart-grid');
+        const tile = dom.window.document.createElement('div');
+        tile.className = 'wallart-poster-item';
+        const img = dom.window.document.createElement('img');
+        img.setAttribute('src', '/image/test.jpg');
+        tile.appendChild(img);
+        grid.appendChild(tile);
+
+        // Polling runs every 750ms; removal is delayed ~220ms
+        jest.advanceTimersByTime(1100);
+
+        expect(dom.window.document.getElementById('posterrama-loader')).toBeNull();
+    });
 });

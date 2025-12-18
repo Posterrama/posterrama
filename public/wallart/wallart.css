@@ -147,3 +147,18 @@ body.wallart-mode #branding-container {
     object-fit: cover;
     display: block;
 }
+
+/* ============================================
+   CLASSIC LAYOUT - Optional soft tiles
+   ============================================ */
+
+/* When enabled, create spacing without changing grid math by padding each cell and letting the black body background show through. */
+[data-layout-variant='classic'][data-classic-soft-tiles='true'] .wallart-poster-item {
+    box-sizing: border-box;
+    padding: 3px;
+    background: transparent;
+}
+
+[data-layout-variant='classic'][data-classic-soft-tiles='true'] .wallart-poster-item img {
+    border-radius: 5px;
+}

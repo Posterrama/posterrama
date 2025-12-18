@@ -94,12 +94,18 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     toast(nextEnabled);
                 });
 
-                // Insert right after the "Quick links" heading for discoverability.
-                const heading = menu.querySelector('.dropdown-heading');
-                if (heading && heading.parentNode) {
-                    heading.insertAdjacentElement('afterend', item);
+                // Insert under "Report an Issue" (user preference).
+                const reportIssue = menu.querySelector('#menu-report-issue');
+                if (reportIssue && reportIssue.parentNode) {
+                    reportIssue.insertAdjacentElement('afterend', item);
                 } else {
-                    menu.insertBefore(item, menu.firstChild);
+                    // Fallback: insert right after the first heading.
+                    const heading = menu.querySelector('.dropdown-heading');
+                    if (heading && heading.parentNode) {
+                        heading.insertAdjacentElement('afterend', item);
+                    } else {
+                        menu.insertBefore(item, menu.firstChild);
+                    }
                 }
 
                 renderMenuItem(item);
@@ -4177,6 +4183,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         setIf('wallartMode_randomness', w.randomness ?? 3);
         setIf('wallartMode_animationType', w.animationType || 'fade');
         setIf('wallartMode_layoutVariant', w.layoutVariant || 'heroGrid');
+        setIf('wallartMode_classicSoftTiles', w.classicSoftTiles === true);
         setIf('wallartMode_ambientGradient', w.ambientGradient === true);
         setIf('wallartMode_gamesOnly', w.gamesOnly === true);
 
@@ -4508,6 +4515,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         // Wallart: show hero settings only for heroGrid layout, filmCards settings for filmCards
         try {
             const layoutSel = document.getElementById('wallartMode_layoutVariant');
+            const classicSoftRow = document.getElementById('wallart-classic-soft-tiles-row');
             const heroSideRow = document
                 .getElementById('wallartMode_heroSide')
                 ?.closest('.form-row');
@@ -4521,6 +4529,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 const layout = layoutSel?.value || 'heroGrid';
                 const isHero = layout === 'heroGrid';
                 const isFilmCards = layout === 'filmCards';
+                const isClassic = layout === 'classic';
 
                 // Check if Music Mode is enabled - if so, hide Film Cards card regardless of layout
                 const musicModeCheckbox = document.getElementById('wallartMode_musicMode_enabled');
@@ -4542,6 +4551,8 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     .getElementById('wallartMode_density')
                     ?.closest('.form-row');
                 if (densityRow) densityRow.style.display = isFilmCards ? 'none' : '';
+
+                if (classicSoftRow) classicSoftRow.style.display = isClassic ? '' : 'none';
             };
             layoutSel?.addEventListener('change', applyLayoutVis);
             applyLayoutVis();
@@ -5832,6 +5843,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
         try {
             const elDensity = document.getElementById('wallartMode_density');
             const elLayout = document.getElementById('wallartMode_layoutVariant');
+            const elClassicSoft = document.getElementById('wallartMode_classicSoftTiles');
             const elAnim = document.getElementById('wallartMode_animationType');
             const elRefresh = document.getElementById('wallartMode_refreshRate');
             const elRand = document.getElementById('wallartMode_randomness');
@@ -5893,6 +5905,14 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 elLayout?.addEventListener(ev, () => {
                     applyHeroVisibility();
                     applySummary();
+                });
+                elClassicSoft?.addEventListener(ev, () => {
+                    applySummary();
+                    try {
+                        window.__forcePreviewUpdate?.();
+                    } catch (_) {
+                        /* preview update failed (non-critical) */
+                    }
                 });
                 elAnim?.addEventListener(ev, () => {
                     applyParallaxDepthVisibility();
@@ -6357,6 +6377,7 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                 randomness: val('wallartMode_randomness'),
                 animationType: val('wallartMode_animationType'),
                 layoutVariant: val('wallartMode_layoutVariant'),
+                classicSoftTiles: val('wallartMode_classicSoftTiles'),
                 ambientGradient: val('wallartMode_ambientGradient'),
                 gamesOnly: val('wallartMode_gamesOnly'),
                 parallaxDepth: {

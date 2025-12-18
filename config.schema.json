@@ -160,6 +160,11 @@
                     "default": "heroGrid",
                     "description": "Wallart layout variant - heroGrid recommended for modern look, filmCards for elegant card-based display"
                 },
+                "classicSoftTiles": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Classic layout only: add subtle padding between posters and slightly rounded corners"
+                },
                 "ambientGradient": {
                     "type": "boolean",
                     "default": true,

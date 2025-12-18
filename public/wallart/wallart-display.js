@@ -325,6 +325,9 @@
                 try {
                     const wallartConfig = { ...(cfg || {}), ...(window.wallartConfig || {}) };
 
+                    // Reset per-start one-shot signals (e.g., loader hide on first poster)
+                    _state.__contentReadySignaled = false;
+
                     // Check if parallax depth mode is enabled
                     const animationType = (wallartConfig.animationType || '').toLowerCase();
                     if (animationType === 'parallaxdepth') {
@@ -1376,6 +1379,8 @@
                             wallartGrid.dataset.layoutVariant = 'heroGrid';
                             wallartGrid.dataset.heroGrid = 'true';
                             wallartGrid.dataset.heroSide = heroSide;
+                            wallartGrid.dataset.classicSoftTiles =
+                                wallartConfig.classicSoftTiles === true ? 'true' : 'false';
 
                             // Compute hero span
                             const baseCellW = layoutInfo.actualPosterWidth;
@@ -1479,6 +1484,14 @@
                                 heroEl.style.transition = 'opacity 600ms ease';
                                 setTimeout(() => (heroEl.style.opacity = '1'), 60);
                                 wallartGrid.appendChild(heroEl);
+                                try {
+                                    if (!_state.__contentReadySignaled) {
+                                        _state.__contentReadySignaled = true;
+                                        window.dispatchEvent(new Event('posterrama:content-ready'));
+                                    }
+                                } catch (_) {
+                                    /* best-effort */
+                                }
                                 // Expose hero as current media for device heartbeat
                                 try {
                                     window.__posterramaCurrentMedia = firstHero;
@@ -1611,6 +1624,14 @@
                                     el.style.transform = 'scale(1)';
                                 }, delay);
                                 wallartGrid.appendChild(el);
+                                try {
+                                    if (!_state.__contentReadySignaled) {
+                                        _state.__contentReadySignaled = true;
+                                        window.dispatchEvent(new Event('posterrama:content-ready'));
+                                    }
+                                } catch (_) {
+                                    /* best-effort */
+                                }
                             };
                             const canPlace = (r, c, h, w) => {
                                 if (r + h > rows || c + w > cols) return false;
@@ -1709,6 +1730,24 @@
                                     isPreview: window.IS_PREVIEW === true,
                                 });
 
+                                // Hide loader as soon as FilmCards renders its first content.
+                                try {
+                                    if (!_state.__contentReadySignaled) {
+                                        const hasTiles =
+                                            wallartGrid && wallartGrid.children
+                                                ? wallartGrid.children.length > 0
+                                                : false;
+                                        if (hasTiles) {
+                                            _state.__contentReadySignaled = true;
+                                            window.dispatchEvent(
+                                                new Event('posterrama:content-ready')
+                                            );
+                                        }
+                                    }
+                                } catch (_) {
+                                    /* best-effort */
+                                }
+
                                 // Update state from FilmCards result
                                 if (result && result.currentPosters) {
                                     currentPosters.push(...result.currentPosters);
@@ -1727,6 +1766,8 @@
                         if (effectiveLayoutVariant === 'classic') {
                             // Classic layout
                             wallartGrid.dataset.layoutVariant = 'classic';
+                            wallartGrid.dataset.classicSoftTiles =
+                                wallartConfig.classicSoftTiles === true ? 'true' : 'false';
                             const pack = (
                                 wallartConfig.animationPack ||
                                 (['staggered', 'ripple', 'scanline'].includes(
@@ -1790,6 +1831,14 @@
                                     el.style.animation = 'wallartFadeIn 0.6s ease-out forwards';
                                 }
                                 wallartGrid.appendChild(el);
+                                try {
+                                    if (!_state.__contentReadySignaled) {
+                                        _state.__contentReadySignaled = true;
+                                        window.dispatchEvent(new Event('posterrama:content-ready'));
+                                    }
+                                } catch (_) {
+                                    /* best-effort */
+                                }
                             }
                         }
 
@@ -2288,6 +2337,7 @@
                             'refreshRate',
                             'randomness',
                             'animationType',
+                            'classicSoftTiles',
                         ];
 
                         // Music mode changes that require layout rebuild
@@ -2484,6 +2534,20 @@
                                 ...mergedWallartConfig,
                             };
                             window.wallartConfig = { ..._state.wallartConfig };
+
+                            // Apply classic soft tile styling immediately without requiring a rebuild.
+                            try {
+                                const grid =
+                                    _state.wallartGrid || document.getElementById('wallart-grid');
+                                if (grid && grid.dataset) {
+                                    grid.dataset.classicSoftTiles =
+                                        mergedWallartConfig.classicSoftTiles === true
+                                            ? 'true'
+                                            : 'false';
+                                }
+                            } catch (_) {
+                                /* best-effort */
+                            }
 
                             // If music display settings changed, force rebuild to apply new overlay style
                             if (musicDisplayChanged) {

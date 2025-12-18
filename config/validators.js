@@ -38,6 +38,7 @@ const schemas = {
             durationSeconds: Joi.number().integer().min(5).max(60),
         }),
         wallartMode: Joi.object({
+            classicSoftTiles: Joi.boolean().default(false),
             musicMode: Joi.object({
                 enabled: Joi.boolean().default(false),
                 displayStyle: Joi.string()

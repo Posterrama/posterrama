@@ -223,6 +223,16 @@ function looksLikeContentIsReady() {
     const layerB = document.getElementById('layer-b');
     if (backgroundHasNonEmptyUrl(layerA) || backgroundHasNonEmptyUrl(layerB)) return true;
 
+    // Wallart: treat the first rendered poster tile as "ready".
+    // The wallart UI does not use #poster backgrounds; it builds a grid of <img> tiles.
+    const wallartGrid = document.getElementById('wallart-grid');
+    if (wallartGrid) {
+        const firstImg = wallartGrid.querySelector('.wallart-poster-item img');
+        const src = firstImg && firstImg.getAttribute('src');
+        if (src && String(src).trim().length > 0) return true;
+        if (wallartGrid.children && wallartGrid.children.length > 0) return true;
+    }
+
     // Any explicitly-marked readiness
     if (document.documentElement?.classList?.contains('posterrama-ready')) return true;
 

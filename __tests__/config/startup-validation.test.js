@@ -217,6 +217,7 @@ describe('Config Validation at Startup (Issue #10)', () => {
                 transitionIntervalSeconds: 10,
                 backgroundRefreshMinutes: 30,
                 wallartMode: {
+                    classicSoftTiles: true,
                     musicMode: {
                         enabled: true,
                         displayStyle: 'covers-only',
@@ -242,6 +243,7 @@ describe('Config Validation at Startup (Issue #10)', () => {
 
             expect(result.valid).toBe(true);
             expect(result.errors).toHaveLength(0);
+            expect(result.sanitized?.wallartMode?.classicSoftTiles).toBe(true);
         });
 
         it('should reject invalid wallartMode displayStyle', () => {

@@ -16,6 +16,7 @@
         "randomness": 2,
         "animationType": "flip",
         "layoutVariant": "heroGrid",
+        "classicSoftTiles": false,
         "ambientGradient": true,
         "gamesOnly": false,
         "layoutSettings": {
