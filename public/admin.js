@@ -4852,10 +4852,20 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             };
             const updateSliderLabel = id => {
                 const el = getVal(id);
-                const lab = document.querySelector(
-                    `#section-display .slider-percentage[data-target="${CSS.escape(id)}"]`
+                if (!el) return;
+
+                // Prefer a label next to the slider (most robust).
+                const wrap = el.closest('.modern-slider');
+                const nearbyLabel = wrap ? wrap.querySelector('.slider-percentage') : null;
+
+                // Back-compat: older markup uses dot-path targets (e.g., uiScaling.global).
+                const dotPathTarget = id.replace(/_/g, '.');
+                const targetedLabel = document.querySelector(
+                    `#section-display .slider-percentage[data-target="${CSS.escape(dotPathTarget)}"]`
                 );
-                if (el && lab) lab.textContent = labelFor(id, el.value);
+
+                const lab = nearbyLabel || targetedLabel;
+                if (lab) lab.textContent = labelFor(id, el.value);
             };
             [
                 'uiScaling_global',
