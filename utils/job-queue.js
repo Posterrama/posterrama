@@ -119,7 +119,7 @@ class JobQueue extends EventEmitter {
      *   key?: string|null,
      *   title: string,
      *   year?: number|null,
-     *   mediaType?: 'movie'|'series',
+     *   mediaType?: 'movie'|'series'|'game',
      *   posterUrl: string,
      *   posterUrlAbs: string,
      *   options?: any,
@@ -145,7 +145,12 @@ class JobQueue extends EventEmitter {
                 key: payload?.key || null,
                 title: payload?.title,
                 year: payload?.year ?? null,
-                mediaType: payload?.mediaType === 'series' ? 'series' : 'movie',
+                mediaType:
+                    payload?.mediaType === 'series'
+                        ? 'series'
+                        : payload?.mediaType === 'game'
+                          ? 'game'
+                          : 'movie',
                 posterUrl: payload?.posterUrl,
                 posterUrlAbs: payload?.posterUrlAbs,
                 options: payload?.options || {},
@@ -879,7 +884,8 @@ class JobQueue extends EventEmitter {
 
         const m = job.motion || {};
         const t = String(m.title || '').trim();
-        const mt = String(m.mediaType || 'movie').toLowerCase() === 'series' ? 'series' : 'movie';
+        const mtRaw = String(m.mediaType || 'movie').toLowerCase();
+        const mt = mtRaw === 'series' ? 'series' : mtRaw === 'game' ? 'game' : 'movie';
         const y = Number.isFinite(Number(m.year)) ? Number(m.year) : null;
         const posterUrlAbs = String(m.posterUrlAbs || '').trim();
         const posterUrlOriginal = String(m.posterUrl || '').trim();
@@ -1047,10 +1053,19 @@ class JobQueue extends EventEmitter {
 
         // Generate output filename
         const outputFilename = this.generatePosterpackFilename(item, options);
+
+        const exportFolderForSource = st => {
+            const s = String(st || '').toLowerCase();
+            if (s === 'jellyfin') return 'jellyfin-emby-export';
+            if (s === 'plex') return 'plex-export';
+            if (s === 'tmdb') return 'tmdb-export';
+            if (s === 'romm') return 'romm-export';
+            return `${s}-export`;
+        };
         const outputDir = path.join(
             this.config.localDirectory.rootPath,
             'complete',
-            `${sourceType}-export`
+            exportFolderForSource(sourceType)
         );
 
         await fs.ensureDir(outputDir);
@@ -1902,6 +1917,7 @@ class JobQueue extends EventEmitter {
 
         // Add metadata (enriched)
         const metadata = {
+            itemType: item.type || null,
             title: item.title,
             year: item.year,
             genres: item.genres || item.genre || [],
@@ -1909,6 +1925,10 @@ class JobQueue extends EventEmitter {
             contentRating: item.contentRating || item.officialRating || null,
             overview: item.overview,
             tagline: item.tagline || null,
+            platform: item.platform || null,
+            providerIds: item.providerIds || null,
+            tmdbId: item.tmdbId || null,
+            tmdbMediaType: item.tmdbMediaType || null,
             clearlogoPath: assets.clearlogo ? 'clearlogo.png' : null,
             cast: castWithThumbs,
             directors: item.directors || [],

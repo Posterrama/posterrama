@@ -147,7 +147,15 @@ class LocalDirectorySource {
                 logger.warn(`LocalDirectorySource: Failed to ensure manual dir: ${e?.message}`);
             }
             if (includeGenerated) {
-                for (const sub of ['plex-export', 'jellyfin-export']) {
+                for (const sub of [
+                    'plex-export',
+                    // new name (preferred)
+                    'jellyfin-emby-export',
+                    // backward-compat for older installs
+                    'jellyfin-export',
+                    'tmdb-export',
+                    'romm-export',
+                ]) {
                     const dir = path.join(completeRoot, sub);
                     const exists = await fs.pathExists(dir);
                     if (!exists) continue;
@@ -664,8 +672,16 @@ class LocalDirectorySource {
         const results = [];
         const want = type === 'background' ? 'background' : type === 'motion' ? 'motion' : 'poster';
         const exts = ['jpg', 'jpeg', 'png', 'webp'];
-        // Priority order: manual > plex-export > jellyfin-export
-        const subdirs = ['manual', 'plex-export', 'jellyfin-export'];
+        // Priority order: manual > plex-export > jellyfin-emby-export > tmdb-export > romm-export
+        // Keep backward compatibility: jellyfin-export is checked after the new jellyfin-emby-export.
+        const subdirs = [
+            'manual',
+            'plex-export',
+            'jellyfin-emby-export',
+            'jellyfin-export',
+            'tmdb-export',
+            'romm-export',
+        ];
         const seen = new Set(); // de-dup by basename (without .zip)
         for (const base of this.rootPaths) {
             const completeRoot = path.join(base, this.directories.complete);
@@ -1519,7 +1535,9 @@ class LocalDirectorySource {
                 this.directories.backgrounds,
                 this.directories.motion,
                 path.join(this.directories.complete, 'plex-export'),
-                path.join(this.directories.complete, 'jellyfin-export'),
+                path.join(this.directories.complete, 'jellyfin-emby-export'),
+                path.join(this.directories.complete, 'tmdb-export'),
+                path.join(this.directories.complete, 'romm-export'),
                 path.join(this.directories.complete, 'manual'),
                 this.directories.system,
                 path.join(this.directories.system, 'logs'),
@@ -1530,6 +1548,77 @@ class LocalDirectorySource {
                     const fullPath = path.join(base, dir);
                     await fs.ensureDir(fullPath);
                     logger.debug(`LocalDirectorySource: Created directory ${fullPath}`);
+                }
+            }
+
+            // Migration: move complete/jellyfin-export contents -> complete/jellyfin-emby-export
+            // Works even if the new folder already exists.
+            for (const base of this.rootPaths) {
+                const legacyDir = path.join(base, this.directories.complete, 'jellyfin-export');
+                const newDir = path.join(base, this.directories.complete, 'jellyfin-emby-export');
+                try {
+                    const legacyExists = await fs.pathExists(legacyDir);
+                    if (!legacyExists) continue;
+
+                    await fs.ensureDir(newDir);
+
+                    let moved = 0;
+                    let skipped = 0;
+                    let entries = [];
+                    try {
+                        entries = await fs.readdir(legacyDir, { withFileTypes: true });
+                    } catch (e) {
+                        logger.warn(
+                            `LocalDirectorySource: Failed to read legacy jellyfin-export folder: ${e?.message}`
+                        );
+                        continue;
+                    }
+
+                    for (const ent of entries) {
+                        if (!ent || !ent.name) continue;
+                        const src = path.join(legacyDir, ent.name);
+                        const dst = path.join(newDir, ent.name);
+                        try {
+                            const existsDst = await fs.pathExists(dst);
+                            if (existsDst) {
+                                skipped++;
+                                continue;
+                            }
+                            await fs.move(src, dst, { overwrite: false });
+                            moved++;
+                        } catch (e) {
+                            skipped++;
+                            logger.warn(
+                                `LocalDirectorySource: Failed to migrate ${src} -> ${dst}: ${e?.message}`
+                            );
+                        }
+                    }
+
+                    // If legacy folder is now empty, remove it so installs see the rename.
+                    try {
+                        const remaining = await fs.readdir(legacyDir);
+                        if (!remaining.length) {
+                            await fs.remove(legacyDir);
+                        }
+                    } catch (_) {
+                        // ignore
+                    }
+
+                    if (moved || skipped) {
+                        logger.info(
+                            'LocalDirectorySource: Migrated jellyfin-export folder contents',
+                            {
+                                legacyDir,
+                                newDir,
+                                moved,
+                                skipped,
+                            }
+                        );
+                    }
+                } catch (e) {
+                    logger.warn(
+                        `LocalDirectorySource: Failed to migrate jellyfin-export folder: ${e?.message}`
+                    );
                 }
             }
 
@@ -2004,8 +2093,10 @@ class LocalDirectorySource {
                                         // Recreate the known subdirectories under complete
                                         await fs.ensureDir(path.join(completeRoot, 'plex-export'));
                                         await fs.ensureDir(
-                                            path.join(completeRoot, 'jellyfin-export')
+                                            path.join(completeRoot, 'jellyfin-emby-export')
                                         );
+                                        await fs.ensureDir(path.join(completeRoot, 'tmdb-export'));
+                                        await fs.ensureDir(path.join(completeRoot, 'romm-export'));
                                         await fs.ensureDir(path.join(completeRoot, 'manual'));
                                         logger.info(
                                             'LocalDirectorySource: Recreated complete/* subdirectories after cleanup operation'

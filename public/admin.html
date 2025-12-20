@@ -2831,12 +2831,24 @@
                 <h4>Pick a Movie or Series</h4>
                 <div class="form-grid pp-motion-search" style="gap: 12px; align-items:end;">
                   <div class="form-group">
+                    <label for="posterpack.motion.source">Source</label>
+                    <div class="select-wrap has-caret">
+                      <select id="posterpack.motion.source">
+                        <option value="plex">Plex</option>
+                        <option value="jellyfin">Jellyfin / Emby</option>
+                        <option value="tmdb">TMDB</option>
+                        <option value="romm">RomM</option>
+                      </select>
+                      <span class="select-caret" aria-hidden="true">▾</span>
+                    </div>
+                  </div>
+                  <div class="form-group">
                     <label for="posterpack.motion.query">Search</label>
                     <input
                       type="text"
                       id="posterpack.motion.query"
-                      class="compact-input"
-                      placeholder="Search Plex/Jellyfin / Emby movies/series…"
+                      class="form-input"
+                      placeholder="Search…"
                       autocomplete="off"
                       autocorrect="off"
                       autocapitalize="off"
@@ -2845,7 +2857,7 @@
                       data-lpignore="true"
                     />
                   </div>
-                  <div class="form-group" style="margin-bottom:0;">
+                  <div class="form-group pp-motion-btn-col" style="margin-bottom:0;">
                     <button class="btn btn-secondary btn-sm pp-motion-search-btn" id="posterpack.motion.searchBtn" type="button">
                       <i class="fas fa-search"></i> Search
                     </button>

@@ -1071,7 +1071,7 @@ module.exports = function createLocalDirectoryRouter({
      * /api/local/generate-posterpack:
      *   post:
      *     summary: Generate posterpack from media servers
-     *     description: Create ZIP archives of posters and metadata from Plex/Jellyfin libraries
+     *     description: Create ZIP archives of posters and metadata from Plex/Jellyfin libraries, or explicit items from TMDB/RomM
      *     tags: ['Local Directory']
      *     requestBody:
      *       required: true
@@ -1079,17 +1079,22 @@ module.exports = function createLocalDirectoryRouter({
      *         application/json:
      *           schema:
      *             type: object
-     *             required: [sourceType, libraryIds]
+     *             required: [sourceType]
      *             properties:
      *               sourceType:
      *                 type: string
-     *                 enum: [plex, jellyfin]
-     *                 description: Source media server type
+     *                 enum: [plex, jellyfin, tmdb, romm, local]
+     *                 description: Source media server type. For tmdb/romm use itemIds[].
      *               libraryIds:
      *                 type: array
      *                 items:
      *                   type: string
-     *                 description: Array of library IDs to process
+     *                 description: Array of library IDs to process (plex/jellyfin)
+     *               itemIds:
+     *                 type: array
+     *                 items:
+     *                   type: string
+     *                 description: Array of explicit item keys to generate (e.g. tmdb_movie_123, tmdb_tv_456, romm_<server>_<id>, plex_<...>, jellyfin_<...>)
      *               options:
      *                 type: object
      *                 description: Generation options
@@ -1132,16 +1137,27 @@ module.exports = function createLocalDirectoryRouter({
             }
 
             // Plex/Jellyfin require a non-empty library selection unless generating from explicit itemIds.
-            if (sourceType !== 'local' && !items.length && (!libsProvided || libs.length === 0)) {
+            if (
+                ['plex', 'jellyfin'].includes(sourceType) &&
+                !items.length &&
+                (!libsProvided || libs.length === 0)
+            ) {
                 return res.status(400).json({
                     error: 'For plex/jellyfin, provide libraryIds[] or itemIds[]',
                 });
             }
 
-            if (!['plex', 'jellyfin', 'local'].includes(sourceType)) {
-                return res
-                    .status(400)
-                    .json({ error: 'sourceType must be plex, jellyfin, or local' });
+            // TMDB/RomM generation is itemIds-only (no libraries).
+            if (['tmdb', 'romm'].includes(sourceType) && !items.length) {
+                return res.status(400).json({
+                    error: 'For tmdb/romm, provide itemIds[]',
+                });
+            }
+
+            if (!['plex', 'jellyfin', 'tmdb', 'romm', 'local'].includes(sourceType)) {
+                return res.status(400).json({
+                    error: 'sourceType must be plex, jellyfin, tmdb, romm, or local',
+                });
             }
 
             try {
@@ -1197,7 +1213,7 @@ module.exports = function createLocalDirectoryRouter({
      *                 type: integer
      *               mediaType:
      *                 type: string
-     *                 enum: [movie, series]
+     *                 enum: [movie, series, game]
      *               posterUrl:
      *                 type: string
      *                 description: Relative URL returned by admin search (typically /image?...)
@@ -1241,7 +1257,8 @@ module.exports = function createLocalDirectoryRouter({
 
             const t = String(title || '').trim();
             const pu = String(posterUrl || '').trim();
-            const mt = String(mediaType || '').toLowerCase() === 'series' ? 'series' : 'movie';
+            const mtRaw = String(mediaType || '').toLowerCase();
+            const mt = mtRaw === 'series' ? 'series' : mtRaw === 'game' ? 'game' : 'movie';
 
             if (!t || t.length < 1) return res.status(400).json({ error: 'title is required' });
             if (!pu) return res.status(400).json({ error: 'posterUrl is required' });
@@ -1298,7 +1315,8 @@ module.exports = function createLocalDirectoryRouter({
 
             const t = String(title || '').trim();
             const pu = String(posterUrl || '').trim();
-            const mt = String(mediaType || '').toLowerCase() === 'series' ? 'series' : 'movie';
+            const mtRaw = String(mediaType || '').toLowerCase();
+            const mt = mtRaw === 'series' ? 'series' : mtRaw === 'game' ? 'game' : 'movie';
 
             if (!t) return res.status(400).json({ error: 'title is required' });
             if (!pu) return res.status(400).json({ error: 'posterUrl is required' });

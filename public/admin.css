@@ -11401,7 +11401,63 @@ body.page-logs {
 
 /* Motion search row sizing/alignment */
 #panel-local #posterpack-motion-section .pp-motion-search {
-    grid-template-columns: minmax(240px, 420px) auto;
+    /* Source | Search | Button (cap the search width so it doesn't span the full card) */
+    grid-template-columns: minmax(220px, 320px) minmax(280px, 420px) auto;
+    align-items: end;
+}
+
+/* Keep the search input from stretching wider than intended */
+#panel-local #posterpack-motion-section .pp-motion-search #posterpack\.motion\.query {
+    max-width: 420px;
+}
+
+/* Motion picker: fine-tune button vertical alignment vs taller inputs */
+#panel-local #posterpack-motion-section .pp-motion-btn-col {
+    align-self: end;
+    /* Lift the shorter button slightly so it centers visually next to 42px fields */
+    padding-bottom: 4px;
+}
+
+/* Motion picker: checkbox styling consistent with admin */
+#panel-local #posterpack-motion-section .pp-motion-checkbox {
+    margin: 0;
+    gap: 8px;
+}
+#panel-local #posterpack-motion-section .pp-motion-checkbox .checkmark {
+    width: 18px;
+    height: 18px;
+}
+#panel-local #posterpack-motion-section .pp-motion-checkbox input {
+    /* custom checkbox uses absolute positioning; keep it from impacting layout */
+    margin: 0;
+}
+#panel-local #posterpack-motion-section .pp-motion-selectall {
+    gap: 10px;
+}
+
+/* In this grid, the select wrapper must stretch (Cinema uses inline-block wrappers). */
+#panel-local #posterpack-motion-section .pp-motion-search .select-wrap.has-caret {
+    display: block;
+    width: 100%;
+}
+
+/* Motion picker: keep Source/Search/Button the same height */
+#panel-local #posterpack-motion-section .pp-motion-search .select-wrap.has-caret select,
+#panel-local #posterpack-motion-section .pp-motion-search #posterpack\.motion\.query {
+    /* Restore the original taller control height (was correct) */
+    height: 42px;
+    min-height: 42px;
+    line-height: 1.2;
+    box-sizing: border-box;
+}
+
+#panel-local #posterpack-motion-section .pp-motion-search #posterpack\.motion\.query {
+    padding: var(--space-md) !important;
+}
+
+#panel-local #posterpack-motion-section .pp-motion-search .select-wrap.has-caret select {
+    /* Match typical select padding; keep space for caret */
+    padding: 8px 44px 8px 10px;
 }
 
 /* Motion search input: prevent browser autofill from flashing white */
@@ -11421,12 +11477,25 @@ body.page-logs {
 }
 
 #panel-local #posterpack-motion-section .pp-motion-search-btn {
+    /* Keep button aligned with other small buttons (not taller than others) */
     min-height: 34px;
+    height: 34px;
     padding-left: 14px;
     padding-right: 14px;
     border-radius: 10px;
     width: fit-content;
     display: inline-flex;
+}
+
+@media (max-width: 860px) {
+    #panel-local #posterpack-motion-section .pp-motion-search {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+    #panel-local #posterpack-motion-section .pp-motion-search-btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 #panel-local #posterpack-motion-status {

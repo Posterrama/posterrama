@@ -132,17 +132,10 @@ initErrorHandlers();
 // Use a gated dynamic import so admin pages never pay the cost or risk.
 async function maybeInitAutoLoader() {
     try {
-        if (window.__POSTERRAMA_DISABLE_AUTO_LOADER__ === true) return;
-
+        // Auto-loader is always enabled on display pages.
+        // Clean up any legacy kill-switch so users don't get stuck in a disabled state.
         try {
-            const params = new URLSearchParams(window.location.search || '');
-            if (params.get('disableAutoLoader') === '1') return;
-        } catch (_) {
-            // ignore
-        }
-
-        try {
-            if (localStorage.getItem('POSTERRAMA_DISABLE_AUTO_LOADER') === '1') return;
+            localStorage.removeItem('POSTERRAMA_DISABLE_AUTO_LOADER');
         } catch (_) {
             // ignore
         }

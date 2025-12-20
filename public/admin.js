@@ -16,118 +16,12 @@ window.COLOR_PRESETS = COLOR_PRESETS;
 (function () {
     const $ = (sel, root = document) => root.querySelector(sel);
 
-    // Display auto-loader toggle (affects cinema/wallart/screensaver pages)
-    // Uses the same localStorage kill-switch checked by public/error-handler.js
-    function installDisplayLoaderToggle() {
-        const KEY = 'POSTERRAMA_DISABLE_AUTO_LOADER';
-
-        function isEnabled() {
-            try {
-                return localStorage.getItem(KEY) !== '1';
-            } catch (_) {
-                return true;
-            }
-        }
-
-        function setEnabled(enabled) {
-            try {
-                if (enabled) localStorage.removeItem(KEY);
-                else localStorage.setItem(KEY, '1');
-            } catch (_) {
-                // ignore
-            }
-        }
-
-        function toast(enabled) {
-            try {
-                window.notify?.toast({
-                    type: enabled ? 'success' : 'warning',
-                    title: 'Display Loader',
-                    message: enabled
-                        ? 'Enabled for cinema/wallart/screensaver.'
-                        : 'Disabled for cinema/wallart/screensaver.',
-                    duration: 2600,
-                });
-            } catch (_) {
-                // ignore
-            }
-        }
-
-        function renderMenuItem(item) {
-            const enabled = isEnabled();
-            item.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-            item.title = enabled
-                ? 'Display Loader is ON (click to disable)'
-                : 'Display Loader is OFF (click to enable)';
-
-            const label = item.querySelector('[data-label]');
-            if (label) label.textContent = enabled ? 'Display Loader: ON' : 'Display Loader: OFF';
-
-            const ic = item.querySelector('i');
-            if (ic) {
-                ic.classList.toggle('fa-spinner', enabled);
-                ic.classList.toggle('fa-eye-slash', !enabled);
-            }
-        }
-
-        function bootMenuItem() {
-            try {
-                const menu = document.getElementById('settings-menu');
-                if (!menu) return;
-                if (document.getElementById('display-loader-toggle-menu')) return;
-
-                const item = document.createElement('a');
-                item.id = 'display-loader-toggle-menu';
-                item.className = 'dropdown-item';
-                item.href = '#';
-                item.setAttribute('role', 'menuitem');
-                item.innerHTML =
-                    '<i class="fas fa-spinner" aria-hidden="true"></i> <span data-label>Display Loader: ON</span>';
-
-                item.addEventListener('click', ev => {
-                    ev.preventDefault();
-                    const enabledNow = isEnabled();
-                    const nextEnabled = !enabledNow;
-                    setEnabled(nextEnabled);
-                    renderMenuItem(item);
-
-                    toast(nextEnabled);
-                });
-
-                // Insert under "Report an Issue" (user preference).
-                const reportIssue = menu.querySelector('#menu-report-issue');
-                if (reportIssue && reportIssue.parentNode) {
-                    reportIssue.insertAdjacentElement('afterend', item);
-                } else {
-                    // Fallback: insert right after the first heading.
-                    const heading = menu.querySelector('.dropdown-heading');
-                    if (heading && heading.parentNode) {
-                        heading.insertAdjacentElement('afterend', item);
-                    } else {
-                        menu.insertBefore(item, menu.firstChild);
-                    }
-                }
-
-                renderMenuItem(item);
-            } catch (_) {
-                // ignore
-            }
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener(
-                'DOMContentLoaded',
-                () => {
-                    bootMenuItem();
-                },
-                { once: true }
-            );
-        } else {
-            bootMenuItem();
-        }
+    // Display auto-loader is always enabled (no settings toggle).
+    try {
+        localStorage.removeItem('POSTERRAMA_DISABLE_AUTO_LOADER');
+    } catch (_) {
+        // ignore
     }
-
-    installDisplayLoaderToggle();
 
     // If the admin session expires (or the user is loading /admin via a one-off token URL),
     // repeated polling calls can spam the browser console with 401s.
@@ -27563,6 +27457,7 @@ if (!document.__niwDelegatedFallback) {
     // --- Motion posterpack generation (single item) ---
     let __motionPosterpackQueue = [];
     let __motionPosterpackLastResults = [];
+    let __motionPosterpackSelectedIds = new Set();
     const __MOTION_POSTERPACK_QUEUE_MAX = 5;
 
     function getPosterpackQueueLimit() {
@@ -27585,6 +27480,103 @@ if (!document.__niwDelegatedFallback) {
     function isMotionItemQueued(item) {
         const id = getMotionItemId(item);
         return !!id && __motionPosterpackQueue.some(q => getMotionItemId(q) === id);
+    }
+
+    function isMotionItemSelected(item) {
+        const id = getMotionItemId(item);
+        return (
+            !!id &&
+            __motionPosterpackSelectedIds instanceof Set &&
+            __motionPosterpackSelectedIds.has(id)
+        );
+    }
+
+    function setMotionItemSelected(item, selected) {
+        const id = getMotionItemId(item);
+        if (!id) return;
+        if (!(__motionPosterpackSelectedIds instanceof Set)) {
+            __motionPosterpackSelectedIds = new Set();
+        }
+        if (selected) __motionPosterpackSelectedIds.add(id);
+        else __motionPosterpackSelectedIds.delete(id);
+    }
+
+    function addMotionItemsToQueue(items) {
+        const limit = getPosterpackQueueLimit();
+        const max = Number.isFinite(limit) ? limit : Infinity;
+        let added = 0;
+        let skippedQueued = 0;
+        let skippedLimit = 0;
+
+        for (const item of Array.isArray(items) ? items : []) {
+            if (!item) continue;
+            if (isMotionItemQueued(item)) {
+                skippedQueued++;
+                continue;
+            }
+            if (Array.isArray(__motionPosterpackQueue) && __motionPosterpackQueue.length >= max) {
+                skippedLimit++;
+                break;
+            }
+            __motionPosterpackQueue.push(item);
+            added++;
+        }
+
+        // Remove any items that are now queued from the selection set.
+        try {
+            if (__motionPosterpackSelectedIds instanceof Set) {
+                for (const q of __motionPosterpackQueue) {
+                    __motionPosterpackSelectedIds.delete(getMotionItemId(q));
+                }
+            }
+        } catch (_) {
+            /* ignore */
+        }
+
+        return { added, skippedQueued, skippedLimit };
+    }
+
+    function clearMotionPosterpackSelectionUi() {
+        __motionPosterpackQueue = [];
+        __motionPosterpackSelectedIds = new Set();
+        try {
+            renderMotionPosterpackSelected();
+            renderMotionPosterpackResults(__motionPosterpackLastResults);
+            updatePosterpackGenerateButtonLabel();
+        } catch (_) {
+            /* ignore */
+        }
+    }
+
+    function removeQueuedMotionItems(predicate) {
+        if (!Array.isArray(__motionPosterpackQueue) || __motionPosterpackQueue.length === 0) {
+            return 0;
+        }
+        const before = __motionPosterpackQueue.length;
+        __motionPosterpackQueue = __motionPosterpackQueue.filter(it => !predicate(it));
+        const removed = before - __motionPosterpackQueue.length;
+        if (removed > 0) {
+            try {
+                // Keep selection set in sync (remove anything no longer present).
+                const keep = new Set(__motionPosterpackQueue.map(getMotionItemId));
+                if (__motionPosterpackSelectedIds instanceof Set) {
+                    __motionPosterpackSelectedIds = new Set(
+                        Array.from(__motionPosterpackSelectedIds).filter(id => keep.has(id))
+                    );
+                }
+            } catch (_) {
+                /* ignore */
+            }
+
+            try {
+                renderMotionPosterpackSelected();
+                renderMotionPosterpackResults(__motionPosterpackLastResults);
+                updatePosterpackGenerateButtonLabel();
+            } catch (_) {
+                /* ignore */
+            }
+        }
+        return removed;
     }
 
     function escapeHtmlMotion(s) {
@@ -27783,8 +27775,35 @@ if (!document.__niwDelegatedFallback) {
             return;
         }
 
-        host.innerHTML = items
-            .slice(0, 25)
+        const limit = getPosterpackQueueLimit();
+        const queueFullNow = Number.isFinite(limit) && __motionPosterpackQueue.length >= limit;
+        const visible = items.slice(0, 25);
+        const selectableItems = visible.filter(it => it && !isMotionItemQueued(it));
+        const selectedCount = selectableItems.filter(it => isMotionItemSelected(it)).length;
+        const allSelected = selectableItems.length > 0 && selectedCount === selectableItems.length;
+
+        const headerHtml = `
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px; border:1px solid rgba(255,255,255,.08); border-radius:10px; margin:6px 0;">
+                <label class="checkbox pp-motion-checkbox pp-motion-selectall" style="cursor:${
+                    queueFullNow ? 'not-allowed' : 'pointer'
+                }; opacity:${queueFullNow ? 0.65 : 1};">
+                    <input type="checkbox" data-action="motion-select-all" ${
+                        queueFullNow || selectableItems.length === 0 ? 'disabled' : ''
+                    } ${allSelected ? 'checked' : ''} />
+                    <span class="checkmark"></span>
+                    <span>Select all <span style="opacity:.75; font-size:12px;">(${selectedCount}/${
+                        selectableItems.length
+                    })</span></span>
+                </label>
+                <button class="btn btn-secondary btn-sm" data-action="motion-add-selected" ${
+                    queueFullNow || selectedCount === 0 ? 'disabled' : ''
+                }>
+                    <i class="fas fa-plus"></i> Add selected
+                </button>
+            </div>
+        `;
+
+        const rowsHtml = visible
             .map((it, idx) => {
                 const t = it.title || it.name || 'Untitled';
                 const y = it.year ? ` (${it.year})` : '';
@@ -27792,12 +27811,23 @@ if (!document.__niwDelegatedFallback) {
                 const src = it.source || '';
                 const posterUrl = it.posterUrl || '';
                 const queued = isMotionItemQueued(it);
-                const limit = getPosterpackQueueLimit();
-                const queueFull = Number.isFinite(limit) && __motionPosterpackQueue.length >= limit;
-                const disabled = queued || queueFull;
-                const btnText = queued ? 'Queued' : queueFull ? 'Queue full' : 'Add';
+                const disabled = queued || queueFullNow;
+                const btnText = queued ? 'Queued' : queueFullNow ? 'Queue full' : 'Add';
+                const checked = !disabled && isMotionItemSelected(it);
                 return `
                     <div class="motion-result" data-idx="${idx}" style="display:flex; gap:10px; align-items:center; padding:8px; border:1px solid rgba(255,255,255,.08); border-radius:10px; margin:6px 0;">
+                        <div style="flex:0 0 auto; display:flex; align-items:center;">
+                            <label class="checkbox pp-motion-checkbox" title="Select" aria-label="Select ${escapeHtmlMotion(
+                                t
+                            )}${escapeHtmlMotion(y)}">
+                                <input type="checkbox" data-action="motion-select" data-idx="${idx}" aria-label="Select ${escapeHtmlMotion(
+                                    t
+                                )}${escapeHtmlMotion(y)}" ${disabled ? 'disabled' : ''} ${
+                                    checked ? 'checked' : ''
+                                } />
+                                <span class="checkmark"></span>
+                            </label>
+                        </div>
                         <div style="width:40px; height:60px; background:#1f1f1f; border-radius:8px; overflow:hidden; flex:0 0 auto;">
                             ${posterUrl ? `<img src="${escapeHtmlMotion(posterUrl)}" style="width:100%; height:100%; object-fit:cover;" />` : ''}
                         </div>
@@ -27817,9 +27847,66 @@ if (!document.__niwDelegatedFallback) {
             })
             .join('');
 
+        host.innerHTML = headerHtml + rowsHtml;
+
         if (!host.__delegated) {
             host.__delegated = true;
+
+            host.addEventListener('change', e => {
+                const t = e.target;
+                if (!(t instanceof HTMLInputElement)) return;
+
+                const action = t.getAttribute('data-action');
+                if (action === 'motion-select-all') {
+                    const checked = t.checked === true;
+                    if (checked) {
+                        for (const it of __motionPosterpackLastResults.slice(0, 25)) {
+                            if (!it || isMotionItemQueued(it)) continue;
+                            setMotionItemSelected(it, true);
+                        }
+                    } else {
+                        __motionPosterpackSelectedIds = new Set();
+                    }
+                    renderMotionPosterpackResults(__motionPosterpackLastResults);
+                    return;
+                }
+
+                if (action === 'motion-select') {
+                    const idx = Number(t.getAttribute('data-idx'));
+                    const item = __motionPosterpackLastResults[idx];
+                    if (!item) return;
+                    if (isMotionItemQueued(item)) return;
+                    setMotionItemSelected(item, t.checked === true);
+                    renderMotionPosterpackResults(__motionPosterpackLastResults);
+                }
+            });
+
             host.addEventListener('click', e => {
+                const addSelectedBtn = e.target.closest('[data-action="motion-add-selected"]');
+                if (addSelectedBtn) {
+                    e.preventDefault();
+                    const toAdd = __motionPosterpackLastResults
+                        .slice(0, 25)
+                        .filter(it => it && !isMotionItemQueued(it) && isMotionItemSelected(it));
+                    const { added, skippedQueued, skippedLimit } = addMotionItemsToQueue(toAdd);
+
+                    if (added > 0) {
+                        showNotification(`Added ${added} item(s) to queue`, 'success');
+                    } else if (skippedLimit > 0) {
+                        showNotification(
+                            `Queue is full (max ${__MOTION_POSTERPACK_QUEUE_MAX})`,
+                            'warning'
+                        );
+                    } else {
+                        showNotification('Nothing to add', 'info');
+                    }
+
+                    renderMotionPosterpackSelected();
+                    renderMotionPosterpackResults(__motionPosterpackLastResults);
+                    updatePosterpackGenerateButtonLabel();
+                    return;
+                }
+
                 const btn = e.target.closest('[data-action="select-motion"]');
                 if (!btn) return;
                 const idx = Number(btn.getAttribute('data-idx'));
@@ -27840,6 +27927,15 @@ if (!document.__niwDelegatedFallback) {
                 }
 
                 __motionPosterpackQueue.push(item);
+                // If user had it selected, clear it.
+                try {
+                    if (__motionPosterpackSelectedIds instanceof Set) {
+                        __motionPosterpackSelectedIds.delete(getMotionItemId(item));
+                    }
+                } catch (_) {
+                    /* ignore */
+                }
+
                 renderMotionPosterpackSelected();
                 renderMotionPosterpackResults(__motionPosterpackLastResults);
                 updatePosterpackGenerateButtonLabel();
@@ -27863,7 +27959,9 @@ if (!document.__niwDelegatedFallback) {
 
     async function runMotionPosterpackSearch() {
         const queryEl = document.getElementById('posterpack.motion.query');
+        const sourceEl = document.getElementById('posterpack.motion.source');
         const query = (queryEl?.value || '').toString().trim();
+        const source = (sourceEl?.value || 'plex').toString().trim().toLowerCase();
         const host = document.getElementById('posterpack-motion-results');
         const searchBtn = document.getElementById('posterpack.motion.searchBtn');
 
@@ -27882,9 +27980,10 @@ if (!document.__niwDelegatedFallback) {
         setMotionSearchStatus(`Searching for "${query}"…`, 'info');
         host.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching…';
         try {
-            // Always search across sources for a snappy autocomplete UX (same behavior as motion).
-            // Filter out "local" results (those are already generated posterpacks).
-            const url = `/api/admin/media/search?q=${encodeURIComponent(query)}&type=all&source=any&limit=25`;
+            // Search within the selected source.
+            const url = `/api/admin/media/search?q=${encodeURIComponent(query)}&type=all&source=${encodeURIComponent(
+                source
+            )}&limit=25`;
             const res = await fetch(url, { credentials: 'include' });
             const data = await res.json().catch(() => null);
             if (!res.ok) {
@@ -27894,10 +27993,14 @@ if (!document.__niwDelegatedFallback) {
             const results = Array.isArray(data?.results) ? data.results : [];
             const filtered = results.filter(r => {
                 const src = (r?.source || '').toString().trim().toLowerCase();
-                return src === 'plex' || src === 'jellyfin';
+                return src === source;
             });
             __motionPosterpackLastResults = filtered;
-            setMotionSearchStatus(`Found ${filtered.length} result(s) for "${query}".`, 'info');
+            __motionPosterpackSelectedIds = new Set();
+            setMotionSearchStatus(
+                `Found ${filtered.length} result(s) for "${query}" (${source}).`,
+                'info'
+            );
             renderMotionPosterpackResults(filtered);
         } catch (e) {
             __motionPosterpackLastResults = [];
@@ -27926,6 +28029,7 @@ if (!document.__niwDelegatedFallback) {
         const standardRadio = document.getElementById('posterpack.mode.standard');
         const queryEl = document.getElementById('posterpack.motion.query');
         const searchBtn = document.getElementById('posterpack.motion.searchBtn');
+        const sourceEl = document.getElementById('posterpack.motion.source');
 
         if (motionRadio && !motionRadio.__bound) {
             motionRadio.__bound = true;
@@ -27964,6 +28068,44 @@ if (!document.__niwDelegatedFallback) {
                     runMotionPosterpackSearch();
                 }
             });
+        }
+
+        if (sourceEl && !sourceEl.__bound) {
+            sourceEl.__bound = true;
+            const placeholderFor = src => {
+                const s = String(src || '').toLowerCase();
+                if (s === 'plex') return 'Search Plex movies/series…';
+                if (s === 'jellyfin') return 'Search Jellyfin / Emby movies/series…';
+                if (s === 'tmdb') return 'Search TMDB movies/series…';
+                if (s === 'romm') return 'Search RomM games…';
+                return 'Search…';
+            };
+
+            const syncPlaceholder = () => {
+                try {
+                    if (queryEl) queryEl.placeholder = placeholderFor(sourceEl.value);
+                } catch (_) {
+                    /* ignore */
+                }
+            };
+
+            sourceEl.addEventListener('change', () => {
+                syncPlaceholder();
+                // Re-run search with the new source if user already typed something
+                try {
+                    const q = (queryEl?.value || '').toString().trim();
+                    if (q && q.length >= 2) runMotionPosterpackSearch();
+                    else {
+                        __motionPosterpackLastResults = [];
+                        renderMotionPosterpackResults([]);
+                        setMotionSearchStatus('', 'info');
+                    }
+                } catch (_) {
+                    /* ignore */
+                }
+            });
+
+            syncPlaceholder();
         }
         if (searchBtn && !searchBtn.__bound) {
             searchBtn.__bound = true;
@@ -29032,6 +29174,10 @@ if (!document.__niwDelegatedFallback) {
                 return;
             }
 
+            // Clear selection/queue immediately so user can prepare the next batch
+            // while generation runs.
+            clearMotionPosterpackSelectionUi();
+
             (async () => {
                 const ok = [];
                 const failed = [];
@@ -29182,6 +29328,8 @@ if (!document.__niwDelegatedFallback) {
                 const key = String(k || '').toLowerCase();
                 if (key.startsWith('plex-') || key.includes('/library/metadata/')) return 'plex';
                 if (key.startsWith('jellyfin_')) return 'jellyfin';
+                if (key.startsWith('tmdb_movie_') || key.startsWith('tmdb_tv_')) return 'tmdb';
+                if (key.startsWith('romm_')) return 'romm';
                 return '';
             };
 
@@ -29190,7 +29338,9 @@ if (!document.__niwDelegatedFallback) {
                 const src = (it?.source || inferSourceFromKey(it?.key) || '')
                     .toString()
                     .toLowerCase();
-                if (src !== 'plex' && src !== 'jellyfin') continue;
+                if (src !== 'plex' && src !== 'jellyfin' && src !== 'tmdb' && src !== 'romm') {
+                    continue;
+                }
                 const key = it?.key;
                 if (!key) continue;
                 if (!bySource.has(src)) bySource.set(src, new Set());
@@ -29240,6 +29390,38 @@ if (!document.__niwDelegatedFallback) {
                             }
                             throw new Error(`${src}: ${msg}`);
                         }
+
+                        // Remove the items that successfully got queued, so the user can
+                        // immediately start a new selection while the job runs.
+                        try {
+                            const keySet = new Set(itemIds.map(String));
+                            removeQueuedMotionItems(it => {
+                                if (!it) return false;
+                                const rawKey = it.key != null ? String(it.key) : '';
+                                const keyLower = rawKey.toLowerCase();
+                                const inferred = (() => {
+                                    if (
+                                        keyLower.startsWith('plex-') ||
+                                        keyLower.includes('/library/metadata/')
+                                    )
+                                        return 'plex';
+                                    if (keyLower.startsWith('jellyfin_')) return 'jellyfin';
+                                    if (
+                                        keyLower.startsWith('tmdb_movie_') ||
+                                        keyLower.startsWith('tmdb_tv_')
+                                    )
+                                        return 'tmdb';
+                                    if (keyLower.startsWith('romm_')) return 'romm';
+                                    return '';
+                                })();
+                                const itSrc = String(it.source || inferred || '').toLowerCase();
+                                if (itSrc !== src) return false;
+                                return !!rawKey && keySet.has(rawKey);
+                            });
+                        } catch (_) {
+                            /* ignore */
+                        }
+
                         showNotification(
                             `${src.charAt(0).toUpperCase() + src.slice(1)} posterpack generation started (${itemIds.length})`,
                             'success'
@@ -30752,8 +30934,18 @@ if (!document.__niwDelegatedFallback) {
                                 : '';
                         const exportHint = (() => {
                             try {
-                                const src = job.sourceType || 'plex';
-                                return `Open “complete/${src}-export” in Directory Contents to download.`;
+                                const src = String(job.sourceType || 'plex').toLowerCase();
+                                const folder =
+                                    src === 'jellyfin' || src === 'emby'
+                                        ? 'jellyfin-emby-export'
+                                        : src === 'plex'
+                                          ? 'plex-export'
+                                          : src === 'tmdb'
+                                            ? 'tmdb-export'
+                                            : src === 'romm'
+                                              ? 'romm-export'
+                                              : `${src}-export`;
+                                return `Open “complete/${folder}” in Directory Contents to download.`;
                             } catch (_) {
                                 return '';
                             }
