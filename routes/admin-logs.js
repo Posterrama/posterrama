@@ -13,7 +13,8 @@ const MAX_LOGS_LIMIT = 1000;
 
 const safeForJson = value => {
     const seen = new WeakSet();
-    const redact = typeof logger.redact === 'function' ? logger.redact : v => v;
+    const loggerAny = /** @type {any} */ (logger);
+    const redact = typeof loggerAny.redact === 'function' ? loggerAny.redact : v => v;
 
     const dropKeys = new Set([
         'req',

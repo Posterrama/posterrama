@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const mimeTypes = require('mime-types');
 const FileType = require('file-type');
+const AdmZip = require('adm-zip');
 const logger = require('../utils/logger');
 
 /**
@@ -282,7 +283,6 @@ async function handleUploadComplete(req, res, _next) {
                 // Extra strict validation for motion ZIP posterpacks uploaded into motion/
                 // (must include poster.* + motion.* and be explicitly flagged in metadata.json)
                 if (String(targetDir).toLowerCase() === 'motion' && ext === 'zip') {
-                    const AdmZip = require('adm-zip');
                     const imageExts = ['jpg', 'jpeg', 'png', 'webp'];
                     const videoExts = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v'];
 
@@ -391,7 +391,6 @@ async function handleUploadComplete(req, res, _next) {
                 // Validate normal posterpack ZIPs uploaded into complete/ (stored under complete/*)
                 // Intentionally less strict than motion packs: require at least one expected asset entry.
                 if (String(targetDir).toLowerCase() === 'complete' && ext === 'zip') {
-                    const AdmZip = require('adm-zip');
                     const imageExts = ['jpg', 'jpeg', 'png', 'webp'];
                     const videoExts = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v'];
                     const audioExts = ['mp3', 'flac', 'wav', 'ogg', 'm4a', 'aac'];

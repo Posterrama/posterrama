@@ -2744,7 +2744,16 @@
                         "required": true,
                         "schema": {
                             "type": "string",
-                            "enum": ["poster", "background", "clearlogo", "thumbnail", "banner"]
+                            "enum": [
+                                "poster",
+                                "background",
+                                "clearlogo",
+                                "thumbnail",
+                                "banner",
+                                "motion",
+                                "trailer",
+                                "theme"
+                            ]
                         },
                         "description": "Type of asset to extract from ZIP",
                         "example": "poster"
@@ -11811,7 +11820,7 @@
         "/api/local/generate-posterpack": {
             "post": {
                 "summary": "Generate posterpack from media servers",
-                "description": "Create ZIP archives of posters and metadata from Plex/Jellyfin / Emby libraries",
+                "description": "Create ZIP archives of posters and metadata from Plex/Jellyfin libraries, or explicit items from TMDB/RomM",
                 "tags": ["Local Directory"],
                 "requestBody": {
                     "required": true,
@@ -11819,19 +11828,26 @@
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "required": ["sourceType", "libraryIds"],
+                                "required": ["sourceType"],
                                 "properties": {
                                     "sourceType": {
                                         "type": "string",
-                                        "enum": ["plex", "jellyfin"],
-                                        "description": "Source media server type"
+                                        "enum": ["plex", "jellyfin", "tmdb", "romm", "local"],
+                                        "description": "Source media server type. For tmdb/romm use itemIds[]."
                                     },
                                     "libraryIds": {
                                         "type": "array",
                                         "items": {
                                             "type": "string"
                                         },
-                                        "description": "Array of library IDs to process"
+                                        "description": "Array of library IDs to process (plex/jellyfin)"
+                                    },
+                                    "itemIds": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Array of explicit item keys to generate (e.g. tmdb_movie_123, tmdb_tv_456, romm_<server>_<id>, plex_<...>, jellyfin_<...>)"
                                     },
                                     "options": {
                                         "type": "object",
@@ -11869,6 +11885,116 @@
                 "security": []
             }
         },
+        "/api/local/generate-motion-posterpack": {
+            "post": {
+                "summary": "Generate a single motion posterpack ZIP under motion/",
+                "description": "Generates a ZIP-based motion posterpack for one selected movie/series.\nThe ZIP is written to <localDirectory.rootPath>/motion and is portable: metadata.json marks it as motion.\n",
+                "tags": ["Local Directory"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["title", "posterUrl"],
+                                "properties": {
+                                    "key": {
+                                        "type": "string"
+                                    },
+                                    "title": {
+                                        "type": "string"
+                                    },
+                                    "year": {
+                                        "type": "integer"
+                                    },
+                                    "mediaType": {
+                                        "type": "string",
+                                        "enum": ["movie", "series", "game"]
+                                    },
+                                    "posterUrl": {
+                                        "type": "string",
+                                        "description": "Relative URL returned by admin search (typically /image?...)"
+                                    },
+                                    "options": {
+                                        "type": "object",
+                                        "properties": {
+                                            "seconds": {
+                                                "type": "number"
+                                            },
+                                            "width": {
+                                                "type": "integer"
+                                            },
+                                            "height": {
+                                                "type": "integer"
+                                            },
+                                            "overwrite": {
+                                                "type": "boolean"
+                                            },
+                                            "testMode": {
+                                                "type": "boolean"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Motion posterpack generated"
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Unauthorized",
+                                    "message": "Authentication required to access this endpoint",
+                                    "statusCode": 401
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Internal server error",
+                                    "statusCode": 500
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/local/preview-posterpack": {
             "post": {
                 "summary": "Preview posterpack generation",
@@ -11884,13 +12010,17 @@
                                 "properties": {
                                     "sourceType": {
                                         "type": "string",
-                                        "enum": ["plex", "jellyfin", "local"]
+                                        "enum": ["plex", "jellyfin", "romm", "local"]
                                     },
                                     "libraryIds": {
                                         "type": "array",
                                         "items": {
                                             "type": "string"
                                         }
+                                    },
+                                    "platformId": {
+                                        "type": "string",
+                                        "description": "RomM platform slug (required when sourceType=romm)"
                                     },
                                     "mediaType": {
                                         "type": "string"
@@ -12503,7 +12633,7 @@
                         "name": "source",
                         "schema": {
                             "type": "string",
-                            "enum": ["plex", "jellyfin", "any"]
+                            "enum": ["plex", "jellyfin", "tmdb", "romm", "any"]
                         },
                         "description": "Filter by source"
                     },
@@ -12704,7 +12834,7 @@
         "/image": {
             "get": {
                 "summary": "Image proxy",
-                "description": "Proxies image requests to the media server (Plex/Jellyfin / Emby) or external URLs to avoid exposing server details and tokens to the client.",
+                "description": "Proxies image requests to the media server (Plex/Jellyfin) or external URLs to avoid exposing server details and tokens to the client.",
                 "tags": ["Public API"],
                 "parameters": [
                     {

@@ -28230,7 +28230,9 @@ if (!document.__niwDelegatedFallback) {
 
     async function refreshMotionPosterpackSourceAvailability() {
         try {
-            const cfgPayload = await loadAdminConfig();
+            const r = await fetch('/api/admin/config', { credentials: 'include' });
+            if (!r.ok) throw new Error('Failed to load config');
+            const cfgPayload = await r.json();
             const availability = computeMotionPosterpackSourceAvailability(cfgPayload);
             syncMotionPosterpackSourceUi({ availability });
         } catch (_) {
@@ -29014,6 +29016,14 @@ if (!document.__niwDelegatedFallback) {
         const browserContent = document.getElementById('local-browser-content');
         if (!browserContent) return;
 
+        // Clear directory summary while in search mode
+        try {
+            const summaryEl = document.getElementById('local-browser-summary');
+            if (summaryEl) summaryEl.innerHTML = '';
+        } catch (_) {
+            /* ignore */
+        }
+
         if (!results || !Array.isArray(results) || results.length === 0) {
             browserContent.innerHTML = `
                 <div class="browser-empty">
@@ -29190,6 +29200,28 @@ if (!document.__niwDelegatedFallback) {
             const prec = v >= 100 || i === 0 ? 0 : 1;
             return `${v.toFixed(prec)} ${units[i]}`;
         };
+
+        // Show a summary for the currently viewed directory (recursive counts/sizes)
+        try {
+            const summaryEl = document.getElementById('local-browser-summary');
+            if (summaryEl) {
+                const directDirs = dirs.length;
+                const directFiles = files.length;
+                const recursiveFiles =
+                    directFiles + dirs.reduce((sum, d) => sum + (Number(d.itemCount) || 0), 0);
+                const recursiveBytes =
+                    files.reduce((sum, f) => sum + (Number(f.sizeBytes) || 0), 0) +
+                    dirs.reduce((sum, d) => sum + (Number(d.sizeBytes) || 0), 0);
+                summaryEl.innerHTML = `
+                    <span class="status-pill" title="Directories in this folder">Dirs: ${directDirs.toLocaleString()}</span>
+                    <span class="status-pill" title="Files in this folder">Files: ${directFiles.toLocaleString()}</span>
+                    <span class="status-pill" title="Files in this folder + all subfolders">Recursive: ${recursiveFiles.toLocaleString()}</span>
+                    <span class="status-pill" title="Size of this folder + all subfolders">Size: ${humanSize(recursiveBytes)}</span>
+                `;
+            }
+        } catch (_) {
+            /* ignore */
+        }
 
         const pillLabel = k =>
             ({

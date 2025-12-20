@@ -3,6 +3,7 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs-extra');
 const JSZip = require('jszip');
+/** @type {any} */
 const axios = require('axios');
 const crypto = require('crypto');
 let sharp;
@@ -983,15 +984,24 @@ class JobQueue extends EventEmitter {
 
         const resolveFfmpegBinary = () => {
             try {
-                const ffmpegPath = require('ffmpeg-static');
-                if (ffmpegPath) return ffmpegPath;
+                const ffmpegPath = /** @type {any} */ (require('ffmpeg-static'));
+                if (typeof ffmpegPath === 'string' && ffmpegPath) return ffmpegPath;
+                if (ffmpegPath && typeof ffmpegPath.path === 'string' && ffmpegPath.path) {
+                    return ffmpegPath.path;
+                }
             } catch (_) {
                 /* ignore */
             }
             return 'ffmpeg';
         };
 
-        const spawnPromise = (cmd, args, { cwd } = {}) => {
+        /**
+         * @param {string} cmd
+         * @param {string[]} args
+         * @param {{ cwd?: string }} [opts]
+         */
+        const spawnPromise = (cmd, args, opts = {}) => {
+            const { cwd } = opts;
             return new Promise((resolve, reject) => {
                 const { spawn } = require('child_process');
                 const child = spawn(cmd, args, {
@@ -1001,7 +1011,7 @@ class JobQueue extends EventEmitter {
                 let stderr = '';
                 child.stderr.on('data', d => (stderr += d.toString()));
                 child.on('error', err => {
-                    err.stderr = stderr;
+                    /** @type {any} */ (err).stderr = stderr;
                     reject(err);
                 });
                 child.on('close', code => {
@@ -1009,7 +1019,7 @@ class JobQueue extends EventEmitter {
                     const err = new Error(
                         `Command failed: ${cmd} ${args.join(' ')} (exit ${code})`
                     );
-                    err.stderr = stderr;
+                    /** @type {any} */ (err).stderr = stderr;
                     reject(err);
                 });
             });
@@ -1055,7 +1065,7 @@ class JobQueue extends EventEmitter {
         const exists = await fs.pathExists(zipPath);
         if (exists && !overwrite) {
             const err = new Error('Motion posterpack already exists');
-            err.zipPath = zipPath;
+            /** @type {any} */ (err).zipPath = zipPath;
             throw err;
         }
 

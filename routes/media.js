@@ -173,6 +173,7 @@ async function enrichItemsWithExtras(items, config, logger, isDebug) {
  * @param {Function} deps.NotFoundError - Not found error class
  * @param {Function} deps.asyncHandler - Async error handler wrapper
  * @param {import('express').RequestHandler} deps.isAuthenticated - Authentication middleware
+ * @param {any} deps.localDirectorySource - Local directory source (optional)
  * @param {Function} deps.getPlexClient - Get Plex client instance
  * @param {Function} deps.processPlexItem - Process Plex media item
  * @param {Function} deps.getPlexLibraries - Get Plex libraries
