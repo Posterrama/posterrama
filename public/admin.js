@@ -2953,6 +2953,30 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     input.value = String(
                         Number.isFinite(maxSizeGB) && maxSizeGB > 0 ? maxSizeGB : 2
                     );
+
+                // Fetch a live, dynamic upper bound based on current free disk space.
+                // Rule: max cache size = free disk space - 1GB (server is authoritative).
+                try {
+                    const rs = await window.dedupJSON('/api/admin/cache-stats?_=' + Date.now(), {
+                        credentials: 'include',
+                    });
+                    const dj = rs?.ok ? await rs.json() : null;
+                    const maxAllowed = Number(dj?.cacheLimits?.maxSizeGBFreeMinus1GB);
+                    if (input && Number.isFinite(maxAllowed) && maxAllowed > 0) {
+                        input.max = String(maxAllowed);
+                        const info = document.getElementById('cache-size-recommended-range');
+                        if (info) {
+                            const cur = Number(input.value || '0') || 0;
+                            const maxTxt = `${maxAllowed.toFixed(1)} GB`;
+                            info.textContent =
+                                cur > maxAllowed + 1e-9
+                                    ? `Max right now: ${maxTxt} (free disk − 1GB). Current setting exceeds this limit.`
+                                    : `0.1 - ${maxTxt} • Max is free disk − 1GB`;
+                        }
+                    }
+                } catch (_) {
+                    /* ignore */
+                }
                 // Ensure custom number steppers are applied for the modal input
                 try {
                     const alreadyWrapped = input?.closest('.number-input-wrapper');
@@ -3025,12 +3049,15 @@ window.COLOR_PRESETS = COLOR_PRESETS;
                     duration: 3500,
                 });
             }
-            if (val > 50) {
-                // Hard sanity guard
-                const proceed = confirm(
-                    'Set cache size above 50GB? This may use significant disk space.'
-                );
-                if (!proceed) return;
+            // Client-side guardrail (server enforces this too): do not exceed the live max.
+            const maxAttr = input?.max === '' ? null : Number(input?.max);
+            if (maxAttr != null && Number.isFinite(maxAttr) && val > maxAttr + 1e-9) {
+                return window.notify?.toast({
+                    type: 'warning',
+                    title: 'Too large',
+                    message: `Max allowed right now is ${maxAttr.toFixed(1)} GB (free disk − 1GB).`,
+                    duration: 4500,
+                });
             }
             try {
                 btnSaveSize.classList.add('btn-loading');

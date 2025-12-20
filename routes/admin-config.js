@@ -27,6 +27,7 @@ module.exports = function createAdminConfigRouter({
     logger,
     isDebug,
     FIXED_LIMITS,
+    cacheDiskManager,
     readConfig,
     readEnvFile,
     writeConfig,
@@ -398,6 +399,48 @@ module.exports = function createAdminConfigRouter({
                 normalizeCinematicTransitions(mergedConfig);
             } catch (_) {
                 // best-effort
+            }
+
+            // Dynamic guardrail: cache.maxSizeGB must not exceed current free disk space minus 1GB.
+            // Free space can change, so enforce at save time on the server.
+            try {
+                const touchedCacheMax =
+                    newConfig?.cache &&
+                    Object.prototype.hasOwnProperty.call(newConfig.cache, 'maxSizeGB');
+                if (
+                    touchedCacheMax &&
+                    cacheDiskManager &&
+                    typeof cacheDiskManager.getFreeDiskSpace === 'function'
+                ) {
+                    const requestedGb = Number(mergedConfig?.cache?.maxSizeGB);
+                    if (Number.isFinite(requestedGb) && requestedGb > 0) {
+                        const freeBytes = await cacheDiskManager.getFreeDiskSpace();
+                        if (
+                            typeof freeBytes === 'number' &&
+                            Number.isFinite(freeBytes) &&
+                            freeBytes > 0
+                        ) {
+                            const gb = 1024 * 1024 * 1024;
+                            const reservedBytes = 1 * gb;
+                            const maxGb =
+                                Math.floor((Math.max(0, freeBytes - reservedBytes) / gb) * 10) / 10;
+                            const maxAllowedGb = Math.max(0.1, maxGb);
+
+                            if (requestedGb > maxAllowedGb + 1e-9) {
+                                throw new ApiError(
+                                    400,
+                                    `Cache max size too large. Max allowed is ${maxAllowedGb} GB (current free disk space minus 1GB).`
+                                );
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                // If it's an ApiError, surface it; otherwise keep config saves working.
+                if (e instanceof ApiError) throw e;
+                logger.warn('[Admin API] Cache size limit check failed', {
+                    error: e?.message || String(e),
+                });
             }
 
             // Detect mode changes for broadcast to devices

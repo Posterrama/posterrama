@@ -2707,6 +2707,7 @@ const adminConfigRouter = createAdminConfigRouter({
     logger,
     isDebug,
     FIXED_LIMITS,
+    cacheDiskManager,
     readConfig,
     readEnvFile,
     writeConfig,
@@ -6491,6 +6492,7 @@ app.get(
             const totalRequests = totalHits + totalMisses;
             const combinedHitRatio = totalRequests > 0 ? (totalHits / totalRequests) * 100 : 0;
 
+            /** @type {any} */
             const response = {
                 diskUsage,
                 itemCount,
@@ -6506,6 +6508,30 @@ app.get(
                     combinedHitRatio,
                 },
             };
+
+            // Include live free disk space + a dynamic upper bound for cache max size.
+            // Rule: max cache size should not exceed (current free space - 1GB).
+            try {
+                const freeBytes =
+                    cacheDiskManager && typeof cacheDiskManager.getFreeDiskSpace === 'function'
+                        ? await cacheDiskManager.getFreeDiskSpace()
+                        : null;
+                if (typeof freeBytes === 'number' && Number.isFinite(freeBytes) && freeBytes > 0) {
+                    const gb = 1024 * 1024 * 1024;
+                    const reservedBytes = 1 * gb;
+                    const maxGb = Math.max(
+                        0.1,
+                        Math.floor((Math.max(0, freeBytes - reservedBytes) / gb) * 10) / 10
+                    );
+                    response.diskFreeBytes = Math.max(0, freeBytes);
+                    response.cacheLimits = {
+                        reservedBytes,
+                        maxSizeGBFreeMinus1GB: maxGb,
+                    };
+                }
+            } catch (_) {
+                /* ignore */
+            }
 
             // Include effective cache config for UI (max size, min free space)
             try {
