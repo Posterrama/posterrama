@@ -29370,6 +29370,13 @@ if (!document.__niwDelegatedFallback) {
 
         // Also update the Local header count by summing top-level directory itemCounts
         try {
+            const normPath = p => String(p || '').replace(/\/+$/, '');
+            const isAtRoot = normPath(curr) === normPath(basePath);
+
+            // Only recompute the global Local total when we're browsing the root.
+            // When browsing subfolders, keep the last-known total to avoid showing 0.
+            if (!isAtRoot) return;
+
             // Sum files-only counts for posters, backgrounds, motion, and complete
             const topDirs = new Map(dirs.map(d => [String(d.name).toLowerCase(), d]));
             const sumCount = name => Number(topDirs.get(name)?.itemCount || 0);
