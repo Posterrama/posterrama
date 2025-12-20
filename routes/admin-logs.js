@@ -9,6 +9,77 @@ const fs = require('fs').promises;
 const path = require('path');
 const logger = require('../utils/logger');
 
+const MAX_LOGS_LIMIT = 1000;
+
+const safeForJson = value => {
+    const seen = new WeakSet();
+    const redact = typeof logger.redact === 'function' ? logger.redact : v => v;
+
+    const dropKeys = new Set([
+        'req',
+        'res',
+        'request',
+        'response',
+        'socket',
+        'agent',
+        'connection',
+        '_httpMessage',
+        'client',
+        'raw',
+        '_raw',
+    ]);
+
+    const walk = (v, depth) => {
+        if (v == null) return v;
+        const t = typeof v;
+        if (t === 'string') return redact(v);
+        if (t === 'number' || t === 'boolean') return v;
+        if (t === 'bigint') return String(v);
+        if (t === 'function') return undefined;
+        if (t !== 'object') return String(v);
+
+        if (v instanceof Error) {
+            return { name: v.name, message: redact(v.message), stack: redact(v.stack || '') };
+        }
+        if (Buffer.isBuffer(v)) return `[Buffer ${v.length} bytes]`;
+        if (depth > 6) return '[Truncated]';
+
+        if (seen.has(v)) return '[Circular]';
+        seen.add(v);
+
+        if (Array.isArray(v)) {
+            const out = [];
+            for (let i = 0; i < Math.min(v.length, 50); i++) {
+                const child = walk(v[i], depth + 1);
+                if (child !== undefined) out.push(child);
+            }
+            if (v.length > 50) out.push(`[+${v.length - 50} more]`);
+            return out;
+        }
+
+        const out = {};
+        let entries = [];
+        try {
+            entries = Object.entries(v);
+        } catch (e) {
+            return {
+                _unserializable: true,
+                _reason: redact(e?.message || String(e)),
+            };
+        }
+        for (let i = 0; i < Math.min(entries.length, 50); i++) {
+            const [k, vv] = entries[i];
+            if (dropKeys.has(k)) continue;
+            const child = walk(vv, depth + 1);
+            if (child !== undefined) out[k] = child;
+        }
+        if (entries.length > 50) out._truncatedKeys = entries.length - 50;
+        return out;
+    };
+
+    return walk(value, 0);
+};
+
 /**
  * GET /api/admin/logs
  * Fetch historical logs with pagination and filtering
@@ -22,7 +93,7 @@ router.get('/logs', (req, res) => {
     try {
         const level = req.query.level ? String(req.query.level) : null;
         const search = req.query.search ? String(req.query.search) : null;
-        const limit = Math.min(parseInt(String(req.query.limit || '100')) || 100, 1000);
+        const limit = Math.min(parseInt(String(req.query.limit || '100')) || 100, MAX_LOGS_LIMIT);
         const offset = parseInt(String(req.query.offset || '0')) || 0;
 
         // Get logs from memory buffer (already sorted chronologically)
@@ -43,10 +114,24 @@ router.get('/logs', (req, res) => {
         const startIdx = Math.max(0, total - offset - limit);
         const endIdx = total - offset;
         const paginatedLogs = logs.slice(startIdx, endIdx);
+        // Sanitize to avoid circular structures or exotic objects crashing JSON serialization.
+        // Protect per-entry so one bad log record doesn't break the whole endpoint.
+        const safeLogs = paginatedLogs.map(entry => {
+            try {
+                return safeForJson(entry);
+            } catch (e) {
+                return safeForJson({
+                    timestamp: entry?.timestamp,
+                    level: entry?.level,
+                    message: entry?.message,
+                    _sanitizationError: e?.message || String(e),
+                });
+            }
+        });
 
         res.json({
             success: true,
-            logs: paginatedLogs,
+            logs: safeLogs,
             pagination: {
                 total,
                 limit,
@@ -105,7 +190,7 @@ router.get('/logs/stream', (req, res) => {
             // Send log entry as SSE event
             const data = JSON.stringify({
                 type: 'log',
-                data: entry,
+                data: safeForJson(entry),
             });
             res.write(`data: ${data}\n\n`);
         } catch (error) {

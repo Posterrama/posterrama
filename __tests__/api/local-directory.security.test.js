@@ -45,6 +45,7 @@ describe('Local directory security regression tests', () => {
             express: require('express'),
             asyncHandler: createMockAsyncHandler,
             isAuthenticated: createMockAdminAuth(true),
+            isDebug: false,
             localDirectorySource: null,
             jobQueue: null,
             uploadMiddleware: null,

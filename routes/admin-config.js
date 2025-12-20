@@ -1813,7 +1813,8 @@ module.exports = function createAdminConfigRouter({
                                 const count = romsResponse?.total || 0;
                                 counts[p.id] = count;
                                 return {
-                                    value: p.slug,
+                                    value: String(p.id),
+                                    slug: p.slug,
                                     label: p.name,
                                     count,
                                 };
@@ -1825,7 +1826,8 @@ module.exports = function createAdminConfigRouter({
                                 );
                                 counts[p.id] = 0;
                                 return {
-                                    value: p.slug,
+                                    value: String(p.id),
+                                    slug: p.slug,
                                     label: p.name,
                                     count: 0,
                                 };

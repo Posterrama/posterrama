@@ -56,6 +56,10 @@ describe('Local posterpack: robustness and error handling', () => {
         const specialZip = path.join(manualDir, 'Movie [Special] (2024).zip');
         fs.writeFileSync(specialZip, makeZipWith({ 'poster.jpg': 'special-poster' }));
 
+        // ZIP with ellipsis in the filename (should NOT be blocked by traversal detection)
+        const ellipsisZip = path.join(manualDir, 'When Harry Met Sally... (1989).zip');
+        fs.writeFileSync(ellipsisZip, makeZipWith({ 'poster.jpg': 'ellipsis-poster' }));
+
         // Corrupted ZIP (truncated)
         const corruptedZip = path.join(manualDir, 'Corrupted (2024).zip');
         const validBuffer = makeZipWith({ 'poster.jpg': 'data' });
@@ -108,6 +112,18 @@ describe('Local posterpack: robustness and error handling', () => {
             expect(res.status).toBe(200);
             expect(res.headers['content-type']).toMatch(/image/);
             expect(res.headers['cache-control']).toContain('public');
+            expect(res.body.length).toBeGreaterThan(0);
+        });
+
+        test('should allow filenames containing ellipsis (...)', async () => {
+            const res = await request(app).get(
+                '/local-posterpack?zip=' +
+                    encodeURIComponent('complete/manual/When Harry Met Sally... (1989).zip') +
+                    '&entry=poster'
+            );
+
+            expect(res.status).toBe(200);
+            expect(res.headers['content-type']).toMatch(/image/);
             expect(res.body.length).toBeGreaterThan(0);
         });
 

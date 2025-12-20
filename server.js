@@ -1456,8 +1456,14 @@ app.get(
             if (!zipRel || !entryKey) return res.status(400).send('Missing parameters');
 
             // Security: prevent path traversal attacks and absolute paths
+            const hasTraversalSegment = p => {
+                const norm = String(p || '').replace(/\\/g, '/');
+                const parts = norm.split('/').filter(Boolean);
+                return parts.some(seg => seg === '..');
+            };
             if (
-                zipRel.includes('..') ||
+                hasTraversalSegment(zipRel) ||
+                zipRel.includes('\0') ||
                 zipRel.startsWith('/') ||
                 zipRel.startsWith('\\') ||
                 /^[a-zA-Z]:/.test(zipRel)
@@ -3662,6 +3668,7 @@ app.use(
         config,
         logger,
         isDebug,
+        localDirectorySource,
         fsp,
         fetch,
         ApiError,
@@ -3966,6 +3973,7 @@ const localDirectoryRouter = createLocalDirectoryRouter({
     express,
     asyncHandler,
     isAuthenticated,
+    isDebug,
     localDirectorySource,
     jobQueue,
     uploadMiddleware,

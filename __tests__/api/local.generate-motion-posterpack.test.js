@@ -46,6 +46,7 @@ describe('POST /api/local/generate-motion-posterpack', () => {
             asyncHandler: createMockAsyncHandler,
             isAuthenticated: createMockAdminAuth(true),
             localDirectorySource,
+            isDebug: false,
             jobQueue: new JobQueue({
                 localDirectory: {
                     enabled: true,

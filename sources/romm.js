@@ -316,9 +316,18 @@ class RommSource {
 
             // Release info
             releaseDate: rom.metadatum?.first_release_date || igdbData?.firstReleaseDate || null,
-            year: rom.metadatum?.first_release_date
-                ? new Date(rom.metadatum.first_release_date * 1000).getFullYear()
-                : null,
+            year: (() => {
+                const frdRaw = rom?.metadatum?.first_release_date;
+                const frd = typeof frdRaw === 'string' ? Number(frdRaw) : frdRaw;
+                if (!Number.isFinite(frd) || frd <= 0) return null;
+
+                // RomM can return epoch seconds or epoch milliseconds.
+                // Epoch seconds are currently ~1e9; epoch milliseconds are ~1e12 (but older dates can be <1e12).
+                // Anything above 1e11 is almost certainly milliseconds.
+                const ms = frd > 1e11 ? frd : frd * 1000;
+                const y = new Date(ms).getUTCFullYear();
+                return Number.isFinite(y) ? y : null;
+            })(),
 
             // Alternative names and localization
             alternativeNames: rom.alternative_names || igdbData?.alternativeNames || [],

@@ -210,6 +210,66 @@ describe('Admin media search + lookup fallbacks', () => {
         expect(fetchImpl).toHaveBeenCalled();
     });
 
+    it('GET /api/admin/media/search supports RomM when source=romm (paged {items} response)', async () => {
+        jest.doMock('../../sources/romm', () => {
+            return jest.fn().mockImplementation(() => {
+                return {
+                    getClient: async () => ({
+                        getRoms: jest.fn().mockResolvedValue({
+                            items: [
+                                {
+                                    id: 42,
+                                    name: 'Super Mario World',
+                                    url_cover: 'https://example.invalid/cover.jpg',
+                                    // RomM may return epoch milliseconds; ensure we normalize correctly.
+                                    metadatum: { first_release_date: 725846400000 },
+                                    platform_name: 'Super Nintendo Entertainment System',
+                                },
+                            ],
+                            total: 1,
+                            limit: 50,
+                            offset: 0,
+                            char_index: {},
+                        }),
+                    }),
+                };
+            });
+        });
+
+        const app = createTestApp({
+            isAuthenticatedImpl: (req, res, next) => next(),
+            readConfigImpl: jest.fn().mockResolvedValue({
+                mediaServers: [
+                    {
+                        type: 'romm',
+                        enabled: true,
+                        name: 'Romm1',
+                        selectedPlatforms: [1],
+                    },
+                ],
+            }),
+            getPlaylistCacheImpl: () => ({ cache: [] }),
+            getPlexClientImpl: jest.fn(),
+            processPlexItemImpl: jest.fn(),
+        });
+
+        const res = await request(app)
+            .get('/api/admin/media/search')
+            .query({ q: 'mario', type: 'all', source: 'romm', limit: 10 })
+            .expect(200);
+
+        expect(Array.isArray(res.body.results)).toBe(true);
+        const keys = res.body.results.map(r => r.key);
+        expect(keys).toContain('romm_Romm1_42');
+
+        const entry = res.body.results.find(r => r.key === 'romm_Romm1_42');
+        expect(entry && entry.year).toBe(1993);
+        expect(entry && entry.platform).toBe('Super Nintendo Entertainment System');
+
+        const sources = res.body.results.map(r => r.source);
+        expect(sources.every(s => s === 'romm')).toBe(true);
+    });
+
     it('GET /api/media/lookup can resolve Plex keys not present in playlist cache', async () => {
         const plexQuery = jest.fn().mockResolvedValue({
             MediaContainer: {

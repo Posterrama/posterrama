@@ -19132,6 +19132,21 @@ window.COLOR_PRESETS = COLOR_PRESETS;
             } catch (_) {
                 /* media source live preview wiring failed (counts will update on manual refresh) */
             }
+
+            // Keep Motion picker source dropdown in sync with enabled/disabled sources
+            try {
+                if (typeof window?.__syncPosterpackMotionSourceAvailability === 'function') {
+                    setTimeout(() => {
+                        try {
+                            window.__syncPosterpackMotionSourceAvailability();
+                        } catch (_) {
+                            /* ignore */
+                        }
+                    }, 0);
+                }
+            } catch (_) {
+                /* ignore */
+            }
             return j;
         }
 
@@ -27458,6 +27473,8 @@ if (!document.__niwDelegatedFallback) {
     let __motionPosterpackQueue = [];
     let __motionPosterpackLastResults = [];
     let __motionPosterpackSelectedIds = new Set();
+    let __motionPosterpackDetailsByKey = new Map();
+    let __motionPosterpackSearchSeq = 0;
     const __MOTION_POSTERPACK_QUEUE_MAX = 5;
 
     function getPosterpackQueueLimit() {
@@ -27803,19 +27820,119 @@ if (!document.__niwDelegatedFallback) {
             </div>
         `;
 
+        const prettyType = t => {
+            const tl = (t || '').toString().toLowerCase();
+            if (tl === 'movie') return 'Movie';
+            if (tl === 'series' || tl === 'tv' || tl === 'show') return 'Series';
+            if (tl === 'game') return 'Game';
+            return (t || '').toString();
+        };
+
+        const parseCompositeKey = (src, key) => {
+            const s = (src || '').toString().toLowerCase();
+            const k = (key || '').toString();
+
+            if (s === 'plex' && k.startsWith('plex-')) {
+                const lastDash = k.lastIndexOf('-');
+                if (lastDash > 5) {
+                    return {
+                        server: k.slice('plex-'.length, lastDash),
+                        id: k.slice(lastDash + 1),
+                    };
+                }
+            }
+
+            if (s === 'jellyfin' && k.startsWith('jellyfin_')) {
+                const lastUnderscore = k.lastIndexOf('_');
+                if (lastUnderscore > 'jellyfin_'.length) {
+                    return {
+                        server: k.slice('jellyfin_'.length, lastUnderscore),
+                        id: k.slice(lastUnderscore + 1),
+                    };
+                }
+            }
+
+            if (s === 'romm' && k.startsWith('romm_')) {
+                const lastUnderscore = k.lastIndexOf('_');
+                if (lastUnderscore > 'romm_'.length) {
+                    return {
+                        server: k.slice('romm_'.length, lastUnderscore),
+                        id: k.slice(lastUnderscore + 1),
+                    };
+                }
+            }
+
+            if (s === 'tmdb') {
+                if (k.startsWith('tmdb_movie_')) {
+                    return { id: k.slice('tmdb_movie_'.length), kind: 'movie' };
+                }
+                if (k.startsWith('tmdb_tv_')) {
+                    return { id: k.slice('tmdb_tv_'.length), kind: 'tv' };
+                }
+            }
+
+            return {};
+        };
+
+        const buildMetaLine = it => {
+            const src = (it?.source || '').toString().trim().toLowerCase();
+            const key = (it?.key || it?.id || '').toString();
+            const info = parseCompositeKey(src, key);
+            const details =
+                __motionPosterpackDetailsByKey instanceof Map
+                    ? __motionPosterpackDetailsByKey.get(key)
+                    : null;
+
+            const parts = [];
+            const typeLabel = prettyType(it?.type);
+            if (typeLabel) parts.push(typeLabel);
+
+            if (src === 'plex') {
+                parts.push(info?.server ? `Plex (${info.server})` : 'Plex');
+            } else if (src === 'jellyfin') {
+                parts.push(info?.server ? `Jellyfin (${info.server})` : 'Jellyfin');
+            } else if (src === 'tmdb') {
+                parts.push('TMDB');
+            } else if (src === 'romm') {
+                parts.push(info?.server ? `RomM (${info.server})` : 'RomM');
+                const platform = it?.platform ? String(it.platform).trim() : '';
+                if (platform) parts.push(platform);
+            } else {
+                if (src) parts.push(src);
+            }
+
+            // Extra info (kept small; line is ellipsized)
+            try {
+                const cast = Array.isArray(details?.cast)
+                    ? details.cast.filter(Boolean).slice(0, 3)
+                    : [];
+                const director = details?.director ? String(details.director) : '';
+                const creator = details?.creator ? String(details.creator) : '';
+
+                if (cast.length) parts.push(`Cast: ${cast.join(', ')}`);
+                if (director) parts.push(`Dir: ${director}`);
+                else if (creator) parts.push(`Creator: ${creator}`);
+            } catch (_) {
+                /* ignore */
+            }
+
+            return parts.filter(Boolean).join(' • ');
+        };
+
         const rowsHtml = visible
             .map((it, idx) => {
                 const t = it.title || it.name || 'Untitled';
                 const y = it.year ? ` (${it.year})` : '';
-                const type = it.type || '';
-                const src = it.source || '';
+                const metaLine = buildMetaLine(it);
                 const posterUrl = it.posterUrl || '';
                 const queued = isMotionItemQueued(it);
                 const disabled = queued || queueFullNow;
                 const btnText = queued ? 'Queued' : queueFullNow ? 'Queue full' : 'Add';
                 const checked = !disabled && isMotionItemSelected(it);
                 return `
-                    <div class="motion-result" data-idx="${idx}" style="display:flex; gap:10px; align-items:center; padding:8px; border:1px solid rgba(255,255,255,.08); border-radius:10px; margin:6px 0;">
+                    <div class="motion-result" data-idx="${idx}" style="display:flex; gap:10px; align-items:center; padding:8px; border:1px solid rgba(255,255,255,.08); border-radius:10px; margin:6px 0; cursor:${
+                        disabled ? 'not-allowed' : 'pointer'
+                    }">
                         <div style="flex:0 0 auto; display:flex; align-items:center;">
                             <label class="checkbox pp-motion-checkbox" title="Select" aria-label="Select ${escapeHtmlMotion(
                                 t
@@ -27832,10 +27949,12 @@ if (!document.__niwDelegatedFallback) {
                             ${posterUrl ? `<img src="${escapeHtmlMotion(posterUrl)}" style="width:100%; height:100%; object-fit:cover;" />` : ''}
                         </div>
                         <div style="flex:1 1 auto;">
-                            <div><strong>${escapeHtmlMotion(t)}${escapeHtmlMotion(y)}</strong></div>
-                            <div style="opacity:.8; font-size:12px;">${escapeHtmlMotion(type)}${
-                                src ? ` • ${escapeHtmlMotion(src)}` : ''
-                            }</div>
+                            <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><strong>${escapeHtmlMotion(
+                                t
+                            )}${escapeHtmlMotion(y)}</strong></div>
+                            <div style="opacity:.8; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtmlMotion(
+                                metaLine
+                            )}</div>
                         </div>
                         <div style="flex:0 0 auto;">
                             <button class="btn btn-primary btn-sm" data-action="select-motion" data-idx="${idx}" ${
@@ -27882,6 +28001,20 @@ if (!document.__niwDelegatedFallback) {
             });
 
             host.addEventListener('click', e => {
+                // If the click is on the checkbox/label, let the change handler do the work.
+                // This prevents double-toggles when the row is also clickable.
+                try {
+                    if (
+                        e.target?.closest?.('input[data-action="motion-select"]') ||
+                        e.target?.closest?.('label.pp-motion-checkbox') ||
+                        e.target?.closest?.('input[data-action="motion-select-all"]')
+                    ) {
+                        return;
+                    }
+                } catch (_) {
+                    /* ignore */
+                }
+
                 const addSelectedBtn = e.target.closest('[data-action="motion-add-selected"]');
                 if (addSelectedBtn) {
                     e.preventDefault();
@@ -27939,6 +28072,34 @@ if (!document.__niwDelegatedFallback) {
                 renderMotionPosterpackSelected();
                 renderMotionPosterpackResults(__motionPosterpackLastResults);
                 updatePosterpackGenerateButtonLabel();
+
+                return;
+            });
+
+            // Row-click selection toggle (whole row is clickable)
+            host.addEventListener('click', e => {
+                const row = e.target?.closest?.('.motion-result');
+                if (!row) return;
+                // Ignore clicks on buttons inside the row.
+                if (e.target?.closest?.('button')) return;
+
+                const idx = Number(row.getAttribute('data-idx'));
+                const item = __motionPosterpackLastResults[idx];
+                if (!item) return;
+                if (isMotionItemQueued(item)) return;
+
+                const limit = getPosterpackQueueLimit();
+                if (Number.isFinite(limit) && __motionPosterpackQueue.length >= limit) {
+                    // Match checkbox disabling behavior when queue is full.
+                    showNotification(
+                        `You can queue up to ${__MOTION_POSTERPACK_QUEUE_MAX} items`,
+                        'warning'
+                    );
+                    return;
+                }
+
+                setMotionItemSelected(item, !isMotionItemSelected(item));
+                renderMotionPosterpackResults(__motionPosterpackLastResults);
             });
         }
     }
@@ -27957,6 +28118,132 @@ if (!document.__niwDelegatedFallback) {
         el.setAttribute('data-kind', kind);
     }
 
+    let __motionPosterpackSourceAvailability = null;
+
+    function computeMotionPosterpackSourceAvailability(cfgPayload) {
+        const payload = cfgPayload || {};
+        const cfg = payload?.config || payload || {};
+        const mediaServers = Array.isArray(cfg.mediaServers) ? cfg.mediaServers : [];
+
+        const isEnabledFlag = v => v === true || v === 'true' || v === 1;
+        const hasEnabledServer = type =>
+            mediaServers.some(s => s && s.type === type && isEnabledFlag(s.enabled));
+
+        return {
+            plex: hasEnabledServer('plex'),
+            jellyfin: hasEnabledServer('jellyfin'),
+            romm: hasEnabledServer('romm'),
+            tmdb: !!cfg?.tmdbSource?.enabled,
+        };
+    }
+
+    function syncMotionPosterpackSourceUi({ availability, reason } = {}) {
+        const sourceEl = document.getElementById('posterpack.motion.source');
+        const queryEl = document.getElementById('posterpack.motion.query');
+        const searchBtn = document.getElementById('posterpack.motion.searchBtn');
+        if (!sourceEl) return;
+
+        const incoming = availability && typeof availability === 'object' ? availability : null;
+        const existing =
+            __motionPosterpackSourceAvailability &&
+            typeof __motionPosterpackSourceAvailability === 'object'
+                ? __motionPosterpackSourceAvailability
+                : null;
+
+        // Fail-open: if we don't know availability yet, don't disable inputs/options.
+        if (!incoming && !existing) {
+            return;
+        }
+
+        const a = incoming || existing || {};
+        __motionPosterpackSourceAvailability = a;
+
+        const enablePathFor = src => {
+            const s = String(src || '').toLowerCase();
+            if (s === 'plex') return 'Media Sources → Media → Plex';
+            if (s === 'jellyfin') return 'Media Sources → Media → Jellyfin / Emby';
+            if (s === 'tmdb') return 'Media Sources → Content → TMDB';
+            if (s === 'romm') return 'Media Sources → Game → RomM';
+            return 'Media Sources';
+        };
+
+        const options = Array.from(sourceEl.options || []);
+        const enabledValues = new Set(
+            Object.entries(a)
+                .filter(([, v]) => v === true)
+                .map(([k]) => k)
+        );
+
+        for (const opt of options) {
+            const v = (opt.value || '').toString().trim().toLowerCase();
+            if (!v) continue;
+            if (v in a) {
+                const enabled = enabledValues.has(v);
+                opt.disabled = !enabled;
+                if (!enabled) {
+                    opt.title = `Disabled. Enable it in ${enablePathFor(v)} to search.`;
+                } else {
+                    opt.title = '';
+                }
+            }
+        }
+
+        const current = (sourceEl.value || '').toString().trim().toLowerCase();
+        const currentEnabled = current ? enabledValues.has(current) : false;
+
+        // If current selection is disabled (e.g., stale DOM state), auto-pick the first enabled option.
+        if (current && !currentEnabled) {
+            const next = options.find(o => enabledValues.has(String(o.value).toLowerCase()));
+            if (next) sourceEl.value = next.value;
+        }
+
+        const selected = (sourceEl.value || '').toString().trim().toLowerCase();
+        const selectedEnabled = selected ? enabledValues.has(selected) : false;
+
+        // If we computed availability but it's empty/malformed, fail-open.
+        if (!enabledValues.size) return;
+
+        if (queryEl) queryEl.disabled = !selectedEnabled;
+        if (searchBtn) searchBtn.disabled = !selectedEnabled;
+
+        if (!selectedEnabled) {
+            const label =
+                selected === 'romm'
+                    ? 'RomM'
+                    : selected === 'tmdb'
+                      ? 'TMDB'
+                      : selected === 'jellyfin'
+                        ? 'Jellyfin / Emby'
+                        : selected === 'plex'
+                          ? 'Plex'
+                          : 'This source';
+            const path = enablePathFor(selected);
+            setMotionSearchStatus(
+                `${label} is disabled. Enable it in ${path} to search.`,
+                'warning'
+            );
+        } else if (reason === 'change') {
+            // Clear any prior disabled-source hint on user-driven change.
+            setMotionSearchStatus('', 'info');
+        }
+    }
+
+    async function refreshMotionPosterpackSourceAvailability() {
+        try {
+            const cfgPayload = await loadAdminConfig();
+            const availability = computeMotionPosterpackSourceAvailability(cfgPayload);
+            syncMotionPosterpackSourceUi({ availability });
+        } catch (_) {
+            // Best-effort only; if this fails the picker remains usable for already-working sources.
+        }
+    }
+
+    try {
+        window.__syncPosterpackMotionSourceAvailability = refreshMotionPosterpackSourceAvailability;
+    } catch (_) {
+        /* ignore */
+    }
+
     async function runMotionPosterpackSearch() {
         const queryEl = document.getElementById('posterpack.motion.query');
         const sourceEl = document.getElementById('posterpack.motion.source');
@@ -27966,6 +28253,37 @@ if (!document.__niwDelegatedFallback) {
         const searchBtn = document.getElementById('posterpack.motion.searchBtn');
 
         if (!host) return;
+
+        // Guardrail: prevent searching disabled sources (only when availability is known).
+        try {
+            const a = __motionPosterpackSourceAvailability || {};
+            if (
+                a &&
+                typeof a === 'object' &&
+                Object.keys(a).length > 0 &&
+                source &&
+                source in a &&
+                a[source] === false
+            ) {
+                const path =
+                    source === 'plex'
+                        ? 'Media Sources → Media → Plex'
+                        : source === 'jellyfin'
+                          ? 'Media Sources → Media → Jellyfin / Emby'
+                          : source === 'tmdb'
+                            ? 'Media Sources → Content → TMDB'
+                            : source === 'romm'
+                              ? 'Media Sources → Game → RomM'
+                              : 'Media Sources';
+                const msg = `${source.toUpperCase()} is disabled. Enable it in ${path} to search.`;
+                setMotionSearchStatus(msg, 'warning');
+                showNotification(msg, 'warning');
+                return;
+            }
+        } catch (_) {
+            /* ignore */
+        }
+
         if (!query || query.length < 2) {
             __motionPosterpackLastResults = [];
             setMotionSearchStatus('', 'info');
@@ -27995,13 +28313,41 @@ if (!document.__niwDelegatedFallback) {
                 const src = (r?.source || '').toString().trim().toLowerCase();
                 return src === source;
             });
-            __motionPosterpackLastResults = filtered;
+            // Filter out items without posters for TMDB and RomM only.
+            const filteredWithPoster =
+                source === 'tmdb' || source === 'romm'
+                    ? filtered.filter(r => !!(r && r.posterUrl))
+                    : filtered;
+
+            __motionPosterpackLastResults = filteredWithPoster;
             __motionPosterpackSelectedIds = new Set();
+
+            // Reset details cache for new search (keeps UI consistent with current results)
+            try {
+                __motionPosterpackDetailsByKey = new Map();
+            } catch (_) {
+                __motionPosterpackDetailsByKey = new Map();
+            }
+
+            // Kick off lazy enrichment (TMDB/Plex/Jellyfin) to show cast/director without slowing typing too much.
+            __motionPosterpackSearchSeq++;
+            const seq = __motionPosterpackSearchSeq;
+            if (source === 'tmdb' || source === 'plex' || source === 'jellyfin') {
+                try {
+                    const toPrefetch = filteredWithPoster.slice(0, 10);
+                    // Fire-and-forget; guarded by seq.
+                    setTimeout(() => {
+                        prefetchMotionResultDetails(toPrefetch, seq);
+                    }, 0);
+                } catch (_) {
+                    /* ignore */
+                }
+            }
             setMotionSearchStatus(
-                `Found ${filtered.length} result(s) for "${query}" (${source}).`,
+                `Found ${filteredWithPoster.length} result(s) for "${query}" (${source}).`,
                 'info'
             );
-            renderMotionPosterpackResults(filtered);
+            renderMotionPosterpackResults(filteredWithPoster);
         } catch (e) {
             __motionPosterpackLastResults = [];
             renderMotionPosterpackResults([]);
@@ -28013,6 +28359,56 @@ if (!document.__niwDelegatedFallback) {
                 searchBtn.disabled = false;
                 searchBtn.classList.remove('loading');
             }
+        }
+    }
+
+    async function prefetchMotionResultDetails(items, seq) {
+        try {
+            if (!Array.isArray(items) || items.length === 0) return;
+            // Ignore stale searches
+            if (seq !== __motionPosterpackSearchSeq) return;
+
+            const keys = items
+                .map(it => (it?.key || '').toString())
+                .filter(Boolean)
+                .slice(0, 10);
+
+            const missing = keys.filter(
+                k =>
+                    !(__motionPosterpackDetailsByKey instanceof Map) ||
+                    !__motionPosterpackDetailsByKey.has(k)
+            );
+            if (missing.length === 0) return;
+
+            // Limit concurrency to avoid spamming upstream while typing.
+            const CONCURRENCY = 3;
+            let idx = 0;
+            const runOne = async () => {
+                while (idx < missing.length) {
+                    const i = idx++;
+                    const key = missing[i];
+                    if (seq !== __motionPosterpackSearchSeq) return;
+                    try {
+                        const resp = await fetch(
+                            `/api/admin/media/details?key=${encodeURIComponent(key)}`,
+                            { credentials: 'include' }
+                        );
+                        const json = await resp.json().catch(() => null);
+                        const details = resp.ok ? json?.details || null : null;
+                        if (details && __motionPosterpackDetailsByKey instanceof Map) {
+                            __motionPosterpackDetailsByKey.set(key, details);
+                        }
+                    } catch (_) {
+                        /* ignore */
+                    }
+                }
+            };
+
+            await Promise.all(new Array(CONCURRENCY).fill(0).map(() => runOne()));
+            if (seq !== __motionPosterpackSearchSeq) return;
+            renderMotionPosterpackResults(__motionPosterpackLastResults);
+        } catch (_) {
+            /* ignore */
         }
     }
 
@@ -28090,6 +28486,20 @@ if (!document.__niwDelegatedFallback) {
             };
 
             sourceEl.addEventListener('change', () => {
+                // Update disabled/enabled state + hint when user switches.
+                try {
+                    if (
+                        __motionPosterpackSourceAvailability &&
+                        typeof __motionPosterpackSourceAvailability === 'object' &&
+                        Object.keys(__motionPosterpackSourceAvailability).length > 0
+                    ) {
+                        syncMotionPosterpackSourceUi({ reason: 'change' });
+                    } else {
+                        refreshMotionPosterpackSourceAvailability();
+                    }
+                } catch (_) {
+                    /* ignore */
+                }
                 syncPlaceholder();
                 // Re-run search with the new source if user already typed something
                 try {
@@ -28133,6 +28543,9 @@ if (!document.__niwDelegatedFallback) {
         renderMotionPosterpackSelected();
         syncPosterpackModeUi();
         setPosterpackModeActive(getPosterpackMode());
+
+        // Initial availability sync (disables sources that are disabled in config)
+        refreshMotionPosterpackSourceAvailability();
 
         // Safety net: some panels render late; re-sync shortly after.
         setTimeout(syncPosterpackModeUi, 0);
@@ -28181,9 +28594,9 @@ if (!document.__niwDelegatedFallback) {
 
     // Quick Upload drag/drop handlers removed
 
-    function handleFileSelection(e, targetDirectory = 'posters') {
+    function handleFileSelection(e, targetDirectory = 'posters', extraFields = null) {
         const files = Array.from(e.target.files || []);
-        uploadFiles(files, targetDirectory);
+        uploadFiles(files, targetDirectory, extraFields);
     }
 
     function inferTargetFromPath() {
@@ -28201,7 +28614,7 @@ if (!document.__niwDelegatedFallback) {
         }
     }
 
-    function uploadFiles(files, targetDirectory = 'posters') {
+    function uploadFiles(files, targetDirectory = 'posters', extraFields = null) {
         if (files.length === 0) return;
 
         const formData = new FormData();
@@ -28210,6 +28623,16 @@ if (!document.__niwDelegatedFallback) {
         });
         // Include target for server-side validation
         formData.append('targetDirectory', targetDirectory);
+        if (extraFields && typeof extraFields === 'object') {
+            try {
+                Object.entries(extraFields).forEach(([k, v]) => {
+                    if (v == null) return;
+                    formData.append(String(k), String(v));
+                });
+            } catch (_) {
+                /* ignore invalid extra fields */
+            }
+        }
         // Minimal UX: show transient notification while uploading
         showNotification(`Uploading to ${targetDirectory}…`, 'info');
 
@@ -28984,22 +29407,29 @@ if (!document.__niwDelegatedFallback) {
                         loadDirectoryContents(p);
                     }
                 } else if (uploadHereBtn) {
-                    const name = (uploadHereBtn.dataset.name || '').toLowerCase();
-                    // Map directory name to targetDirectory and input element
+                    const p = String(uploadHereBtn.dataset.path || '').replace(/^\/+/, '');
+                    const segs = p.split('/').filter(Boolean);
+                    const top = (segs[0] || '').toLowerCase();
+
+                    // Map directory path to targetDirectory and input element
                     let target = 'posters';
                     let fi = document.getElementById('file-input-posters');
-                    if (name === 'backgrounds') {
+                    const extra = {};
+                    if (top === 'backgrounds') {
                         target = 'backgrounds';
                         fi = document.getElementById('file-input-backgrounds');
-                    } else if (name === 'motion') {
+                    } else if (top === 'motion') {
                         target = 'motion';
                         fi = document.getElementById('file-input-motion');
-                    } else if (name === 'posterpacks' || name === 'complete') {
+                    } else if (top === 'posterpacks' || top === 'complete') {
                         target = 'complete';
                         fi = document.getElementById('file-input-packs');
+                        if (segs.length >= 2) {
+                            extra.completeSubdir = segs[1];
+                        }
                     }
                     // Use the same robust opening logic as per-directory buttons
-                    const openFilePicker = (input, td) => {
+                    const openFilePicker = (input, td, extraFields) => {
                         if (!input) return;
                         if (input.__opening) return;
                         input.__opening = true;
@@ -29015,7 +29445,7 @@ if (!document.__niwDelegatedFallback) {
                         const onChange = ev => {
                             clearTimeout(clearTimer);
                             input.__opening = false;
-                            handleFileSelection(ev, td);
+                            handleFileSelection(ev, td, extraFields);
                             try {
                                 input.value = '';
                             } catch (_) {
@@ -29026,7 +29456,7 @@ if (!document.__niwDelegatedFallback) {
                         input.addEventListener('change', onChange);
                         input.click();
                     };
-                    openFilePicker(fi, target);
+                    openFilePicker(fi, target, extra);
                 } else if (downloadDirBtn) {
                     const p = downloadDirBtn.dataset.path;
                     if (p) {
@@ -29506,18 +29936,29 @@ if (!document.__niwDelegatedFallback) {
         }
 
         const commonYearFilter = document.getElementById('posterpack.yearFilter')?.value || '';
+        const baseOptions = {
+            compression: 'balanced',
+            yearFilter: commonYearFilter,
+            // Build filter set from in-section controls; when empty, default to no narrowing
+            filtersPlex: source === 'plex' ? getPosterpackFilterObject('plex') : undefined,
+            filtersJellyfin:
+                source === 'jellyfin' ? getPosterpackFilterObject('jellyfin') : undefined,
+        };
+
         const config = {
             sourceType: source,
-            libraryIds,
-            options: {
-                compression: 'balanced',
-                yearFilter: commonYearFilter,
-                // Build filter set from in-section controls; when empty, default to no narrowing
-                filtersPlex: source === 'plex' ? getPosterpackFilterObject('plex') : undefined,
-                filtersJellyfin:
-                    source === 'jellyfin' ? getPosterpackFilterObject('jellyfin') : undefined,
-            },
+            options: baseOptions,
         };
+
+        if (source === 'plex' || source === 'jellyfin') {
+            config.libraryIds = libraryIds;
+        } else if (source === 'romm') {
+            const platformId = document.getElementById('pp-romm.platform')?.value || '';
+            config.platformId = platformId;
+        } else {
+            // local (and any other future sources) can pass an empty library list
+            config.libraryIds = Array.isArray(libraryIds) ? libraryIds : [];
+        }
 
         // Validate configuration
         if (
@@ -29525,6 +29966,15 @@ if (!document.__niwDelegatedFallback) {
             (!Array.isArray(libraryIds) || libraryIds.length === 0)
         ) {
             showNotification('Select one or more libraries first', 'warning');
+            if (generateBtn) {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i class="fas fa-archive"></i> Generate Posterpack';
+            }
+            return;
+        }
+
+        if (source === 'romm' && !config.platformId) {
+            showNotification('Select a RomM platform first', 'warning');
             if (generateBtn) {
                 generateBtn.disabled = false;
                 generateBtn.innerHTML = '<i class="fas fa-archive"></i> Generate Posterpack';
@@ -29569,6 +30019,71 @@ if (!document.__niwDelegatedFallback) {
         }
         const source = document.getElementById('posterpack.source')?.value || 'plex';
         const yearFilter = document.getElementById('posterpack.yearFilter')?.value || '';
+
+        if (source === 'romm') {
+            const platformId = document.getElementById('pp-romm.platform')?.value || '';
+            if (!platformId) {
+                showNotification('Select a RomM platform first', 'warning');
+                return;
+            }
+            const cfg = {
+                sourceType: 'romm',
+                platformId,
+                options: {
+                    mediaType: 'all',
+                    yearFilter,
+                },
+            };
+            return fetch('/api/local/preview-posterpack', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cfg),
+            })
+                .then(r => r.json())
+                .then(result => {
+                    if (result && result.summary) {
+                        try {
+                            const sum = result.summary;
+                            const total = Number(sum.totalItems) || 0;
+                            const est = Number(result.estimatedToGenerate) || 0;
+                            const msg = `RomM platform preview: ${total} matched (will generate up to ${est})`;
+                            showNotification(msg, 'info');
+                        } catch (_) {
+                            // ignore
+                        }
+                        try {
+                            const previewHost = document.getElementById(
+                                'posterpack-preview-thumbs'
+                            );
+                            if (previewHost && Array.isArray(result.exampleItems)) {
+                                previewHost.innerHTML = '';
+                                const sample = result.exampleItems.slice(0, 12);
+                                for (const it of sample) {
+                                    const img = document.createElement('img');
+                                    img.loading = 'lazy';
+                                    img.decoding = 'async';
+                                    img.referrerPolicy = 'no-referrer';
+                                    img.alt = it.title || 'preview';
+                                    img.width = 64;
+                                    img.height = 96;
+                                    img.className = 'pp-thumb';
+                                    img.src = it.thumbnailUrl || it.posterUrl || '';
+                                    previewHost.appendChild(img);
+                                }
+                                previewHost.style.display = sample.length ? '' : 'none';
+                            }
+                        } catch (_) {
+                            /* ignore */
+                        }
+                    } else {
+                        showNotification(result?.error || 'Preview failed', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Preview error:', error);
+                    showNotification('Preview failed', 'error');
+                });
+        }
 
         // Resolve library IDs same as generate (Posterpack section picks; empty = all)
         let libraryIds = [];
@@ -29727,6 +30242,7 @@ if (!document.__niwDelegatedFallback) {
         const libsSection = document.getElementById('posterpack-lib-section');
         const plexLibs = document.getElementById('pp-plex-libs');
         const jfLibs = document.getElementById('pp-jf-libs');
+        const rommPlatformGroup = document.getElementById('pp-romm-platform-group');
 
         if (filtersSection) {
             const isLocal = source === 'local';
@@ -29771,7 +30287,15 @@ if (!document.__niwDelegatedFallback) {
                 }
             }
         }
-        const showLibs = source !== 'local';
+
+        const showRomm = source === 'romm';
+        if (rommPlatformGroup) {
+            rommPlatformGroup.hidden = !showRomm;
+            rommPlatformGroup.style.display = showRomm ? '' : 'none';
+            rommPlatformGroup.setAttribute('aria-hidden', showRomm ? 'false' : 'true');
+        }
+
+        const showLibs = source === 'plex' || source === 'jellyfin';
         if (libsSection) {
             libsSection.hidden = !showLibs;
             libsSection.style.display = showLibs ? '' : 'none';
@@ -29789,6 +30313,17 @@ if (!document.__niwDelegatedFallback) {
             jfLibs.style.display = showJf ? '' : 'none';
             jfLibs.setAttribute('aria-hidden', showJf ? 'false' : 'true');
         }
+
+        if (showRomm) {
+            try {
+                ensureRommPosterpackPlatforms().catch(() => {
+                    /* best-effort */
+                });
+            } catch (_) {
+                /* best-effort */
+            }
+        }
+
         // Populate library lists lazily; the populate function will rebuild widgets after options are filled
         if (source === 'plex') {
             // Check if Plex is enabled before making API calls
@@ -29912,6 +30447,65 @@ if (!document.__niwDelegatedFallback) {
                 populatePosterpackLibraries('jellyfin');
             }
         }
+    }
+
+    let __ppRommPlatformsLoaded = false;
+    async function ensureRommPosterpackPlatforms(force = false) {
+        if (__ppRommPlatformsLoaded && !force) return;
+        const sel = document.getElementById('pp-romm.platform');
+        if (!sel) return;
+
+        // Reset options
+        sel.innerHTML = '';
+        const opt0 = document.createElement('option');
+        opt0.value = '';
+        opt0.textContent = 'Select a platform…';
+        sel.appendChild(opt0);
+
+        let data = null;
+        try {
+            const res = await fetch('/api/admin/romm-platforms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+            });
+            data = await res.json().catch(() => null);
+            if (!res.ok || !data?.success) {
+                const msg = data?.error || data?.message || `HTTP ${res.status}`;
+                throw new Error(msg);
+            }
+        } catch (e) {
+            showNotification(e?.message || 'Failed to load RomM platforms', 'error');
+            return;
+        }
+
+        const platforms = Array.isArray(data?.platforms) ? data.platforms : [];
+        // Hide platforms with 0 games (count=0) from the dropdown.
+        const filtered = platforms.filter(p => {
+            if (!p) return false;
+            const c = Number(p.count);
+            // If API provides a numeric count, enforce > 0. If missing/unknown, keep it.
+            if (Number.isFinite(c)) return c > 0;
+            return true;
+        });
+        filtered.sort((a, b) => {
+            const al = String(a?.label != null ? a.label : a?.value || '').toLowerCase();
+            const bl = String(b?.label != null ? b.label : b?.value || '').toLowerCase();
+            return al.localeCompare(bl, undefined, { numeric: true, sensitivity: 'base' });
+        });
+        for (const p of filtered) {
+            if (!p) continue;
+            const val = p.value != null ? String(p.value) : '';
+            const label = p.label != null ? String(p.label) : val;
+            if (!val) continue;
+            const opt = document.createElement('option');
+            opt.value = val;
+            const count = Number.isFinite(Number(p.count)) ? Number(p.count) : null;
+            opt.textContent = count != null ? `${label} (${count})` : label;
+            sel.appendChild(opt);
+        }
+
+        __ppRommPlatformsLoaded = true;
     }
 
     // getLocalPosterpackFilters removed (Local source removed from Posterpack UI)

@@ -46,6 +46,7 @@ describe('POST /api/local/upload (complete -> complete/manual)', () => {
             express: require('express'),
             asyncHandler: createMockAsyncHandler,
             isAuthenticated: createMockAdminAuth(true),
+            isDebug: false,
             localDirectorySource,
             jobQueue: null,
             uploadMiddleware,

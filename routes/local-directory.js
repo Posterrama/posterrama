@@ -9,6 +9,7 @@ module.exports = function createLocalDirectoryRouter({
     express,
     asyncHandler,
     isAuthenticated,
+    isDebug,
     localDirectorySource,
     jobQueue,
     uploadMiddleware,
@@ -22,6 +23,8 @@ module.exports = function createLocalDirectoryRouter({
     const router = express.Router();
 
     const archiver = require('archiver');
+    const { shuffleArray } = require('../utils/array-utils');
+    const debugEnabled = Boolean(isDebug);
 
     // Allow the shared JobQueue to refresh UI/media caches after background jobs finish.
     try {
@@ -1125,14 +1128,22 @@ module.exports = function createLocalDirectoryRouter({
                     .json({ error: 'Local directory support or job queue not available' });
             }
 
-            const { sourceType, libraryIds = null, itemIds = null, options = {} } = req.body || {};
+            const {
+                sourceType,
+                libraryIds = null,
+                itemIds = null,
+                platformId = null,
+                options = {},
+            } = req.body || {};
             const libsProvided = Array.isArray(libraryIds);
             const libs = libsProvided ? libraryIds : [];
             const items = Array.isArray(itemIds) ? itemIds.filter(Boolean) : [];
 
-            if (!sourceType || (!libsProvided && !items.length)) {
+            const hasPlatform = platformId != null && String(platformId).trim().length > 0;
+
+            if (!sourceType || (!libsProvided && !items.length && !hasPlatform)) {
                 return res.status(400).json({
-                    error: 'sourceType and either libraryIds[] or itemIds[] are required',
+                    error: 'sourceType and either libraryIds[], itemIds[], or platformId are required',
                 });
             }
 
@@ -1147,10 +1158,17 @@ module.exports = function createLocalDirectoryRouter({
                 });
             }
 
-            // TMDB/RomM generation is itemIds-only (no libraries).
-            if (['tmdb', 'romm'].includes(sourceType) && !items.length) {
+            // TMDB is itemIds-only (no libraries).
+            if (sourceType === 'tmdb' && !items.length) {
                 return res.status(400).json({
-                    error: 'For tmdb/romm, provide itemIds[]',
+                    error: 'For tmdb, provide itemIds[]',
+                });
+            }
+
+            // RomM is itemIds[] OR platformId.
+            if (sourceType === 'romm' && !items.length && !hasPlatform) {
+                return res.status(400).json({
+                    error: 'For romm, provide itemIds[] or platformId',
                 });
             }
 
@@ -1161,9 +1179,35 @@ module.exports = function createLocalDirectoryRouter({
             }
 
             try {
-                const mergedOptions = items.length
-                    ? { ...(options || {}), itemIds: items }
-                    : options;
+                let mergedOptions = items.length ? { ...(options || {}), itemIds: items } : options;
+                let effectiveItemCount = items.length;
+
+                // Bulk expand RomM platform into itemIds when requested.
+                if (sourceType === 'romm' && !items.length && hasPlatform) {
+                    const { getRommPlatformItemIds } = require('../utils/romm-platform-item-ids');
+                    const maxItems = (() => {
+                        const n = Number(options?.maxItems);
+                        if (!Number.isFinite(n) || n <= 0) return 10000;
+                        return Math.max(1, Math.min(50000, Math.floor(n)));
+                    })();
+
+                    const expanded = await getRommPlatformItemIds({
+                        config,
+                        logger,
+                        platformId: String(platformId).trim(),
+                        yearFilter: String(options?.yearFilter || ''),
+                        maxItems,
+                    });
+
+                    const expandedIds = Array.isArray(expanded?.itemIds) ? expanded.itemIds : [];
+                    if (!expandedIds.length) {
+                        return res.status(400).json({
+                            error: 'No RomM games found for selected platform',
+                        });
+                    }
+                    effectiveItemCount = expandedIds.length;
+                    mergedOptions = { ...(options || {}), itemIds: expandedIds, platformId };
+                }
 
                 const jobId = await jobQueue.addPosterpackGenerationJob(
                     sourceType,
@@ -1177,7 +1221,7 @@ module.exports = function createLocalDirectoryRouter({
                     message: 'Posterpack generation job started',
                     sourceType: sourceType,
                     libraryCount: libs.length,
-                    itemCount: items.length,
+                    itemCount: effectiveItemCount,
                 });
             } catch (error) {
                 logger.error('Posterpack generation error:', error);
@@ -1397,11 +1441,14 @@ module.exports = function createLocalDirectoryRouter({
      *             properties:
      *               sourceType:
      *                 type: string
-     *                 enum: [plex, jellyfin, local]
+     *                 enum: [plex, jellyfin, romm, local]
      *               libraryIds:
      *                 type: array
      *                 items:
      *                   type: string
+     *               platformId:
+     *                 type: string
+     *                 description: RomM platform slug (required when sourceType=romm)
      *               mediaType:
      *                 type: string
      *               yearRange:
@@ -1423,6 +1470,7 @@ module.exports = function createLocalDirectoryRouter({
             }
 
             const { sourceType, libraryIds = [], options = {} } = req.body || {};
+            const platformId = req.body?.platformId;
             const mediaType = options.mediaType || 'all';
             // Use a higher default preview limit; UI hides limit for Local
             const limit = Number(options.limit) || 10000;
@@ -1679,6 +1727,149 @@ module.exports = function createLocalDirectoryRouter({
                     }
                 } else if (sourceType === 'local') {
                     totalItems = 0;
+                } else if (sourceType === 'romm') {
+                    const pid = platformId != null ? String(platformId).trim() : '';
+                    if (!pid) {
+                        return res
+                            .status(400)
+                            .json({ error: 'platformId is required for romm preview' });
+                    }
+
+                    const RommSource = require('../sources/romm');
+                    const rommServer = (config.mediaServers || []).find(
+                        s => s && s.enabled && s.type === 'romm'
+                    );
+                    if (!rommServer) {
+                        return res.status(400).json({ error: 'No RomM server configured' });
+                    }
+
+                    const rommSource = new RommSource(rommServer, shuffleArray, debugEnabled);
+                    const client = await rommSource.getClient();
+
+                    const resolvePlatformId = async platformIdOrSlug => {
+                        const raw = platformIdOrSlug != null ? String(platformIdOrSlug).trim() : '';
+                        if (!raw) return null;
+                        if (/^\d+$/.test(raw)) return raw;
+                        const platforms = await client.getPlatforms();
+                        if (!Array.isArray(platforms)) return null;
+                        const match = platforms.find(
+                            p => p && String(p.slug || '').toLowerCase() === raw.toLowerCase()
+                        );
+                        if (!match || match.id == null) return null;
+                        return String(match.id);
+                    };
+
+                    const resolvedPid = await resolvePlatformId(pid);
+                    if (!resolvedPid) {
+                        return res.status(400).json({
+                            error: `Unknown RomM platform '${pid}'. Please refresh platforms and try again.`,
+                        });
+                    }
+
+                    const yearTester = expr => {
+                        if (!expr) return null;
+                        const parts = String(expr)
+                            .split(',')
+                            .map(s => s.trim())
+                            .filter(Boolean);
+                        const ranges = [];
+                        for (const p of parts) {
+                            const m1 = p.match(/^\d{4}$/);
+                            const m2 = p.match(/^(\d{4})\s*-\s*(\d{4})$/);
+                            if (m1) {
+                                const y = Number(m1[0]);
+                                if (y >= 1900) ranges.push([y, y]);
+                            } else if (m2) {
+                                const a = Number(m2[1]);
+                                const b = Number(m2[2]);
+                                if (a >= 1900 && b >= a) ranges.push([a, b]);
+                            }
+                        }
+                        if (!ranges.length) return null;
+                        return y => ranges.some(([a, b]) => y >= a && y <= b);
+                    };
+
+                    const yearOk = yearTester(yearFilterExpr);
+                    const getYearFromRom = rom => {
+                        const frdRaw = rom?.metadatum?.first_release_date;
+                        const frd = typeof frdRaw === 'string' ? Number(frdRaw) : frdRaw;
+                        if (!Number.isFinite(frd) || frd <= 0) return null;
+                        const ms = frd > 1e11 ? frd : frd * 1000;
+                        const yr = new Date(ms).getUTCFullYear();
+                        return Number.isFinite(yr) ? yr : null;
+                    };
+
+                    const exampleItems = [];
+                    totalItems = 0;
+                    let offset = 0;
+                    const pageSize = Math.max(1, Number(process.env.ROMM_PREVIEW_PAGE_SIZE) || 250);
+                    let total = null;
+                    // Scan platform ROMs and apply year filter if present
+                    while (totalItems < limit) {
+                        const payload = await client.getRoms({
+                            platform_id: resolvedPid,
+                            limit: pageSize,
+                            offset,
+                        });
+                        const items = Array.isArray(payload?.items)
+                            ? payload.items
+                            : Array.isArray(payload?.results)
+                              ? payload.results
+                              : Array.isArray(payload)
+                                ? payload
+                                : [];
+                        if (!items.length) break;
+
+                        if (total == null && Number.isFinite(Number(payload?.total))) {
+                            total = Number(payload.total);
+                        }
+
+                        for (const rom of items) {
+                            if (yearOk) {
+                                const y = getYearFromRom(rom);
+                                if (!Number.isFinite(Number(y)) || !yearOk(Number(y))) continue;
+                            }
+                            totalItems++;
+                            if (exampleItems.length < 12) {
+                                const title = String(rom?.name || rom?.fs_name_no_ext || '').trim();
+                                const posterAbs = rom?.url_cover ? String(rom.url_cover) : '';
+                                exampleItems.push({
+                                    title,
+                                    thumbnailUrl: posterAbs
+                                        ? `/image?url=${encodeURIComponent(posterAbs)}`
+                                        : '',
+                                    posterUrl: posterAbs
+                                        ? `/image?url=${encodeURIComponent(posterAbs)}`
+                                        : '',
+                                });
+                            }
+                            if (totalItems >= limit) break;
+                        }
+
+                        offset += items.length;
+                        if (total != null && offset >= total) break;
+                    }
+
+                    perLibrary.push({ id: resolvedPid, count: totalItems });
+
+                    const preview = {
+                        summary: {
+                            sourceType,
+                            totalItems,
+                            mediaType,
+                            limit,
+                            filters: {
+                                yearFilter: yearFilterExpr,
+                                plex: filtersPlex,
+                                jellyfin: filtersJellyfin,
+                                local: filtersLocal,
+                            },
+                        },
+                        libraries: perLibrary,
+                        estimatedToGenerate: clamp(Math.min(totalItems, limit), 10000),
+                        exampleItems,
+                    };
+                    return res.json(preview);
                 }
 
                 const preview = {

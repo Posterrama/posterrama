@@ -14,6 +14,145 @@ try {
 const logger = require('./logger');
 const { createExportLogger } = require('./export-logger');
 
+function isProbablyImageBuffer(buf) {
+    try {
+        if (!buf || !Buffer.isBuffer(buf) || buf.length < 8) return false;
+        // JPEG
+        if (buf[0] === 0xff && buf[1] === 0xd8) return true;
+        // PNG
+        if (
+            buf[0] === 0x89 &&
+            buf[1] === 0x50 &&
+            buf[2] === 0x4e &&
+            buf[3] === 0x47 &&
+            buf[4] === 0x0d &&
+            buf[5] === 0x0a &&
+            buf[6] === 0x1a &&
+            buf[7] === 0x0a
+        )
+            return true;
+        // WEBP (RIFF....WEBP)
+        if (
+            buf[0] === 0x52 &&
+            buf[1] === 0x49 &&
+            buf[2] === 0x46 &&
+            buf[3] === 0x46 &&
+            buf[8] === 0x57 &&
+            buf[9] === 0x45 &&
+            buf[10] === 0x42 &&
+            buf[11] === 0x50
+        )
+            return true;
+        return false;
+    } catch (_) {
+        return false;
+    }
+}
+
+function buildGamePosterpackMetadata({ item, sourceType, assets, peopleImages }) {
+    const nowYear = new Date().getUTCFullYear();
+    const isPlausibleYear = y => Number.isFinite(y) && y >= 1900 && y <= nowYear + 2;
+
+    const coerceYear = value => {
+        if (value == null) return null;
+
+        if (typeof value === 'string') {
+            const s = value.trim();
+            if (!s) return null;
+            if (/^\d{4}/.test(s)) {
+                const y = Number(s.slice(0, 4));
+                return isPlausibleYear(y) ? y : null;
+            }
+            const parsed = Date.parse(s);
+            if (Number.isFinite(parsed)) {
+                const y = new Date(parsed).getUTCFullYear();
+                return isPlausibleYear(y) ? y : null;
+            }
+            const n = Number(s);
+            if (Number.isFinite(n)) return coerceYear(n);
+            return null;
+        }
+
+        if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+        const n = Math.trunc(value);
+        if (isPlausibleYear(n)) return n;
+
+        // Handle epoch seconds/milliseconds defensively.
+        if (n >= 1e11) {
+            const y = new Date(n).getUTCFullYear();
+            return isPlausibleYear(y) ? y : null;
+        }
+        if (n >= 1e9) {
+            const y = new Date(n * 1000).getUTCFullYear();
+            return isPlausibleYear(y) ? y : null;
+        }
+
+        return null;
+    };
+
+    const year =
+        coerceYear(item.year) ??
+        coerceYear(item.releaseDate) ??
+        coerceYear(item.firstReleaseDate) ??
+        coerceYear(item.release_date) ??
+        null;
+
+    const providerIds =
+        item.providerIds && typeof item.providerIds === 'object' ? item.providerIds : null;
+    const genres = Array.isArray(item.genres) ? item.genres.filter(Boolean) : [];
+    const guids = Array.isArray(item.guids) ? item.guids.filter(Boolean) : [];
+
+    const meta = {
+        schemaVersion: 2,
+        itemType: 'game',
+        title: item.title || null,
+        year,
+        overview: item.overview || null,
+        genres,
+        rating:
+            typeof item.rating === 'number'
+                ? item.rating
+                : item.rating != null
+                  ? Number(item.rating)
+                  : null,
+        platform: item.platform || null,
+        providerIds,
+        slug: item.slug || null,
+        guids,
+        source: sourceType,
+        sourceId: item.id,
+        generated: new Date().toISOString(),
+        images: {
+            poster: !!assets.poster,
+            background: !!assets.background,
+            clearlogo: !!assets.clearlogo,
+            thumbnail: !!assets.thumbnail,
+        },
+        assets: {
+            poster: !!assets.poster,
+            background: !!assets.background,
+            clearlogo: !!assets.clearlogo,
+            thumbnail: !!assets.thumbnail,
+            trailer: !!assets.trailer,
+            theme: !!assets.theme,
+        },
+        peopleImages: Array.isArray(peopleImages) ? peopleImages : [],
+    };
+
+    // Drop empty fields for cleaner output
+    if (!meta.genres.length) delete meta.genres;
+    if (!meta.guids.length) delete meta.guids;
+    if (!providerIds || Object.values(providerIds).every(v => v == null)) delete meta.providerIds;
+    if (!meta.slug) delete meta.slug;
+    if (meta.year == null) delete meta.year;
+    if (meta.overview == null) delete meta.overview;
+    if (meta.rating == null || Number.isNaN(meta.rating)) delete meta.rating;
+    if (!meta.platform) delete meta.platform;
+    if (!meta.peopleImages.length) delete meta.peopleImages;
+
+    return meta;
+}
+
 /**
  * Background Job Queue System for Posterpack Generation
  * Handles concurrent job processing with progress tracking and status management
@@ -1201,11 +1340,15 @@ class JobQueue extends EventEmitter {
             );
         }
 
-        // Add background (required)
+        const itemType = String(item.itemType || item.type || '').toLowerCase();
+        const isGame = itemType === 'game';
+
+        // Add background (required for movies/series, optional for games)
         if (!item.background && exportLogger) {
             await exportLogger.warn('Item has no background URL', {
                 title: item.title,
                 id: item.id,
+                itemType: itemType || null,
             });
         }
         if (item.background) {
@@ -1214,9 +1357,21 @@ class JobQueue extends EventEmitter {
                     const backgroundData = await this._withInflightLimit(() =>
                         this.downloadAsset(item.background, sourceType, exportLogger)
                     );
-                    if (backgroundData) {
-                        zip.file('background.jpg', backgroundData);
-                        assets.background = true;
+                    if (
+                        backgroundData &&
+                        Buffer.isBuffer(backgroundData) &&
+                        backgroundData.length
+                    ) {
+                        if (isProbablyImageBuffer(backgroundData)) {
+                            zip.file('background.jpg', backgroundData);
+                            assets.background = true;
+                        } else if (exportLogger) {
+                            await exportLogger.warn('Background download returned non-image data', {
+                                title: item.title,
+                                url: item.background,
+                                bytes: backgroundData.length,
+                            });
+                        }
                     } else if (exportLogger) {
                         await exportLogger.warn('Background download failed', {
                             title: item.title,
@@ -1916,180 +2071,188 @@ class JobQueue extends EventEmitter {
         const producersWithThumbs = await addPeopleImages(item.producersDetailed || []);
 
         // Add metadata (enriched)
-        const metadata = {
-            itemType: item.type || null,
-            title: item.title,
-            year: item.year,
-            genres: item.genres || item.genre || [],
-            rating: item.rating,
-            contentRating: item.contentRating || item.officialRating || null,
-            overview: item.overview,
-            tagline: item.tagline || null,
-            platform: item.platform || null,
-            providerIds: item.providerIds || null,
-            tmdbId: item.tmdbId || null,
-            tmdbMediaType: item.tmdbMediaType || null,
-            clearlogoPath: assets.clearlogo ? 'clearlogo.png' : null,
-            cast: castWithThumbs,
-            directors: item.directors || [],
-            writers: item.writers || [],
-            producers: item.producers || [],
-            directorsDetailed: directorsWithThumbs,
-            writersDetailed: writersWithThumbs,
-            producersDetailed: producersWithThumbs,
-            studios: item.studios || [],
-            guids: item.guids || [],
-            imdbUrl: item.imdbUrl || null,
-            rottenTomatoes: item.rottenTomatoes || null,
-            releaseDate: item.releaseDate || null,
-            runtimeMs: item.runtimeMs || null,
-            qualityLabel: item.qualityLabel || null,
-            mediaStreams: item.mediaStreams || null,
-            // Enriched metadata fields (phase 1: Collections, Statistics, Timestamps)
-            collections: item.collections || null,
-            countries: item.countries || null,
-            audienceRating: item.audienceRating || null,
-            viewCount: item.viewCount || null,
-            skipCount: item.skipCount || null,
-            lastViewedAt: item.lastViewedAt || null,
-            userRating: item.userRating || null,
-            originalTitle: item.originalTitle || null,
-            titleSort: item.titleSort || null,
-            // Enriched metadata fields (phase 2: Advanced Metadata)
-            slug: item.slug || null,
-            contentRatingAge: item.contentRatingAge || null,
-            addedAt: item.addedAt || null,
-            updatedAt: item.updatedAt || null,
-            ultraBlurColors: item.ultraBlurColors || null,
-            ratingsDetailed: item.ratingsDetailed || null,
-            parentalGuidance: item.parentalGuidance || null,
-            chapters: item.chapters || null,
-            markers: item.markers || null,
-            // Enriched metadata fields (phase 3: All Image Types)
-            bannerUrl: item.bannerUrl || null,
-            discArtUrl: item.discArtUrl || null,
-            thumbUrl: item.thumbUrl || null,
-            clearArtUrl: item.clearArtUrl || null,
-            landscapeUrl: item.landscapeUrl || null,
-            allArtUrls: item.allArtUrls || null,
-            fanart: item.fanart || null,
-            // Enriched metadata fields (phase 4: Comprehensive Technical Details)
-            audioTracks: item.audioTracks || null,
-            subtitles: item.subtitles || null,
-            videoStreams: item.videoStreams || null,
-            hasHDR: item.hasHDR || null,
-            hasDolbyVision: item.hasDolbyVision || null,
-            is3D: item.is3D || null,
-            containerFormat: item.containerFormat || null,
-            totalFileSize: item.totalFileSize || null,
-            totalBitrate: item.totalBitrate || null,
-            optimizedForStreaming: item.optimizedForStreaming || null,
-            // Enriched metadata fields (phase 5: Advanced Metadata)
-            extras: item.extras || null,
-            related: item.related || null,
-            themeUrl: item.themeUrl || null,
-            lockedFields: item.lockedFields || null,
-            // Trailer and theme music support
-            trailer:
-                item.extras?.find(
-                    e =>
-                        e.type === 'trailer' ||
-                        e.type?.toLowerCase() === 'trailer' ||
-                        e.type === 'clip'
-                ) || null,
-            themeMusic: item.themeUrl || null,
-            // Enriched metadata fields (phase 6: File & Location Info)
-            filePaths: item.filePaths || null,
-            fileDetails: item.fileDetails || null,
-            // Enriched metadata fields (phase 7: Comprehensive Plex Metadata - 2025-01-09)
-            ratingImage: item.ratingImage || null,
-            audienceRatingImage: item.audienceRatingImage || null,
-            ratingCount: item.ratingCount || null,
-            viewOffset: item.viewOffset || null,
-            leafCount: item.leafCount || null,
-            viewedLeafCount: item.viewedLeafCount || null,
-            index: item.index || null,
-            parentIndex: item.parentIndex || null,
-            absoluteIndex: item.absoluteIndex || null,
-            parentKey: item.parentKey || null,
-            grandparentKey: item.grandparentKey || null,
-            parentRatingKey: item.parentRatingKey || null,
-            grandparentRatingKey: item.grandparentRatingKey || null,
-            parentTitle: item.parentTitle || null,
-            grandparentTitle: item.grandparentTitle || null,
-            parentThumb: item.parentThumb || null,
-            grandparentThumb: item.grandparentThumb || null,
-            grandparentArt: item.grandparentArt || null,
-            parentHero: item.parentHero || null,
-            grandparentHero: item.grandparentHero || null,
-            heroUrl: item.heroUrl || null,
-            compositeUrl: item.compositeUrl || null,
-            backgroundSquareUrl: item.backgroundSquareUrl || null,
-            skipChildren: item.skipChildren || null,
-            skipParent: item.skipParent || null,
-            primaryExtraKey: item.primaryExtraKey || null,
-            chapterSource: item.chapterSource || null,
-            reviews: item.reviews || null,
-            commonSenseMedia: item.commonSenseMedia || null,
-            // Enriched metadata fields (phase 7: Comprehensive Jellyfin Metadata - 2025-01-09)
-            seriesId: item.seriesId || null,
-            seriesName: item.seriesName || null,
-            seasonId: item.seasonId || null,
-            seasonName: item.seasonName || null,
-            parentId: item.parentId || null,
-            playedPercentage: item.playedPercentage || null,
-            recursiveItemCount: item.recursiveItemCount || null,
-            unplayedItemCount: item.unplayedItemCount || null,
-            isFavorite: item.isFavorite || null,
-            userLikes: item.userLikes || null,
-            artUrl: item.artUrl || null,
-            boxUrl: item.boxUrl || null,
-            screenshotUrl: item.screenshotUrl || null,
-            seriesThumbUrl: item.seriesThumbUrl || null,
-            parentThumbUrl: item.parentThumbUrl || null,
-            parentBackdropUrl: item.parentBackdropUrl || null,
-            parentArtUrl: item.parentArtUrl || null,
-            isHD: item.isHD || null,
-            hasChapters: item.hasChapters || null,
-            lockData: item.lockData || null,
-            status: item.status || null,
-            airTime: item.airTime || null,
-            airDays: item.airDays || null,
-            endDate: item.endDate || null,
-            criticRatingSummary: item.criticRatingSummary || null,
-            images: {
-                poster: !!assets.poster,
-                background: !!assets.background,
-                clearlogo: !!assets.clearlogo,
-                thumbnail: !!assets.thumbnail,
-                fanartCount: assets.fanart || 0,
-                discart: !!assets.discart,
-                banner: !!assets.banner,
-                hero: !!assets.hero,
-                composite: !!assets.composite,
-                backgroundSquare: !!assets.backgroundSquare,
-                trailer: !!assets.trailer,
-                theme: !!assets.theme,
-            },
-            source: sourceType,
-            sourceId: item.id,
-            generated: new Date().toISOString(),
-            assets: assets,
-            peopleImages: peopleImages,
-        };
+        const metadata = isGame
+            ? buildGamePosterpackMetadata({ item, sourceType, assets, peopleImages })
+            : {
+                  itemType: item.type || null,
+                  title: item.title,
+                  year: item.year,
+                  genres: item.genres || item.genre || [],
+                  rating: item.rating,
+                  contentRating: item.contentRating || item.officialRating || null,
+                  overview: item.overview,
+                  tagline: item.tagline || null,
+                  platform: item.platform || null,
+                  providerIds: item.providerIds || null,
+                  tmdbId: item.tmdbId || null,
+                  tmdbMediaType: item.tmdbMediaType || null,
+                  clearlogoPath: assets.clearlogo ? 'clearlogo.png' : null,
+                  cast: castWithThumbs,
+                  directors: item.directors || [],
+                  writers: item.writers || [],
+                  producers: item.producers || [],
+                  directorsDetailed: directorsWithThumbs,
+                  writersDetailed: writersWithThumbs,
+                  producersDetailed: producersWithThumbs,
+                  studios: item.studios || [],
+                  guids: item.guids || [],
+                  imdbUrl: item.imdbUrl || null,
+                  rottenTomatoes: item.rottenTomatoes || null,
+                  releaseDate: item.releaseDate || null,
+                  runtimeMs: item.runtimeMs || null,
+                  qualityLabel: item.qualityLabel || null,
+                  mediaStreams: item.mediaStreams || null,
+                  // Enriched metadata fields (phase 1: Collections, Statistics, Timestamps)
+                  collections: item.collections || null,
+                  countries: item.countries || null,
+                  audienceRating: item.audienceRating || null,
+                  viewCount: item.viewCount || null,
+                  skipCount: item.skipCount || null,
+                  lastViewedAt: item.lastViewedAt || null,
+                  userRating: item.userRating || null,
+                  originalTitle: item.originalTitle || null,
+                  titleSort: item.titleSort || null,
+                  // Enriched metadata fields (phase 2: Advanced Metadata)
+                  slug: item.slug || null,
+                  contentRatingAge: item.contentRatingAge || null,
+                  addedAt: item.addedAt || null,
+                  updatedAt: item.updatedAt || null,
+                  ultraBlurColors: item.ultraBlurColors || null,
+                  ratingsDetailed: item.ratingsDetailed || null,
+                  parentalGuidance: item.parentalGuidance || null,
+                  chapters: item.chapters || null,
+                  markers: item.markers || null,
+                  // Enriched metadata fields (phase 3: All Image Types)
+                  bannerUrl: item.bannerUrl || null,
+                  discArtUrl: item.discArtUrl || null,
+                  thumbUrl: item.thumbUrl || null,
+                  clearArtUrl: item.clearArtUrl || null,
+                  landscapeUrl: item.landscapeUrl || null,
+                  allArtUrls: item.allArtUrls || null,
+                  fanart: item.fanart || null,
+                  // Enriched metadata fields (phase 4: Comprehensive Technical Details)
+                  audioTracks: item.audioTracks || null,
+                  subtitles: item.subtitles || null,
+                  videoStreams: item.videoStreams || null,
+                  hasHDR: item.hasHDR || null,
+                  hasDolbyVision: item.hasDolbyVision || null,
+                  is3D: item.is3D || null,
+                  containerFormat: item.containerFormat || null,
+                  totalFileSize: item.totalFileSize || null,
+                  totalBitrate: item.totalBitrate || null,
+                  optimizedForStreaming: item.optimizedForStreaming || null,
+                  // Enriched metadata fields (phase 5: Advanced Metadata)
+                  extras: item.extras || null,
+                  related: item.related || null,
+                  themeUrl: item.themeUrl || null,
+                  lockedFields: item.lockedFields || null,
+                  // Trailer and theme music support
+                  trailer:
+                      item.extras?.find(
+                          e =>
+                              e.type === 'trailer' ||
+                              e.type?.toLowerCase() === 'trailer' ||
+                              e.type === 'clip'
+                      ) || null,
+                  themeMusic: item.themeUrl || null,
+                  // Enriched metadata fields (phase 6: File & Location Info)
+                  filePaths: item.filePaths || null,
+                  fileDetails: item.fileDetails || null,
+                  // Enriched metadata fields (phase 7: Comprehensive Plex Metadata - 2025-01-09)
+                  ratingImage: item.ratingImage || null,
+                  audienceRatingImage: item.audienceRatingImage || null,
+                  ratingCount: item.ratingCount || null,
+                  viewOffset: item.viewOffset || null,
+                  leafCount: item.leafCount || null,
+                  viewedLeafCount: item.viewedLeafCount || null,
+                  index: item.index || null,
+                  parentIndex: item.parentIndex || null,
+                  absoluteIndex: item.absoluteIndex || null,
+                  parentKey: item.parentKey || null,
+                  grandparentKey: item.grandparentKey || null,
+                  parentRatingKey: item.parentRatingKey || null,
+                  grandparentRatingKey: item.grandparentRatingKey || null,
+                  parentTitle: item.parentTitle || null,
+                  grandparentTitle: item.grandparentTitle || null,
+                  parentThumb: item.parentThumb || null,
+                  grandparentThumb: item.grandparentThumb || null,
+                  grandparentArt: item.grandparentArt || null,
+                  parentHero: item.parentHero || null,
+                  grandparentHero: item.grandparentHero || null,
+                  heroUrl: item.heroUrl || null,
+                  compositeUrl: item.compositeUrl || null,
+                  backgroundSquareUrl: item.backgroundSquareUrl || null,
+                  skipChildren: item.skipChildren || null,
+                  skipParent: item.skipParent || null,
+                  primaryExtraKey: item.primaryExtraKey || null,
+                  chapterSource: item.chapterSource || null,
+                  reviews: item.reviews || null,
+                  commonSenseMedia: item.commonSenseMedia || null,
+                  // Enriched metadata fields (phase 7: Comprehensive Jellyfin Metadata - 2025-01-09)
+                  seriesId: item.seriesId || null,
+                  seriesName: item.seriesName || null,
+                  seasonId: item.seasonId || null,
+                  seasonName: item.seasonName || null,
+                  parentId: item.parentId || null,
+                  playedPercentage: item.playedPercentage || null,
+                  recursiveItemCount: item.recursiveItemCount || null,
+                  unplayedItemCount: item.unplayedItemCount || null,
+                  isFavorite: item.isFavorite || null,
+                  userLikes: item.userLikes || null,
+                  artUrl: item.artUrl || null,
+                  boxUrl: item.boxUrl || null,
+                  screenshotUrl: item.screenshotUrl || null,
+                  seriesThumbUrl: item.seriesThumbUrl || null,
+                  parentThumbUrl: item.parentThumbUrl || null,
+                  parentBackdropUrl: item.parentBackdropUrl || null,
+                  parentArtUrl: item.parentArtUrl || null,
+                  isHD: item.isHD || null,
+                  hasChapters: item.hasChapters || null,
+                  lockData: item.lockData || null,
+                  status: item.status || null,
+                  airTime: item.airTime || null,
+                  airDays: item.airDays || null,
+                  endDate: item.endDate || null,
+                  criticRatingSummary: item.criticRatingSummary || null,
+                  images: {
+                      poster: !!assets.poster,
+                      background: !!assets.background,
+                      clearlogo: !!assets.clearlogo,
+                      thumbnail: !!assets.thumbnail,
+                      fanartCount: assets.fanart || 0,
+                      discart: !!assets.discart,
+                      banner: !!assets.banner,
+                      hero: !!assets.hero,
+                      composite: !!assets.composite,
+                      backgroundSquare: !!assets.backgroundSquare,
+                      trailer: !!assets.trailer,
+                      theme: !!assets.theme,
+                  },
+                  source: sourceType,
+                  sourceId: item.id,
+                  generated: new Date().toISOString(),
+                  assets: assets,
+                  peopleImages: peopleImages,
+              };
 
         zip.file('metadata.json', JSON.stringify(metadata, null, 2));
 
         // Validate minimum requirements
-        if (!assets.poster || !assets.background) {
+        const needBackground = !isGame;
+        if (!assets.poster || (needBackground && !assets.background)) {
             if (exportLogger) {
                 await exportLogger.error('Missing required assets', {
                     title: item.title,
                     hasPoster: !!assets.poster,
                     hasBackground: !!assets.background,
+                    itemType: itemType || null,
                 });
             }
-            throw new Error('Missing required assets (poster and/or background)');
+            throw new Error(
+                needBackground
+                    ? 'Missing required assets (poster and/or background)'
+                    : 'Missing required assets (poster)'
+            );
         }
 
         // Generate ZIP file

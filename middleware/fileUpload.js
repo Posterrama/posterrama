@@ -83,10 +83,35 @@ function createStorage(config) {
                     return cb(new Error('Local directory not configured'));
                 }
 
-                // Special-case: uploads to 'complete' go to the manual subfolder
+                // Special-case: uploads to 'complete' go to a complete/* subfolder.
+                // Default is complete/manual for back-compat.
+                let completeSubdir = 'manual';
+                if (targetDirectory === 'complete') {
+                    const rawSubdir =
+                        (req.body && (req.body.completeSubdir || req.body.complete_subdir)) ||
+                        (req.query && (req.query.completeSubdir || req.query.complete_subdir)) ||
+                        '';
+                    if (rawSubdir) {
+                        const candidate = String(rawSubdir).trim();
+                        const allowed = [
+                            'manual',
+                            'plex-export',
+                            'jellyfin-emby-export',
+                            'jellyfin-export',
+                            'tmdb-export',
+                            'romm-export',
+                        ];
+                        const lower = candidate.toLowerCase();
+                        if (!allowed.includes(lower)) {
+                            return cb(new Error(`Invalid complete subfolder: ${candidate}`));
+                        }
+                        completeSubdir = lower;
+                    }
+                }
+
                 const fullPath =
                     targetDirectory === 'complete'
-                        ? path.join(rootPath, 'complete', 'manual')
+                        ? path.join(rootPath, 'complete', completeSubdir)
                         : path.join(rootPath, targetDirectory);
 
                 // Ensure directory exists
@@ -95,6 +120,9 @@ function createStorage(config) {
                 // Store target directory in request for later use
                 req.uploadTargetDirectory = targetDirectory;
                 req.uploadTargetPath = fullPath;
+                if (targetDirectory === 'complete') {
+                    req.uploadCompleteSubdir = completeSubdir;
+                }
 
                 logger.debug(`FileUpload: Target directory: ${fullPath}`);
                 cb(null, fullPath);
@@ -360,13 +388,28 @@ async function handleUploadComplete(req, res, _next) {
                     }
                 }
 
-                // Validate normal posterpack ZIPs uploaded into complete/ (stored under complete/manual)
+                // Validate normal posterpack ZIPs uploaded into complete/ (stored under complete/*)
                 // Intentionally less strict than motion packs: require at least one expected asset entry.
                 if (String(targetDir).toLowerCase() === 'complete' && ext === 'zip') {
                     const AdmZip = require('adm-zip');
                     const imageExts = ['jpg', 'jpeg', 'png', 'webp'];
                     const videoExts = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v'];
                     const audioExts = ['mp3', 'flac', 'wav', 'ogg', 'm4a', 'aac'];
+
+                    /** @param {any} zip */
+                    const readZipMetadata = zip => {
+                        try {
+                            const zipEntries = zip.getEntries();
+                            const metaEntry = zipEntries.find(e =>
+                                /(^|\/)metadata\.json$/i.test(e.entryName)
+                            );
+                            if (!metaEntry) return null;
+                            const content = zip.readAsText(metaEntry);
+                            return JSON.parse(content);
+                        } catch (_) {
+                            return null;
+                        }
+                    };
 
                     const zip = new AdmZip(file.path);
                     const entries = zip.getEntries();
@@ -415,6 +458,54 @@ async function handleUploadComplete(req, res, _next) {
                         );
                         error.code = 'INVALID_POSTERPACK_ZIP';
                         throw error;
+                    }
+
+                    // Enforce pack type vs destination folder when uploading into a specific export folder.
+                    // This prevents, e.g., game packs being uploaded into plex-export.
+                    const completeSubdir = String(req.uploadCompleteSubdir || '').toLowerCase();
+                    if (completeSubdir && completeSubdir !== 'manual') {
+                        const meta = readZipMetadata(zip);
+                        if (!meta || typeof meta !== 'object') {
+                            const error = /** @type {any} */ (
+                                new Error(
+                                    'Missing or invalid metadata.json (required when uploading into an export folder)'
+                                )
+                            );
+                            error.code = 'INVALID_POSTERPACK_ZIP';
+                            throw error;
+                        }
+
+                        const itemType = String(
+                            meta.itemType ||
+                                meta.mediaType ||
+                                meta.media_kind ||
+                                meta.kind ||
+                                meta.type ||
+                                ''
+                        ).toLowerCase();
+                        const packType = String(
+                            meta.packType || meta.pack || meta.kind || meta.type || ''
+                        ).toLowerCase();
+                        const isGame =
+                            meta.isGame === true ||
+                            itemType === 'game' ||
+                            packType.includes('game');
+
+                        const expectsGame = completeSubdir === 'romm-export';
+                        if (expectsGame && !isGame) {
+                            const error = /** @type {any} */ (
+                                new Error('This folder only accepts game posterpacks')
+                            );
+                            error.code = 'INVALID_POSTERPACK_ZIP';
+                            throw error;
+                        }
+                        if (!expectsGame && isGame) {
+                            const error = /** @type {any} */ (
+                                new Error('Game posterpacks cannot be uploaded into this folder')
+                            );
+                            error.code = 'INVALID_POSTERPACK_ZIP';
+                            throw error;
+                        }
                     }
                 }
 
@@ -483,6 +574,7 @@ async function handleUploadComplete(req, res, _next) {
             totalFiles: req.files.length,
             targetDirectory: req.uploadTargetDirectory,
             targetPath: req.uploadTargetPath,
+            completeSubdir: req.uploadCompleteSubdir,
         };
 
         if (errors.length > 0) {

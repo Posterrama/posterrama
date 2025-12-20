@@ -194,6 +194,7 @@ module.exports = function createMediaRouter({
     config,
     logger,
     isDebug,
+    localDirectorySource,
     fsp,
     fetch,
     ApiError,
@@ -719,11 +720,13 @@ module.exports = function createMediaRouter({
                                     if (results.length >= limit) break;
                                     if (added >= wanted) break;
                                     const payload = await p;
-                                    const roms = Array.isArray(payload?.results)
-                                        ? payload.results
-                                        : Array.isArray(payload)
-                                          ? payload
-                                          : [];
+                                    const roms = Array.isArray(payload?.items)
+                                        ? payload.items
+                                        : Array.isArray(payload?.results)
+                                          ? payload.results
+                                          : Array.isArray(payload)
+                                            ? payload
+                                            : [];
                                     for (const rom of roms) {
                                         if (results.length >= limit) break;
                                         if (added >= wanted) break;
@@ -744,11 +747,24 @@ module.exports = function createMediaRouter({
                                         const posterUrl = posterAbs
                                             ? `/image?url=${encodeURIComponent(posterAbs)}`
                                             : null;
-                                        const y = rom?.metadatum?.first_release_date
-                                            ? new Date(
-                                                  Number(rom.metadatum.first_release_date) * 1000
-                                              ).getFullYear()
-                                            : null;
+                                        const platform =
+                                            rom?.platform_custom_name ||
+                                            rom?.platform_name ||
+                                            rom?.platform?.name ||
+                                            rom?.platform?.short_name ||
+                                            null;
+                                        const y = (() => {
+                                            const frdRaw = rom?.metadatum?.first_release_date;
+                                            const frd =
+                                                typeof frdRaw === 'string'
+                                                    ? Number(frdRaw)
+                                                    : frdRaw;
+                                            if (!Number.isFinite(frd) || frd <= 0) return null;
+
+                                            const ms = frd > 1e11 ? frd : frd * 1000;
+                                            const yr = new Date(ms).getUTCFullYear();
+                                            return Number.isFinite(yr) ? yr : null;
+                                        })();
 
                                         results.push({
                                             key,
@@ -757,6 +773,7 @@ module.exports = function createMediaRouter({
                                             type: 'game',
                                             source: 'romm',
                                             posterUrl,
+                                            platform: platform ? String(platform) : null,
                                         });
                                         added++;
                                     }
@@ -952,6 +969,225 @@ module.exports = function createMediaRouter({
             }
 
             res.json({ results });
+        })
+    );
+
+    // Admin utility: fetch extra item details for search results (TMDB/Plex/Jellyfin).
+    router.get(
+        '/api/admin/media/details',
+        // @ts-ignore - Express router overload with middleware
+        isAuthenticated,
+        asyncHandler(async (req, res) => {
+            const key = (req.query.key || '').toString().trim();
+            if (!key) return res.json({ details: null });
+            if (key.length > 512) {
+                // @ts-ignore - ApiError is constructable
+                throw new ApiError(400, 'Invalid key');
+            }
+
+            const currentConfig =
+                (await (typeof readConfig === 'function' ? readConfig() : null)) || config || {};
+
+            const mediaServers = Array.isArray(currentConfig.mediaServers)
+                ? currentConfig.mediaServers
+                : [];
+
+            // TMDB details
+            if (key.startsWith('tmdb_movie_') || key.startsWith('tmdb_tv_')) {
+                const apiKey =
+                    currentConfig?.tmdb?.apiKey ||
+                    currentConfig?.tmdbSource?.apiKey ||
+                    process.env.TMDB_API_KEY ||
+                    null;
+                if (!apiKey) return res.json({ details: null });
+
+                const isMovie = key.startsWith('tmdb_movie_');
+                const id = isMovie ? key.slice('tmdb_movie_'.length) : key.slice('tmdb_tv_'.length);
+                if (!/^\d+$/.test(String(id))) return res.json({ details: null });
+
+                try {
+                    const base = isMovie ? 'movie' : 'tv';
+                    const url = `https://api.themoviedb.org/3/${base}/${encodeURIComponent(
+                        String(id)
+                    )}?api_key=${encodeURIComponent(
+                        apiKey
+                    )}&append_to_response=credits&language=en-US`;
+                    const resp = await fetch(url);
+                    const json = await resp.json().catch(() => null);
+                    if (!resp.ok || !json) return res.json({ details: null });
+
+                    const cast = Array.isArray(json?.credits?.cast)
+                        ? json.credits.cast
+                              .map(c => (c?.name || '').toString().trim())
+                              .filter(Boolean)
+                              .slice(0, 3)
+                        : [];
+
+                    let director = '';
+                    try {
+                        const crew = Array.isArray(json?.credits?.crew) ? json.credits.crew : [];
+                        const d = crew.find(
+                            c =>
+                                (c?.job || '').toString().toLowerCase() === 'director' &&
+                                (c?.name || '').toString().trim()
+                        );
+                        director = d?.name ? String(d.name).trim() : '';
+                    } catch (_) {
+                        director = '';
+                    }
+
+                    let creator = '';
+                    try {
+                        if (!isMovie && Array.isArray(json?.created_by) && json.created_by.length) {
+                            creator = (json.created_by[0]?.name || '').toString().trim();
+                        }
+                    } catch (_) {
+                        creator = '';
+                    }
+
+                    return res.json({
+                        details: {
+                            key,
+                            cast,
+                            director: director || null,
+                            creator: creator || null,
+                        },
+                    });
+                } catch (e) {
+                    logger.debug('[Admin Media Details] TMDB lookup failed', {
+                        key,
+                        error: e?.message || String(e),
+                    });
+                    return res.json({ details: null });
+                }
+            }
+
+            // Plex details
+            // Composite key: plex-ServerName-12345 (server name may contain hyphens)
+            if (key.startsWith('plex-')) {
+                const parts = key.split('-');
+                if (parts.length >= 3) {
+                    const ratingKey = parts[parts.length - 1];
+                    const serverName = parts.slice(1, -1).join('-');
+                    const serverConfig = mediaServers.find(
+                        s =>
+                            s &&
+                            s.type === 'plex' &&
+                            s.enabled === true &&
+                            String(s.name) === serverName
+                    );
+                    if (serverConfig && ratingKey && /^\d+$/.test(String(ratingKey))) {
+                        try {
+                            const plex = await getPlexClient(serverConfig);
+                            const metaResp = await plex.query(
+                                `/library/metadata/${encodeURIComponent(String(ratingKey))}`
+                            );
+                            const meta = metaResp?.MediaContainer?.Metadata?.[0] || null;
+                            if (!meta) return res.json({ details: null });
+
+                            const cast = Array.isArray(meta?.Role)
+                                ? meta.Role.map(r => (r?.tag || r?.name || '').toString().trim())
+                                      .filter(Boolean)
+                                      .slice(0, 3)
+                                : [];
+                            const director = Array.isArray(meta?.Director)
+                                ? (meta.Director[0]?.tag || meta.Director[0]?.name || '')
+                                      .toString()
+                                      .trim() || null
+                                : null;
+
+                            return res.json({
+                                details: {
+                                    key,
+                                    cast,
+                                    director,
+                                    creator: null,
+                                },
+                            });
+                        } catch (e) {
+                            logger.debug('[Admin Media Details] Plex lookup failed', {
+                                key,
+                                server: serverName,
+                                ratingKey,
+                                error: e?.message || String(e),
+                            });
+                            return res.json({ details: null });
+                        }
+                    }
+                }
+                return res.json({ details: null });
+            }
+
+            // Jellyfin details
+            // Composite key: jellyfin_<ServerName>_<ItemId> (or jellyfin_<ItemId>)
+            if (key.startsWith('jellyfin_')) {
+                const parts = key.split('_');
+                if (parts.length >= 2) {
+                    const itemId = parts[parts.length - 1];
+                    const serverName = parts.length >= 3 ? parts.slice(1, -1).join('_') : '';
+                    const serverConfig = serverName
+                        ? mediaServers.find(
+                              s =>
+                                  s &&
+                                  s.type === 'jellyfin' &&
+                                  s.enabled === true &&
+                                  String(s.name) === serverName
+                          )
+                        : mediaServers.find(s => s && s.type === 'jellyfin' && s.enabled === true);
+
+                    if (serverConfig && itemId) {
+                        try {
+                            const client = await getJellyfinClient(serverConfig);
+                            // Best-effort: request People via /Items (works across Jellyfin/Emby versions)
+                            const resp = await client.http.get('/Items', {
+                                params: {
+                                    Ids: itemId,
+                                    Fields: 'People',
+                                    IncludeItemTypes: 'Movie,Series',
+                                    Recursive: true,
+                                },
+                            });
+                            const item = resp?.data?.Items?.[0] || null;
+                            const people = Array.isArray(item?.People) ? item.People : [];
+
+                            const roleOf = p => (p?.Type || p?.Role || '').toString().toLowerCase();
+                            const nameOf = p => (p?.Name || p?.name || '').toString().trim();
+
+                            const cast = people
+                                .filter(p => roleOf(p) === 'actor')
+                                .map(nameOf)
+                                .filter(Boolean)
+                                .slice(0, 3);
+
+                            const directorPerson = people.find(p => roleOf(p) === 'director');
+                            const director = directorPerson ? nameOf(directorPerson) || null : null;
+
+                            const creatorPerson = people.find(p => roleOf(p) === 'creator');
+                            const creator = creatorPerson ? nameOf(creatorPerson) || null : null;
+
+                            return res.json({
+                                details: {
+                                    key,
+                                    cast,
+                                    director,
+                                    creator,
+                                },
+                            });
+                        } catch (e) {
+                            logger.debug('[Admin Media Details] Jellyfin lookup failed', {
+                                key,
+                                server: serverConfig?.name,
+                                itemId,
+                                error: e?.message || String(e),
+                            });
+                            return res.json({ details: null });
+                        }
+                    }
+                }
+                return res.json({ details: null });
+            }
+
+            return res.json({ details: null });
         })
     );
 
@@ -1326,8 +1562,122 @@ module.exports = function createMediaRouter({
                         Math.min(count, ROMM_GAMES_LIMIT)
                     );
 
-                    logger.info(`[Games Mode] Returning ${games.length} games`);
-                    return res.json(games);
+                    // Also include locally generated RomM posterpacks (complete/romm-export and manual)
+                    // so game mode rotation can use posterpack assets.
+                    let localGamePacks = [];
+                    try {
+                        if (config.localDirectory?.enabled && localDirectorySource) {
+                            const zipFiles =
+                                await localDirectorySource.scanZipPosterpacks('poster');
+                            const files = Array.isArray(zipFiles) ? zipFiles : [];
+
+                            const slugify = s =>
+                                String(s || '')
+                                    .toLowerCase()
+                                    .replace(/[^a-z0-9]+/g, '-')
+                                    .replace(/^-+|-+$/g, '')
+                                    .slice(0, 120);
+
+                            const toLocalZipUrl = (file, entry) => {
+                                // Build relative zip path against first matching root
+                                let rel = file.path;
+                                const bases = Array.isArray(localDirectorySource.rootPaths)
+                                    ? localDirectorySource.rootPaths
+                                    : [localDirectorySource.rootPath].filter(Boolean);
+                                for (const base of bases) {
+                                    const candidate = require('path').relative(base, file.path);
+                                    if (!candidate.startsWith('..')) {
+                                        rel = candidate;
+                                        break;
+                                    }
+                                }
+                                const relUrlPath = String(rel).replace(/\\/g, '/');
+                                const encodedZip = encodeURIComponent(relUrlPath);
+                                return `/local-posterpack?zip=${encodedZip}&entry=${entry}`;
+                            };
+
+                            localGamePacks = files
+                                .filter(f => f && String(f.extension || '').toLowerCase() === 'zip')
+                                .filter(f => {
+                                    const meta =
+                                        f.zipMetadata && typeof f.zipMetadata === 'object'
+                                            ? f.zipMetadata
+                                            : null;
+                                    const t = String(
+                                        meta?.itemType || meta?.mediaType || meta?.type || ''
+                                    ).toLowerCase();
+                                    return t === 'game';
+                                })
+                                .map(f => {
+                                    const meta =
+                                        f.zipMetadata && typeof f.zipMetadata === 'object'
+                                            ? f.zipMetadata
+                                            : {};
+                                    const title =
+                                        meta.title ||
+                                        meta.name ||
+                                        meta.originalTitle ||
+                                        require('path').parse(f.path).name;
+                                    const year =
+                                        meta.year || meta.releaseYear || meta.releasedYear || null;
+                                    const key =
+                                        meta.sourceId ||
+                                        meta.key ||
+                                        `local-game-zip-${slugify(title)}-${year || ''}`;
+                                    const posterUrl = toLocalZipUrl(
+                                        f,
+                                        f.zipHas?.thumbnail ? 'thumbnail' : 'poster'
+                                    );
+                                    const thumbUrl = toLocalZipUrl(f, 'thumbnail');
+                                    return {
+                                        id: key,
+                                        sourceId: key,
+                                        key,
+                                        title,
+                                        year,
+                                        type: 'game',
+                                        source: 'local',
+                                        platform: meta.platform || null,
+                                        poster: posterUrl,
+                                        posterUrl: posterUrl,
+                                        thumbnailUrl: f.zipHas?.thumbnail ? thumbUrl : posterUrl,
+                                        backgroundUrl: f.zipHas?.background
+                                            ? toLocalZipUrl(f, 'background')
+                                            : null,
+                                        metadata: meta,
+                                    };
+                                });
+                        }
+                    } catch (e) {
+                        logger.debug(
+                            '[Games Mode] Local RomM posterpacks scan failed (ignored):',
+                            e?.message || e
+                        );
+                    }
+
+                    const merged = (() => {
+                        const byKey = new Map();
+                        for (const it of Array.isArray(games) ? games : []) {
+                            const k = it?.key != null ? String(it.key) : '';
+                            if (k) byKey.set(k, it);
+                        }
+                        // Prefer local posterpack assets over remote items when keys collide.
+                        for (const it of Array.isArray(localGamePacks) ? localGamePacks : []) {
+                            const k = it?.key != null ? String(it.key) : '';
+                            if (k) byKey.set(k, it);
+                        }
+                        return Array.from(byKey.values());
+                    })();
+
+                    const finalItems = shuffleArray(merged).slice(
+                        0,
+                        Math.min(count, ROMM_GAMES_LIMIT)
+                    );
+
+                    logger.info(
+                        `[Games Mode] Returning ${finalItems.length} games (remote=${games.length}, localPosterPacks=${localGamePacks.length})`
+                    );
+                    return res.json(finalItems);
                 } catch (err) {
                     logger.error(`[Games Mode] Failed to fetch games: ${err.message}`, {
                         error: err.stack,

@@ -128,6 +128,15 @@ module.exports = {
     // Simplify module resolution so tests can use root-relative paths (e.g. require('sources/tmdb'))
     modulePaths: ['<rootDir>'],
 
+    // Ensure modern Node.js syntax parses consistently under coverage instrumentation
+    transform: {
+        '^.+\\.js$': 'babel-jest',
+    },
+
+    // job-queue is excluded from coverage and is large; executing it untransformed
+    // avoids Babel parser incompatibilities while keeping runtime behavior intact.
+    transformIgnorePatterns: ['/node_modules/', '<rootDir>/utils/job-queue.js'],
+
     // Verbose output - reduced for cleaner test output
     verbose: false,
 };
