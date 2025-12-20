@@ -28124,16 +28124,24 @@ if (!document.__niwDelegatedFallback) {
         const payload = cfgPayload || {};
         const cfg = payload?.config || payload || {};
         const mediaServers = Array.isArray(cfg.mediaServers) ? cfg.mediaServers : [];
+        const env = payload?.env || {};
 
         const isEnabledFlag = v => v === true || v === 'true' || v === 1;
         const hasEnabledServer = type =>
             mediaServers.some(s => s && s.type === type && isEnabledFlag(s.enabled));
 
+        const tmdbKeyInCfg =
+            (typeof cfg?.tmdbSource?.apiKey === 'string' && cfg.tmdbSource.apiKey.trim()) ||
+            (typeof cfg?.tmdb?.apiKey === 'string' && cfg.tmdb.apiKey.trim());
+        // /api/admin/config exposes env presence as boolean
+        const tmdbKeyInEnv = !!env.TMDB_API_KEY;
+
         return {
             plex: hasEnabledServer('plex'),
             jellyfin: hasEnabledServer('jellyfin'),
             romm: hasEnabledServer('romm'),
-            tmdb: !!cfg?.tmdbSource?.enabled,
+            // For Posterpack search we only need an API key; TMDB "source" enablement is unrelated.
+            tmdb: !!(tmdbKeyInCfg || tmdbKeyInEnv),
         };
     }
 
