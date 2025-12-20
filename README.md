@@ -156,6 +156,29 @@ Turn any screen into a cinematic slideshow. Enjoy smooth, full-screen poster tra
 - Option to show movie/series info, ratings, and logos
 - Works in both landscape and portrait orientation
 
+### Posterpacks
+
+Posterpacks are **portable, self-contained ZIP bundles** that package artwork + metadata for a single item (movie, series, or game). They let you curate, override, and preserve the “perfect poster” experience—independent of your upstream sources.
+
+<figure>
+  <img src="./screenshots/posterpacks.png" alt="Posterpacks in Posterrama" width="740">
+  <figcaption style="text-align:left; color:#6a6a6a;"><em>Create, upload, and manage posterpacks for movies, series, and games</em></figcaption>
+</figure>
+
+**Why posterpacks are awesome:**
+
+- **Consistent artwork everywhere**: A posterpack can override mismatched posters/backgrounds from Plex/Jellyfin/TMDB and keep your displays looking intentional.
+- **Fast + reliable**: Local assets reduce dependency on third‑party APIs, rate limits, and transient network failures.
+- **Portable & shareable**: Move a curated pack to another Posterrama install, keep themed collections, or share them with friends (no “re-scraping” needed).
+- **Great for events & curation**: Build seasonal sets (Halloween, Oscars, Studio Ghibli night), venue loops, or “featured” picks you can reuse.
+- **Games included**: Posterpack support also extends to RomM-backed games for a clean games-only rotation in Wallart.
+
+**How it works (high level):**
+
+- **Generate** posterpacks from supported sources (Plex, Jellyfin/Emby, TMDB, RomM) or **upload your own** ZIPs.
+- Posterrama automatically picks them up for **Screensaver, Wallart, and Cinema**—no manual unzipping needed.
+- Posterpack “type” is validated so **game packs stay in game exports**, keeping libraries tidy and preventing wrong uploads.
+
 ### Dashboard
 
 <figure>
