@@ -27854,7 +27854,7 @@ if (!document.__niwDelegatedFallback) {
 
             host.addEventListener('change', e => {
                 const t = e.target;
-                if (!(t instanceof HTMLInputElement)) return;
+                if (!t || typeof t.getAttribute !== 'function') return;
 
                 const action = t.getAttribute('data-action');
                 if (action === 'motion-select-all') {
@@ -27888,7 +27888,7 @@ if (!document.__niwDelegatedFallback) {
                     const toAdd = __motionPosterpackLastResults
                         .slice(0, 25)
                         .filter(it => it && !isMotionItemQueued(it) && isMotionItemSelected(it));
-                    const { added, skippedQueued, skippedLimit } = addMotionItemsToQueue(toAdd);
+                    const { added, skippedLimit } = addMotionItemsToQueue(toAdd);
 
                     if (added > 0) {
                         showNotification(`Added ${added} item(s) to queue`, 'success');
