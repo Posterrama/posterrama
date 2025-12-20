@@ -11421,6 +11421,46 @@
                 "security": []
             }
         },
+        "/api/local/summary": {
+            "get": {
+                "summary": "Lightweight local directory summary",
+                "description": "Returns recursive file counts for standard local folders (posters/backgrounds/motion/complete).",
+                "tags": ["Local Directory"],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "force",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "description": "Force a fresh recompute (bypasses short server cache)"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Summary counts"
+                    },
+                    "400": {
+                        "description": "Invalid request parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StandardErrorResponse"
+                                },
+                                "example": {
+                                    "error": "Invalid request parameters",
+                                    "statusCode": 400
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                },
+                "security": []
+            }
+        },
         "/api/local/search": {
             "get": {
                 "summary": "Recursively search for files and folders in local directory",
