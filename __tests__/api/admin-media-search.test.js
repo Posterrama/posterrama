@@ -30,6 +30,7 @@ function createTestApp({
     getPlaylistCacheImpl,
     getPlexClientImpl,
     processPlexItemImpl,
+    fetchImpl,
 }) {
     const app = express();
     app.use(express.json());
@@ -46,9 +47,11 @@ function createTestApp({
         },
         isDebug: false,
         fsp: {},
-        fetch: () => {
-            throw new Error('fetch not stubbed');
-        },
+        fetch:
+            fetchImpl ||
+            (() => {
+                throw new Error('fetch not stubbed');
+            }),
         ApiError,
         NotFoundError,
         asyncHandler,
@@ -150,6 +153,61 @@ describe('Admin media search + lookup fallbacks', () => {
         expect(keys).toContain('plex-TestServer-333');
 
         expect(plexQuery).toHaveBeenCalled();
+    });
+
+    it('GET /api/admin/media/search supports TMDB when source=tmdb (no Plex dependency)', async () => {
+        const fetchImpl = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                results: [
+                    {
+                        media_type: 'movie',
+                        id: 123,
+                        title: 'Alien',
+                        release_date: '1979-05-25',
+                        poster_path: '/p.jpg',
+                        backdrop_path: '/b.jpg',
+                    },
+                    {
+                        media_type: 'tv',
+                        id: 456,
+                        name: 'Alien Nation',
+                        first_air_date: '1989-09-18',
+                        poster_path: '/p2.jpg',
+                        backdrop_path: null,
+                    },
+                    // filtered out
+                    { media_type: 'person', id: 999, name: 'Sigourney Weaver' },
+                ],
+            }),
+        });
+
+        const app = createTestApp({
+            isAuthenticatedImpl: (req, res, next) => next(),
+            readConfigImpl: jest.fn().mockResolvedValue({
+                mediaServers: [],
+                tmdbSource: { enabled: true, apiKey: 'KEY' },
+            }),
+            getPlaylistCacheImpl: () => ({ cache: [] }),
+            getPlexClientImpl: jest.fn(),
+            processPlexItemImpl: jest.fn(),
+            fetchImpl,
+        });
+
+        const res = await request(app)
+            .get('/api/admin/media/search')
+            .query({ q: 'alien', type: 'all', source: 'tmdb', limit: 10 })
+            .expect(200);
+
+        expect(Array.isArray(res.body.results)).toBe(true);
+        const keys = res.body.results.map(r => r.key);
+        expect(keys).toContain('tmdb_movie_123');
+        expect(keys).toContain('tmdb_tv_456');
+
+        const sources = res.body.results.map(r => r.source);
+        expect(sources.every(s => s === 'tmdb')).toBe(true);
+
+        expect(fetchImpl).toHaveBeenCalled();
     });
 
     it('GET /api/media/lookup can resolve Plex keys not present in playlist cache', async () => {
