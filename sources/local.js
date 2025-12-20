@@ -1202,6 +1202,88 @@ class LocalDirectorySource {
     }
 
     /**
+     * Lightweight summary for admin UI.
+     * Counts files recursively under the standard top-level folders.
+     * Uses a short in-memory cache to avoid repeated heavy IO when the UI polls.
+     * @param {{ force?: boolean, ttlMs?: number }} [opts]
+     * @returns {Promise<{ totalItems: number, breakdown: { posters: number, backgrounds: number, motion: number, complete: number } }>}
+     */
+    async getLocalSummary(opts = {}) {
+        const force = opts.force === true;
+        const ttlMs = Number.isFinite(Number(opts.ttlMs))
+            ? Math.max(1000, Number(opts.ttlMs))
+            : 15_000;
+
+        try {
+            if (!this.__localSummaryCache) this.__localSummaryCache = { expiresAt: 0, value: null };
+        } catch (_) {
+            // ignore
+        }
+
+        try {
+            const cached = this.__localSummaryCache;
+            if (!force && cached && cached.value && Date.now() < cached.expiresAt) {
+                return cached.value;
+            }
+        } catch (_) {
+            // ignore cache read
+        }
+
+        const base = this.rootPath ? path.resolve(this.rootPath) : path.resolve('/');
+
+        const countFilesRecursive = async absDir => {
+            let total = 0;
+            const stack = [absDir];
+            const visited = new Set();
+            while (stack.length) {
+                const cur = stack.pop();
+                if (!cur || visited.has(cur)) continue;
+                visited.add(cur);
+                let entries;
+                try {
+                    entries = await fs.readdir(cur, { withFileTypes: true });
+                } catch (_) {
+                    continue;
+                }
+                for (const ent of entries) {
+                    // Hide internal system directory and generated metadata files
+                    if (ent.name === this.directories.system || ent.name.endsWith('.poster.json')) {
+                        continue;
+                    }
+                    const full = path.join(cur, ent.name);
+                    try {
+                        const st = await fs.stat(full);
+                        if (st.isDirectory()) stack.push(full);
+                        else if (st.isFile()) total += 1;
+                    } catch (_) {
+                        // ignore
+                    }
+                }
+            }
+            return total;
+        };
+
+        const posters = await countFilesRecursive(path.join(base, this.directories.posters));
+        const backgrounds = await countFilesRecursive(
+            path.join(base, this.directories.backgrounds)
+        );
+        const motion = await countFilesRecursive(path.join(base, this.directories.motion));
+        const complete = await countFilesRecursive(path.join(base, this.directories.complete));
+        const value = {
+            totalItems: posters + backgrounds + motion + complete,
+            breakdown: { posters, backgrounds, motion, complete },
+        };
+
+        try {
+            this.__localSummaryCache = { expiresAt: Date.now() + ttlMs, value };
+        } catch (_) {
+            // ignore
+        }
+
+        return value;
+    }
+
+    /**
      * Process files and create media items
      * @param {Array} files - Array of file objects
      * @param {number} limit - Maximum number of items to process

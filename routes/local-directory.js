@@ -281,6 +281,54 @@ module.exports = function createLocalDirectoryRouter({
 
     /**
      * @swagger
+     * /api/local/summary:
+     *   get:
+     *     summary: Lightweight local directory summary
+     *     description: Returns recursive file counts for standard local folders (posters/backgrounds/motion/complete).
+     *     tags: ['Local Directory']
+     *     parameters:
+     *       - in: query
+     *         name: force
+     *         schema:
+     *           type: boolean
+     *         description: Force a fresh recompute (bypasses short server cache)
+     *     responses:
+     *       200:
+     *         description: Summary counts
+     *       500:
+     *         description: Server error
+     */
+    router.get(
+        '/api/local/summary',
+        asyncHandler(async (req, res) => {
+            // Permit summary even if Local source is disabled for playlist purposes.
+            if (!localDirectorySource) {
+                try {
+                    const LocalDirectorySource = require('../sources/local');
+                    // @ts-ignore - LocalDirectorySource constructor accepts 2 arguments
+                    localDirectorySource = new LocalDirectorySource(config.localDirectory, logger);
+                } catch (e) {
+                    return res.status(500).json({ error: 'Local directory unavailable' });
+                }
+            }
+
+            try {
+                res.setHeader('Cache-Control', 'no-store');
+                const force =
+                    req.query.force === '1' ||
+                    req.query.force === 'true' ||
+                    req.query.force === true;
+                const summary = await localDirectorySource.getLocalSummary({ force });
+                return res.json(summary);
+            } catch (error) {
+                logger.error('Local directory summary error:', error);
+                return res.status(500).json({ error: error.message || 'summary_failed' });
+            }
+        })
+    );
+
+    /**
+     * @swagger
      * /api/local/search:
      *   get:
      *     summary: Recursively search for files and folders in local directory

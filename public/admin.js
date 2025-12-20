@@ -28726,6 +28726,13 @@ if (!document.__niwDelegatedFallback) {
                     // startRealtimeDirectoryRefresh();
                     updateBreadcrumb(rel);
                     renderDirectoryContents(result);
+
+                    // Keep the global "Items" pill updated while browsing.
+                    try {
+                        startLocalSummaryRefresh();
+                    } catch (_) {
+                        /* ignore */
+                    }
                 } else {
                     browserContent.innerHTML = `
                         <div class="browser-empty">
@@ -28753,6 +28760,86 @@ if (!document.__niwDelegatedFallback) {
     let __browserRefreshInFlight = null;
     let __browserRefreshCooldownUntil = 0;
     const BROWSER_MIN_INTERVAL = 3000; // 3s between refreshes (adaptive)
+
+    // --- Local summary poll (keeps Items pill fresh while browsing) ---
+    let __localSummaryTimer = null;
+    let __localSummaryInFlight = null;
+    const LOCAL_SUMMARY_INTERVAL = 30_000; // 30s
+
+    const isLocalBrowserVisible = () => {
+        const host = document.getElementById('local-browser-content');
+        return !!host && host.offsetParent !== null;
+    };
+
+    const updateLocalItemsPill = totalLocal => {
+        if (!Number.isFinite(Number(totalLocal))) return;
+        const n = Number(totalLocal);
+        const tt = `Local items — posters+backgrounds+motion+complete: ${n.toLocaleString()}`;
+        if (typeof window.setCount === 'function') {
+            window.setCount('local-count-pill', n, null, tt);
+        } else {
+            const el = document.getElementById('local-count-pill');
+            if (el) {
+                el.textContent = `Items: ${n.toLocaleString()}`;
+                el.title = tt;
+            }
+        }
+    };
+
+    async function refreshLocalSummarySafe(forceFresh = false) {
+        try {
+            if (!isLocalBrowserVisible()) {
+                stopLocalSummaryRefresh();
+                return;
+            }
+            if (__localSummaryInFlight) return;
+
+            const url = `/api/local/summary${forceFresh ? `?force=1&_=${Date.now()}` : ''}`;
+            const p = (async () => {
+                let res;
+                if (typeof window.dedupJSON === 'function') {
+                    res = await window.dedupJSON(url, { credentials: 'include' });
+                } else {
+                    res = await fetch(url, { credentials: 'include' });
+                }
+                if (!res || !res.ok) return;
+                const data = await res.json().catch(() => null);
+                const total =
+                    data && Number.isFinite(Number(data.totalItems))
+                        ? Number(data.totalItems)
+                        : null;
+                if (total != null) updateLocalItemsPill(total);
+            })();
+
+            __localSummaryInFlight = p;
+            await p;
+        } catch (_) {
+            // ignore
+        } finally {
+            __localSummaryInFlight = null;
+        }
+    }
+
+    function startLocalSummaryRefresh() {
+        if (__localSummaryTimer) return;
+        const tick = async () => {
+            try {
+                await refreshLocalSummarySafe(false);
+            } finally {
+                __localSummaryTimer = setTimeout(tick, LOCAL_SUMMARY_INTERVAL);
+            }
+        };
+        // Immediate refresh so the pill updates without waiting 30s
+        refreshLocalSummarySafe(false);
+        tick();
+    }
+
+    function stopLocalSummaryRefresh() {
+        if (__localSummaryTimer) {
+            clearTimeout(__localSummaryTimer);
+            __localSummaryTimer = null;
+        }
+    }
     async function refreshDirectorySafe(forceFresh = false) {
         try {
             // Don't refresh if in search mode
@@ -28767,10 +28854,9 @@ if (!document.__niwDelegatedFallback) {
                 return;
             }
             // Only refresh when Local browser is visible
-            const host = document.getElementById('local-browser-content');
-            const visible = !!host && host.offsetParent !== null; // not display:none
-            if (!visible) {
+            if (!isLocalBrowserVisible()) {
                 stopRealtimeDirectoryRefresh();
+                stopLocalSummaryRefresh();
                 return;
             }
             const url = `/api/local/browse?path=${encodeURIComponent(currentPath || '/')}${
@@ -28806,6 +28892,10 @@ if (!document.__niwDelegatedFallback) {
                 if (!data) return null;
                 // Only re-render sizes; preserve handlers (we re-render the list anyway with a single delegated handler)
                 renderDirectoryContents(data);
+
+                // If changes happened, also refresh the global items pill.
+                // This is cheap (cached server-side) and keeps the number accurate.
+                refreshLocalSummarySafe(forceFresh);
                 // If this was a forced refresh, schedule a quick follow-up to catch rapid changes
                 if (forceFresh) {
                     setTimeout(() => {
