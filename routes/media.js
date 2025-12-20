@@ -578,6 +578,198 @@ module.exports = function createMediaRouter({
                 const wantMovie = !type || type === 'all' || type === 'movie';
                 const wantSeries = !type || type === 'all' || type === 'series';
 
+                if (wantTmdb && results.length < limit) {
+                    const apiKey =
+                        currentConfig?.tmdb?.apiKey ||
+                        currentConfig?.tmdbSource?.apiKey ||
+                        process.env.TMDB_API_KEY ||
+                        null;
+                    if (apiKey) {
+                        try {
+                            const wanted = Math.max(
+                                10,
+                                Math.min(50, Math.max(1, limit - results.length) * 3)
+                            );
+                            let added = 0;
+                            const url = `https://api.themoviedb.org/3/search/multi?api_key=${encodeURIComponent(
+                                apiKey
+                            )}&query=${encodeURIComponent(q)}&include_adult=false&language=en-US&page=1`;
+                            const resp = await fetch(url);
+                            const json = await resp.json().catch(() => null);
+                            if (resp.ok && Array.isArray(json?.results)) {
+                                for (const r of json.results) {
+                                    if (results.length >= limit) break;
+                                    if (added >= wanted) break;
+                                    const mt = (r?.media_type || '').toString().toLowerCase();
+                                    if (mt !== 'movie' && mt !== 'tv') continue;
+                                    const mappedType = mt === 'movie' ? 'movie' : 'series';
+                                    if (mappedType === 'movie' && !wantMovie) continue;
+                                    if (mappedType === 'series' && !wantSeries) continue;
+
+                                    const id = r?.id;
+                                    if (!id) continue;
+                                    const key =
+                                        mt === 'movie' ? `tmdb_movie_${id}` : `tmdb_tv_${id}`;
+                                    if (seenKeys.has(key)) continue;
+                                    seenKeys.add(key);
+
+                                    const title = (r?.title || r?.name || '').toString();
+                                    if (!title) continue;
+                                    const yearStr = (
+                                        r?.release_date ||
+                                        r?.first_air_date ||
+                                        ''
+                                    ).toString();
+                                    const year = /^\d{4}/.test(yearStr)
+                                        ? Number(yearStr.slice(0, 4))
+                                        : null;
+
+                                    const posterPath = r?.poster_path
+                                        ? String(r.poster_path)
+                                        : null;
+                                    const posterAbs = posterPath
+                                        ? `https://image.tmdb.org/t/p/w342${posterPath}`
+                                        : null;
+                                    const posterUrl = posterAbs
+                                        ? `/image?url=${encodeURIComponent(posterAbs)}`
+                                        : null;
+
+                                    const backdropPath = r?.backdrop_path
+                                        ? String(r.backdrop_path)
+                                        : null;
+                                    const backdropAbs = backdropPath
+                                        ? `https://image.tmdb.org/t/p/w780${backdropPath}`
+                                        : null;
+                                    const backdropUrl = backdropAbs
+                                        ? `/image?url=${encodeURIComponent(backdropAbs)}`
+                                        : null;
+
+                                    results.push({
+                                        key,
+                                        title,
+                                        year,
+                                        type: mappedType,
+                                        source: 'tmdb',
+                                        posterUrl,
+                                        backdropUrl,
+                                    });
+                                    added++;
+                                }
+                            }
+                        } catch (_) {
+                            // Best-effort: ignore TMDB search failures
+                        }
+                    }
+                }
+
+                if (wantRomm && results.length < limit) {
+                    try {
+                        const { shuffleArray } = require('../utils/array-utils');
+                        const RommSource = require('../sources/romm');
+                        const rommServers = mediaServers.filter(
+                            s => s && s.type === 'romm' && s.enabled === true
+                        );
+                        const wanted = Math.max(
+                            10,
+                            Math.min(50, Math.max(1, limit - results.length) * 3)
+                        );
+                        let added = 0;
+
+                        for (const serverConfig of rommServers) {
+                            if (results.length >= limit) break;
+                            if (added >= wanted) break;
+                            try {
+                                const rommSource = new RommSource(
+                                    serverConfig,
+                                    shuffleArray,
+                                    isDebug
+                                );
+                                const client = await rommSource.getClient();
+
+                                const selectedPlatforms = Array.isArray(
+                                    serverConfig.selectedPlatforms
+                                )
+                                    ? serverConfig.selectedPlatforms
+                                    : [];
+
+                                const batches = [];
+                                if (selectedPlatforms.length) {
+                                    for (const platformId of selectedPlatforms) {
+                                        batches.push(
+                                            client.getRoms({
+                                                platform_id: platformId,
+                                                search_term: q,
+                                                limit: Math.min(50, wanted),
+                                                offset: 0,
+                                            })
+                                        );
+                                        if (batches.length >= 3) break;
+                                    }
+                                } else {
+                                    batches.push(
+                                        client.getRoms({
+                                            search_term: q,
+                                            limit: Math.min(50, wanted),
+                                            offset: 0,
+                                        })
+                                    );
+                                }
+
+                                for (const p of batches) {
+                                    if (results.length >= limit) break;
+                                    if (added >= wanted) break;
+                                    const payload = await p;
+                                    const roms = Array.isArray(payload?.results)
+                                        ? payload.results
+                                        : Array.isArray(payload)
+                                          ? payload
+                                          : [];
+                                    for (const rom of roms) {
+                                        if (results.length >= limit) break;
+                                        if (added >= wanted) break;
+                                        const romId = rom?.id;
+                                        if (!romId) continue;
+                                        const key = `romm_${serverConfig.name}_${romId}`;
+                                        if (seenKeys.has(key)) continue;
+                                        seenKeys.add(key);
+                                        const title = (
+                                            rom?.name ||
+                                            rom?.fs_name_no_ext ||
+                                            ''
+                                        ).toString();
+                                        if (!title) continue;
+                                        const posterAbs = rom?.url_cover
+                                            ? String(rom.url_cover)
+                                            : null;
+                                        const posterUrl = posterAbs
+                                            ? `/image?url=${encodeURIComponent(posterAbs)}`
+                                            : null;
+                                        const y = rom?.metadatum?.first_release_date
+                                            ? new Date(
+                                                  Number(rom.metadatum.first_release_date) * 1000
+                                              ).getFullYear()
+                                            : null;
+
+                                        results.push({
+                                            key,
+                                            title,
+                                            year: Number.isFinite(Number(y)) ? Number(y) : null,
+                                            type: 'game',
+                                            source: 'romm',
+                                            posterUrl,
+                                        });
+                                        added++;
+                                    }
+                                }
+                            } catch (_) {
+                                // Ignore this RomM server
+                            }
+                        }
+                    } catch (_) {
+                        // Best-effort: ignore RomM search failures
+                    }
+                }
+
                 if (wantPlex) {
                     const plexServers = mediaServers.filter(
                         s => s && s.type === 'plex' && s.enabled === true
@@ -605,203 +797,6 @@ module.exports = function createMediaRouter({
                                 }
                                 plexItems.push(...direct);
                             };
-
-                            if (wantTmdb && results.length < limit) {
-                                const apiKey =
-                                    currentConfig?.tmdb?.apiKey ||
-                                    currentConfig?.tmdbSource?.apiKey ||
-                                    process.env.TMDB_API_KEY ||
-                                    null;
-                                if (apiKey) {
-                                    try {
-                                        const targetSize = Math.max(
-                                            10,
-                                            Math.min(50, remaining * 3)
-                                        );
-                                        const url = `https://api.themoviedb.org/3/search/multi?api_key=${encodeURIComponent(
-                                            apiKey
-                                        )}&query=${encodeURIComponent(q)}&include_adult=false&language=en-US&page=1`;
-                                        const resp = await fetch(url);
-                                        const json = await resp.json().catch(() => null);
-                                        if (resp.ok && Array.isArray(json?.results)) {
-                                            for (const r of json.results) {
-                                                if (results.length >= limit) break;
-                                                const mt = (r?.media_type || '')
-                                                    .toString()
-                                                    .toLowerCase();
-                                                if (mt !== 'movie' && mt !== 'tv') continue;
-                                                const mappedType =
-                                                    mt === 'movie' ? 'movie' : 'series';
-                                                if (mappedType === 'movie' && !wantMovie) continue;
-                                                if (mappedType === 'series' && !wantSeries)
-                                                    continue;
-
-                                                const id = r?.id;
-                                                if (!id) continue;
-                                                const key =
-                                                    mt === 'movie'
-                                                        ? `tmdb_movie_${id}`
-                                                        : `tmdb_tv_${id}`;
-                                                if (seenKeys.has(key)) continue;
-                                                seenKeys.add(key);
-
-                                                const title = (
-                                                    r?.title ||
-                                                    r?.name ||
-                                                    ''
-                                                ).toString();
-                                                if (!title) continue;
-                                                const yearStr = (
-                                                    r?.release_date ||
-                                                    r?.first_air_date ||
-                                                    ''
-                                                ).toString();
-                                                const year = /^\d{4}/.test(yearStr)
-                                                    ? Number(yearStr.slice(0, 4))
-                                                    : null;
-
-                                                const posterPath = r?.poster_path
-                                                    ? String(r.poster_path)
-                                                    : null;
-                                                const posterAbs = posterPath
-                                                    ? `https://image.tmdb.org/t/p/w342${posterPath}`
-                                                    : null;
-                                                const posterUrl = posterAbs
-                                                    ? `/image?url=${encodeURIComponent(posterAbs)}`
-                                                    : null;
-
-                                                const backdropPath = r?.backdrop_path
-                                                    ? String(r.backdrop_path)
-                                                    : null;
-                                                const backdropAbs = backdropPath
-                                                    ? `https://image.tmdb.org/t/p/w780${backdropPath}`
-                                                    : null;
-                                                const backdropUrl = backdropAbs
-                                                    ? `/image?url=${encodeURIComponent(backdropAbs)}`
-                                                    : null;
-
-                                                results.push({
-                                                    key,
-                                                    title,
-                                                    year,
-                                                    type: mappedType,
-                                                    source: 'tmdb',
-                                                    posterUrl,
-                                                    backdropUrl,
-                                                });
-                                                if (results.length >= targetSize) break;
-                                            }
-                                        }
-                                    } catch (_) {
-                                        // Best-effort: ignore TMDB search failures
-                                    }
-                                }
-                            }
-
-                            if (wantRomm && results.length < limit) {
-                                try {
-                                    const { shuffleArray } = require('../utils/array-utils');
-                                    const RommSource = require('../sources/romm');
-                                    const rommServers = mediaServers.filter(
-                                        s => s && s.type === 'romm' && s.enabled === true
-                                    );
-                                    const targetSize = Math.max(10, Math.min(50, remaining * 3));
-
-                                    for (const serverConfig of rommServers) {
-                                        if (results.length >= limit) break;
-                                        try {
-                                            const rommSource = new RommSource(
-                                                serverConfig,
-                                                shuffleArray,
-                                                isDebug
-                                            );
-                                            const client = await rommSource.getClient();
-
-                                            const wanted = targetSize;
-                                            const selectedPlatforms = Array.isArray(
-                                                serverConfig.selectedPlatforms
-                                            )
-                                                ? serverConfig.selectedPlatforms
-                                                : [];
-
-                                            const batches = [];
-                                            if (selectedPlatforms.length) {
-                                                for (const platformId of selectedPlatforms) {
-                                                    batches.push(
-                                                        client.getRoms({
-                                                            platform_id: platformId,
-                                                            search_term: q,
-                                                            limit: Math.min(50, wanted),
-                                                            offset: 0,
-                                                        })
-                                                    );
-                                                    if (batches.length >= 3) break;
-                                                }
-                                            } else {
-                                                batches.push(
-                                                    client.getRoms({
-                                                        search_term: q,
-                                                        limit: Math.min(50, wanted),
-                                                        offset: 0,
-                                                    })
-                                                );
-                                            }
-
-                                            for (const p of batches) {
-                                                if (results.length >= limit) break;
-                                                const payload = await p;
-                                                const roms = Array.isArray(payload?.results)
-                                                    ? payload.results
-                                                    : Array.isArray(payload)
-                                                      ? payload
-                                                      : [];
-                                                for (const rom of roms) {
-                                                    if (results.length >= limit) break;
-                                                    const romId = rom?.id;
-                                                    if (!romId) continue;
-                                                    const key = `romm_${serverConfig.name}_${romId}`;
-                                                    if (seenKeys.has(key)) continue;
-                                                    seenKeys.add(key);
-                                                    const title = (
-                                                        rom?.name ||
-                                                        rom?.fs_name_no_ext ||
-                                                        ''
-                                                    ).toString();
-                                                    if (!title) continue;
-                                                    const posterAbs = rom?.url_cover
-                                                        ? String(rom.url_cover)
-                                                        : null;
-                                                    const posterUrl = posterAbs
-                                                        ? `/image?url=${encodeURIComponent(posterAbs)}`
-                                                        : null;
-                                                    const y = rom?.metadatum?.first_release_date
-                                                        ? new Date(
-                                                              Number(
-                                                                  rom.metadatum.first_release_date
-                                                              ) * 1000
-                                                          ).getFullYear()
-                                                        : null;
-
-                                                    results.push({
-                                                        key,
-                                                        title,
-                                                        year: Number.isFinite(Number(y))
-                                                            ? Number(y)
-                                                            : null,
-                                                        type: 'game',
-                                                        source: 'romm',
-                                                        posterUrl,
-                                                    });
-                                                }
-                                            }
-                                        } catch (_) {
-                                            // Ignore this RomM server
-                                        }
-                                    }
-                                } catch (_) {
-                                    // Best-effort: ignore RomM search failures
-                                }
-                            }
 
                             // Prefer /search which is typically more complete than /hubs/search.
                             try {
